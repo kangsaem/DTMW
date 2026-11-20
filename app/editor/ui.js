@@ -78,5 +78,5 @@ window.KZ = window.KZ || {};
   function num(v, d) { var n = parseFloat(v); return isNaN(n) ? d : n; }
 
   KZ.ui = { docs: docs, $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, toHex: toHex, num: num,
-    setStatus: function (s) { $('#status').textContent = s; } };
+    setStatus: function (s, bad) { var e = $('#status'); e.textContent = s; e.classList.toggle('bad', !!bad); } };
 })(window.KZ);

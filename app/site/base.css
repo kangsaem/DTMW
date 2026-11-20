@@ -12,7 +12,7 @@ a{color:inherit}
 .nav .links .nav-sub a{padding:8px 14px;font-size:14px}
 .nav .links a{text-decoration:none;font-size:14px;padding:6px 0}
 .nav .links a:hover{text-decoration:underline}
-.nav .lang{display:flex;gap:10px;font-size:13px;color:var(--sub)}
+.nav .lang{display:none;gap:10px;font-size:13px;color:var(--sub)} /* 언어 전환은 아직 없음 — 다국어(C) 작업 때 다시 보이게 */
 .nav .lang a{text-decoration:none;padding:6px 2px}
 .nav .lang a.on{color:var(--ink);border-bottom:1px solid currentColor}
 .nav--light{color:#fff}

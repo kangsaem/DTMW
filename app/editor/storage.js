@@ -6,7 +6,11 @@ window.KZ = window.KZ || {};
   var FORMAT = 1; // 작업 파일 형식 버전
 
   var DB = {
-    open: function () { return new Promise(function (res, rej) { try { var r = indexedDB.open('kz-editor', 1); r.onupgradeneeded = function () { r.result.createObjectStore('kv'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; } catch (e) { rej(e); } }); },
+    // 연결은 한 번 열어 재사용합니다 (창을 닫는 순간의 저장도 바로 시작되도록). 연결이 닫히면 다시 엶
+    _db: null,
+    open: function () { var self = this; if (self._db) return Promise.resolve(self._db); return new Promise(function (res, rej) { try { var r = indexedDB.open('kz-editor', 1); r.onupgradeneeded = function () { r.result.createObjectStore('kv'); }; r.onsuccess = function () { var db = r.result; db.onclose = function () { self._db = null; }; db.onversionchange = function () { db.close(); self._db = null; }; self._db = db; res(db); }; r.onerror = function () { rej(r.error); }; } catch (e) { rej(e); } }); },
+    // 창을 닫는 순간용: 연결이 열려 있으면 그 자리에서 바로 쓰기 시작 (비동기 대기 없음). 못 하면 false
+    putNow: function (k, v) { try { if (!this._db) return false; this._db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); return true; } catch (e) { return false; } },
     get: function (k) { return this.open().then(function (db) { return new Promise(function (res, rej) { var q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; }); }); },
     set: function (k, v) { return this.open().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = function () { res(); }; tx.onerror = function () { rej(tx.error); }; }); }); },
     del: function (k) { return this.open().then(function (db) { return new Promise(function (res) { var tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete = function () { res(); }; tx.onerror = function () { res(); }; }); }); }
