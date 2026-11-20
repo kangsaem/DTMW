@@ -38,7 +38,7 @@
 
 ## 작업 방식
 
-- 큰 변경은 브랜치 → PR → Cloudflare 미리보기 주소 확인 → main 합치기.
+- 큰 변경은 브랜치 → PR(자동 점검) → 로컬에서 화면 확인 → main 합치기 (main에 합치면 바로 배포됨).
 - 올리기 전 `npx playwright test` 통과 확인. Actions가 같은 점검을 실행.
 - 버전을 올리면 `app/version.js`, `package.json`, `CHANGELOG.md` 함께 수정.
 - 사용자 선호: 한국어, 간결 · 객관적, 근거와 한계를 함께. 구체 작업 전에는 선택지와 추천을 먼저 보여주고 "ㄱㄱ"면 진행. 화면은 단순하게.
