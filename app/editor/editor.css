@@ -60,6 +60,8 @@ button{cursor:pointer}
 .main > .drawer{grid-column:2;grid-row:1}
 .main > .stage{grid-column:3;grid-row:1}
 .main > .side{grid-column:4;grid-row:1}
+/* 떠 있는 창은 칸 배치에서 빼서 편집 영역 전체를 기준으로 위치 */
+.main > .floating{grid-column:auto;grid-row:auto}
 .rail{background:var(--ui-app);border-right:1px solid var(--ui-line);display:flex;flex-direction:column;padding:8px 6px;gap:4px;z-index:5}
 .rail button{border:0;background:none;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--ui-sub)}
 .rail button svg{width:22px;height:22px}

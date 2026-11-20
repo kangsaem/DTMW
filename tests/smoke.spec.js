@@ -195,6 +195,17 @@ test('패널을 떼어내도 편집 화면이 그대로 보인다', async ({ pag
   }
   const sb = await page.locator('.stage').boundingBox();
   expect(sb.x).toBeLessThan(80);
+  // 떠 있는 창이 화면 안에 보여야 함
+  const vw = page.viewportSize().width;
+  for (const id of ['#drawer', '#side']) {
+    const b = await page.locator(id).boundingBox();
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(vw);
+  }
+  await page.reload();
+  await page.waitForFunction(() => window.__kzEditor && document.getElementById('status').textContent !== '불러오는 중…');
+  const b2 = await page.locator('#side').boundingBox();
+  expect(b2.x + b2.width).toBeLessThanOrEqual(vw);
   expect(errors).toEqual([]);
 });
 
