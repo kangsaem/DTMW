@@ -56,6 +56,10 @@ window.KZ = window.KZ || {};
         if (e.key !== 'Tab' || e.ctrlKey || e.altKey || e.metaKey) return;
         var a = document.activeElement, typing = a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
         if (typing || document.querySelector('.dlg-back.open') || document.querySelector('.pv.open')) return;
+        // 편집 화면(iframe) 안에서 글을 고치는 중이면 Tab 은 글 쪽에 맡김 (도구 숨기기 안 함)
+        var ed = window.__kzEditor;
+        if (ed && ed.getEditing && ed.getEditing()) return;
+        if (a && a.tagName === 'IFRAME') { try { var ia = a.contentDocument && a.contentDocument.activeElement; if (ia && ia.isContentEditable) return; } catch (er) { /* 다른 출처 */ } }
         if (a && a !== document.body && a.tagName !== 'IFRAME') return; // 키보드로 버튼을 옮겨 다닐 때는 원래 Tab 동작
         e.preventDefault(); zen(!app.classList.contains('zen'));
       });

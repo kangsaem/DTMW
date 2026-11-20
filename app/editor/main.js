@@ -111,15 +111,38 @@
       offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
       fileDirty(false);
     }
+    // 브라우저 저장: 고친 뒤 0.9초 모아서 저장. 창을 닫거나 탭을 숨길 때는 바로 저장(flush)
+    let pending = false, passive = false;
+    async function writeNow() {
+      clearTimeout(saveT); if (!pending) return; pending = false;
+      if (passive) { setStatus('다른 탭에서 편집 중 — 이 탭은 저장 안 함', true); return; }
+      try { await KZ.store.DB.set('project', KZ.store.pack(S, editor.getProjectData())); if (!pending) setStatus('저장됨 · 이 브라우저'); }
+      catch (e) { setStatus('브라우저 저장 불가 — 파일로 저장하세요', true); }
+    }
     function save() {
       if (!booted) return;
       if (armed) fileDirty(true);
-      setStatus('저장 중…'); clearTimeout(saveT);
-      saveT = setTimeout(async () => {
-        try { await KZ.store.DB.set('project', KZ.store.pack(S, editor.getProjectData())); setStatus('저장됨 · 이 브라우저'); }
-        catch (e) { setStatus('브라우저 저장 불가 — 파일로 저장하세요'); }
-      }, 900);
+      if (passive) { setStatus('다른 탭에서 편집 중 — 이 탭은 저장 안 함', true); passiveDialog(); return; }
+      setStatus('저장 중…'); clearTimeout(saveT); pending = true;
+      saveT = setTimeout(writeNow, 900);
     }
+    window.addEventListener('beforeunload', e => { if (pending) { writeNow(); e.preventDefault(); e.returnValue = ''; } });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') writeNow(); });
+    // 두 탭: 나중에 연 탭(또는 '이 탭에서 계속'을 누른 탭)만 저장합니다. 나머지 탭은 저장을 멈추고 알립니다
+    const TAB_ID = Math.random().toString(36).slice(2);
+    const bc = 'BroadcastChannel' in window ? new BroadcastChannel('wmw-editor') : null;
+    let passiveShown = false;
+    function passiveDialog() {
+      if (passiveShown) return; passiveShown = true;
+      dialog('다른 탭에서 편집기를 열었습니다', '<p>같은 브라우저의 다른 탭에서 편집기가 열려 있어, <b>이 탭은 더 이상 저장하지 않습니다</b> (두 탭이 서로 덮어쓰지 않도록).</p><p class="hint">다른 탭에서 계속하거나, 이 탭에서 계속하려면 아래 버튼을 누르세요. 이 탭을 최신 저장본으로 다시 엽니다.</p>',
+        [['닫기', null], ['이 탭에서 계속', () => { location.reload(); }, 'pri']]);
+    }
+    if (bc) bc.onmessage = e => {
+      const m = e.data || {}; if (m.id === TAB_ID) return;
+      if (m.t === 'claim') { clearTimeout(saveT); if (pending) { pending = false; } passive = true; setStatus('다른 탭에서 편집 중 — 이 탭은 저장 안 함', true); passiveDialog(); bc.postMessage({ t: 'here', id: TAB_ID }); }
+      if (m.t === 'here' && !passive) toast('다른 탭에도 편집기가 열려 있습니다 — 이 탭에서 저장합니다');
+    };
+    KZ.tabState = () => ({ passive, pending });
     editor.on('update', save);
 
     // ---------- 사이트 세트 · 템플릿 ----------
@@ -154,7 +177,14 @@
       KZ.setOrder.map(k => [k, KZ.sets[k]]).forEach(([k, s]) => {
         const b = document.createElement('button'); b.className = 'set';
         const th = THEMES[(s.style || {}).theme] || THEMES.white; b.innerHTML = '<i class="set-sw"><b style="background:' + th.bg + '"></b><b style="background:' + th.ink + '"></b><b style="background:' + th.accent + '"></b></i><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span>';
-        b.onclick = async () => { if (await confirmDlg('사이트 세트 적용', '지금 사이트의 모든 페이지가 <b>' + esc(s.name) + '</b> 세트로 바뀝니다. 계속할까요?', '적용')) { applySet(k); toast('세트를 적용했습니다'); } };
+        b.onclick = async () => {
+          // 세트 적용은 되돌리기(Ctrl+Z)로 되돌릴 수 없으므로 작업 파일을 먼저 받을 수 있게 합니다
+          const v = await dialog('사이트 세트 적용', '<p>지금 사이트의 모든 페이지가 <b>' + esc(s.name) + '</b> 세트로 바뀝니다.</p><p class="hint">⚠ 세트 적용은 <b>되돌리기(Ctrl+Z)로 되돌릴 수 없습니다.</b> 지금 작업을 남기려면 작업 파일을 먼저 받으세요.</p>',
+            [['취소', false], ['작업 파일 받고 진행', 'save'], ['적용', true, 'pri']]);
+          if (!v) return;
+          if (v === 'save') saveProjectFile();
+          applySet(k); toast('세트를 적용했습니다');
+        };
         box.appendChild(b);
       });
     }
@@ -785,12 +815,21 @@
       $('#siteName').value = S.siteName; treeEnsure(); refreshTheme(); renderSite(); renderAssets(); renderNav(); renderSide();
     }
     editor.on('load', async () => {
-      let saved = null;
-      try { saved = await KZ.store.DB.get('project'); if (saved) saved = KZ.store.migrate(saved); } catch (e) { saved = null; }
+      // 다른 탭에 알림: 이제 이 탭이 저장합니다 (먼저 알려야 다른 탭이 저장을 멈춤)
+      if (bc) bc.postMessage({ t: 'claim', id: TAB_ID });
+      let saved = null, raw = null, loadErr = null;
+      try { raw = await KZ.store.DB.get('project'); if (raw) saved = KZ.store.migrate(raw); } catch (e) { saved = null; loadErr = e; }
       try {
         if (saved && saved.gjs) { S = Object.assign(DEFAULT_S(), saved.S || {}); editor.loadProjectData(saved.gjs); if (!realPages().length) applySet(C.DEFAULT_SET); }
         else applySet(C.DEFAULT_SET);
-      } catch (e) { applySet(C.DEFAULT_SET); }
+      } catch (e) { loadErr = loadErr || e; S = DEFAULT_S(); applySet(C.DEFAULT_SET); }
+      // 저장본을 못 열었으면 지우지 않고 따로 보관한 뒤 알립니다 (이전에는 기본 세트가 그대로 덮어썼음)
+      if (loadErr && raw) {
+        const key = 'backup-' + new Date().toISOString().replace(/[:.]/g, '-');
+        try { await KZ.store.DB.set(key, raw); } catch (e) { /* 아래에서 파일로 받기 */ }
+        dialog('저장된 작업을 열지 못했습니다', '<p>이 브라우저에 저장된 작업을 열 수 없어 기본 세트로 시작합니다.</p><p class="hint">이유: ' + esc(loadErr.message || String(loadErr)) + '<br>원래 저장본은 지우지 않고 보관했습니다. 아래 버튼으로 파일로 받아 두고, 편집기를 새로고침한 뒤 <b>파일 → 작업 파일 불러오기</b>로 열어 보세요.</p>',
+          [['닫기', null], ['원래 저장본 받기', d => { d(null); offerFile('wmw-backup-project.json', JSON.stringify(raw), 'application/json'); }, 'pri']]);
+      }
       treeEnsure(); syncMenus();
       editor.UndoManager.clear();
       booted = true;
