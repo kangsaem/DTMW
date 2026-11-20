@@ -16,13 +16,13 @@
 - 편집기 주소: **site.kangyonz.com**. build · html · page · make 리디렉트는 보류 (GitHub Pages는 저장소당 주소 1개 — Cloudflare 이전 때 처리, 코드는 이미 들어 있음).
 - 호스팅: GitHub `kangsaem/SITE` + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
 - 도메인: 가비아 DNS. kangyonz.com 본체(다른 용도로 사용 중)와 kangizo.com(Canva + 가비아 포워딩)은 **건드리지 않음**.
-- 참고 사이트: kangyonz.com/proto/v3 (앱 카드형), kangizo.com (작가 소개).
+- 참고 사이트: kangyonz.com/proto/v3 (앱 카드형), kangizo.com (작가 소개). **실제 사이트 내용으로 만든 세트는 넣지 않음** — 세트는 업종 무관 · 자리표시 문구만.
 
 ## 현재 상태
 
 - [x] 1차 시제품: Canva식 화면, 레이아웃 14종, 효과(등장 7 · 마우스 5 · 팝업 5 · 패럴랙스 · 고정 · 전환 5), 모바일 따로 조정, 한 파일 내보내기
 - [x] 0.2.0: 저장소 구조 정리, 레이아웃 이름 중립화, 작업 파일 버전 변환, 자동 점검(Playwright 6개), 주소 리디렉트
-- [x] 0.3.0: 기본 문구 업종 무관화, 기본 세트 '기본 사이트', 세트별 내용 주입(pages 4번째 값)
+- [x] 0.3.0: 기본 문구 업종 무관화, 기본 세트 '기본 사이트', 세트별 내용 주입(pages 4번째 값), 실제 사이트 기반 세트 제거
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중

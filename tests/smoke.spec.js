@@ -35,11 +35,12 @@ test('모든 레이아웃과 세트가 오류 없이 만들어진다', async ({ 
   expect(errors).toEqual([]);
 });
 
-test('사이트 세트를 바꾸고 되돌릴 수 있다', async ({ page }) => {
+test('사이트 세트를 다시 적용하면 기본 페이지로 돌아간다', async ({ page }) => {
   await open(page);
-  await page.locator('.set', { hasText: 'proto v3' }).click();
+  await page.evaluate(() => { window.__kzEditor.Pages.add({ id: 'extra', name: '추가', component: '<p>x</p>' }); });
+  await page.locator('.set', { hasText: '기본 사이트' }).click();
   await page.locator('#dlgF button', { hasText: '적용' }).click();
-  await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,effects');
+  await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,gallery,detail,news,journal,about,effects');
 });
 
 test('미리보기에서 페이지 이동과 팝업이 작동한다', async ({ page }) => {
@@ -87,10 +88,9 @@ test('기본 문구에 특정 업종 단어가 남아 있지 않다', async ({ p
   expect(found).toEqual([]);
 });
 
-test('세트가 레이아웃에 자기 내용을 넣을 수 있다', async ({ page }) => {
+test('레이아웃에 내용 데이터를 넣을 수 있다 (세트용)', async ({ page }) => {
   await open(page);
-  const html = await page.evaluate(() => { const p = KZ.sets.kangyonz.pages[0]; return KZ.layouts[p[2]].html(p[3]); });
-  expect(html).toContain('MONEY PIE');
-  const generic = await page.evaluate(() => KZ.layouts.t5.html());
-  expect(generic).not.toContain('MONEY PIE');
+  const r = await page.evaluate(() => [KZ.layouts.t5.html({ title: '테스트 제목', items: [['가', '나', 1, '다']] }), KZ.layouts.t5.html()]);
+  expect(r[0]).toContain('테스트 제목');
+  expect(r[1]).not.toContain('테스트 제목');
 });
