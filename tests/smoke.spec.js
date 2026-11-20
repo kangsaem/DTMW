@@ -473,3 +473,51 @@ test('GitHub 안내 페이지가 열리고 편집기에서 연결된다', async 
   await open(page);
   expect(await page.locator('#fileMenu a[href="guide/"]').count()).toBe(1);
 });
+
+// ---------- 0.11.0 ----------
+test('디자인 패널을 창 밖(팝업)으로 꺼내도 선택 · 수정이 되고, 창을 닫으면 제자리로 돌아온다', async ({ page }) => {
+  const errors = await open(page);
+  const w0 = (await page.locator('.stage').boundingBox()).width;
+  await page.evaluate(() => { KZ.forcePopup = true; });
+  const [pop] = await Promise.all([page.waitForEvent('popup'), page.click('[data-popout="side"]')]);
+  await expect(pop.locator('#side')).toHaveCount(1);
+  await expect(page.locator('.main #side')).toHaveCount(0);
+  expect((await page.locator('.stage').boundingBox()).width).toBeGreaterThan(w0);
+  // 편집기에서 고르면 바깥 창 패널이 바뀌고, 바깥 창에서 고치면 편집기에 반영
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('h1')[0]); });
+  await expect(pop.locator('#sideBody')).toBeVisible();
+  await expect(pop.locator('#selName')).toContainText('큰 제목');
+  await pop.locator('#tabDesign .seg button', { hasText: '가운데' }).first().click();
+  expect(await page.evaluate(() => { const e = window.__kzEditor, s = e.getSelected(); const r = e.Css.getRule('#' + s.getId()); return r && r.getStyle()['text-align']; })).toBe('center');
+  // 효과 탭 전환도 바깥 창 안에서
+  await pop.locator('.tabs button[data-tab="fx"]').click();
+  await expect(pop.locator('#tabFx')).toBeVisible();
+  await pop.close();
+  await expect(page.locator('.main #side')).toHaveCount(1);
+  await expect(page.locator('[data-popout="side"]')).toHaveText('↗');
+  expect(errors).toEqual([]);
+});
+
+test('도구 패널을 창 밖으로 꺼내면 왼쪽 아이콘으로 탭을 바꿀 수 있다', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => { KZ.forcePopup = true; });
+  const [pop] = await Promise.all([page.waitForEvent('popup'), page.click('[data-popout="drawer"]')]);
+  await page.click('.rail button[data-pane="site"]');
+  await expect(pop.locator('.pane[data-pane="site"]')).toBeVisible();
+  await expect(pop.locator('#drawerTitle')).toHaveText('사이트');
+  await page.click('.rail button[data-pane="site"]'); // 같은 탭을 다시 눌러도 바깥 창은 그대로
+  await expect(pop.locator('.pane[data-pane="site"]')).toBeVisible();
+  await pop.locator('[data-popout="drawer"]').click(); // ⇲ 로 되돌리기
+  await expect(page.locator('.main #drawer')).toHaveCount(1);
+});
+
+test('요소 탭의 블록을 누르면 선택한 요소 아래에 들어간다 (창 밖 패널에서도)', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => { KZ.forcePopup = true; const e = window.__kzEditor; e.select(e.getWrapper().find('h1')[0]); });
+  const [pop] = await Promise.all([page.waitForEvent('popup'), page.click('[data-popout="drawer"]')]);
+  await page.click('.rail button[data-pane="el"]');
+  const n0 = await page.evaluate(() => window.__kzEditor.getWrapper().find('.body-p').length);
+  await pop.locator('#blocks .gjs-block[data-bid="b-p"]').click();
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().find('.body-p').length)).toBe(n0 + 1);
+  expect(await page.evaluate(() => window.__kzEditor.getSelected().getClasses())).toContain('body-p');
+});
