@@ -2,8 +2,8 @@
 KZ.set({
   id: 'service', name: '제품 · 서비스', desc: '서비스(카드 + 상세) · 특징 · 공지 · 회사 소개 — 흰 배경, 모던', siteName: '우리 서비스',
   style: { theme: 'white', font: 'inter', transition: 'slide', speed: 'normal' },
-  pages: [['home', '홈', 't1'], ['gallery', '서비스', 't5', { kicker: '서비스', title: '[서비스를 한 줄로 소개]', badgeOn: '[제공 중]', badgeOff: '[준비 중]', footL: '[이메일]', footR: '© [사이트 이름]' }],
-    ['detail', '특징', 't6', null, {parent:'gallery'}], ['news', '공지', 't2'], ['about', '회사 소개', 't13']],
+  pages: [['home', '홈', 't1', null, { add: [['cta', { title: '[서비스를 한 문장으로 권하기]', btn: '문의하기', href: '#about' }]] }], ['gallery', '서비스', 't5', { kicker: '서비스', title: '[서비스를 한 줄로 소개]', badgeOn: '[제공 중]', badgeOff: '[준비 중]', footL: '[이메일]', footR: '© [사이트 이름]' }],
+    ['detail', '특징', 't6', null, {parent:'gallery', add: ['pricing']}], ['news', '공지', 't2'], ['about', '회사 소개', 't13', null, { add: ['faq', 'contact'] }]],
   words: [].concat(KZ.W.noEffects, KZ.W.noJournal,
     KZ.W.profileDl([['설립', '[연도]'], ['분야', '[업종]'], ['주소', '[주소]'], ['문의', '[이메일 · 전화]']]),
     [['[사이트 이름]', '[회사 이름]'], ['>갤러리<', '>서비스<'], ['>소식<', '>공지<'], ['>소개<', '>회사 소개<'],
