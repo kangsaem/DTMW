@@ -121,6 +121,8 @@ test('세트를 적용하면 테마와 글꼴도 바뀐다', async ({ page }) =>
   await page.locator('.set', { hasText: '카페' }).click();
   await page.locator('#dlgF button', { hasText: '적용' }).click();
   await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,gallery,news,about');
+  // 세트를 바꾸면 편집 화면이 다시 그려지는 동안 테마 스타일이 잠깐 없을 수 있어 기다림
+  await expect.poll(() => page.evaluate(() => { const t = window.__kzEditor.Canvas.getDocument().getElementById('kz-theme'); return t ? t.textContent.includes('#EDE6D9') : false; })).toBe(true);
   const css = await page.evaluate(() => window.__kzEditor.Canvas.getDocument().getElementById('kz-theme').textContent);
   expect(css).toContain('#EDE6D9');
   expect(css).toContain('Gowun Batang');
@@ -563,7 +565,7 @@ test('다른 탭에서 편집기를 열면 먼저 연 탭은 저장을 멈추고
 
 test('고친 직후 바로 새로고침해도 마지막 수정이 남는다', async ({ page }) => {
   await open(page);
-  let asked = false; page.on('dialog', d => { asked = d.type() === 'beforeunload'; setTimeout(() => d.accept(), 300); }); // 사람이 '새로고침'을 누르는 정도의 시간
+  let asked = false; page.on('dialog', d => { asked = d.type() === 'beforeunload'; d.accept(); }); // 확인 창을 바로 눌러도 남아야 함 (저장은 즉시 확정)
   await page.click('#stageTitle'); // 사용자 조작(브라우저가 닫기 확인을 띄우는 조건)
   await page.evaluate(() => { window.__kzEditor.getWrapper().find('h1')[0].components('QUICK-1'); });
   expect(await page.evaluate(() => KZ.tabState().pending)).toBe(true);

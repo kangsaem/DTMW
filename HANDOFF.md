@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.13.1
+- 편집기 버전: 0.13.2
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -40,6 +40,7 @@
 - [x] 0.12.0: 점검에서 찾은 문제 수정 — 작업 손실 방지(읽기 실패 백업 · 세트 적용 경고 · 두 탭 · 닫기 전 저장), 편집 중 Tab, 상단 줄 반응형, 좁은 편집 화면 알림, 언어 버튼 숨김, PC 사용 안내, 창 밖 패널 두 개 · 빈 창 버그, 로고 · 파비콘. 자동 점검 47개
 - [x] 0.13.0: 배경 고정 효과(섹션 레이아웃 '배경 고정 창' · 효과 탭 '배경 고정' · 효과 충돌 처리 · 영상 보일 때만 재생), 창 밖 패널 다시 한 번에 하나, 짧은 로고. 자동 점검 50개
 - [x] 0.13.1: 창 밖 패널 + 창 크기 변경 시 빈 칸 버그. 자동 점검 51개
+- [x] 0.13.2: 닫을 때 저장 즉시 확정(commit), 점검 안정화
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
