@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.10.0
+- 편집기 버전: 0.11.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -36,17 +36,12 @@
 - [x] 0.9.0: 색 테마 12종(명암 대비 점검), 글꼴 10종(헬베티카풍 WMW Heros = TeX Gyre Heros 파생본, Pretendard 등), 내보낼 때 쓴 글꼴만. 자동 점검 26개
 - [x] 0.9.1: 페이지 복제 시 스타일 사라짐 고침. 실제 배포 시험용 샘플 사이트 **site.kangyonz.com/demo/** (동네 가게 세트, noindex) — Chrome에서 페이지 이동 · 페이지 이동 효과 · FAQ · 팝업 · 글꼴 · 콘솔 오류 없음 확인. 자동 점검 27개
 - [x] 0.10.0: ZIP 내보내기(index.html + media/), 내보내기 창(25MB · 연결 안 된 버튼 경고), GitHub 안내 페이지 /guide/, 링크 빠른 입력, 히어로 안내 문구 숨김, 영문 파일 이름. 자동 점검 32개
+- [x] 0.11.0: 패널을 브라우저 창 밖으로(PiP · 팝업), 블록 누르기로 넣기. 자동 점검 35개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
 
 ## 다음 할 일
-
-### E. 패널을 브라우저 창 밖으로 (제안 — 사용자 결정 대기)
-
-- 추천: Document Picture-in-Picture(항상 위 작은 창, Chrome · Edge PC)를 기본, 안 되는 브라우저는 window.open 팝업 창으로 대체. 패널 머리에 ↗ 버튼
-- 할 일: `KZ.ui.$` 등이 main document 만 찾음 → 바깥 창 document 도 찾게, 편집기 CSS 복사, 창 닫히면 제자리로
-- 순서 제안: E(0.10.0) → C(1.0.0)
 
 ### C. 언어 · 내보내기 (메모만 — 2026-11-20 합의, 아직 착수 안 함)
 
@@ -63,6 +58,8 @@
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
 
 글꼴 메모 (0.9.0): 출처는 `C.FONT_SRC` (g: Google Fonts, css: 주소, local: app/fonts). `KZ.fontHead(text, {all, embed, base})` — 편집 화면은 all, 내보내기는 쓴 글꼴만 + local 글꼴은 data URI. 새 글꼴은 FONT_SRC 와 FONTS 두 곳에 추가.
+
+창 밖 패널 메모 (0.11.0): `editor/popout.js`. 패널 요소를 바깥 창 document 로 옮기고(이벤트 유지), 편집기 CSS 를 복사. `KZ.ui.docs` 에 바깥 document 를 등록해 `$ · $$` 가 함께 찾음 — 새 코드도 `document.querySelector` 대신 `$` 를 쓸 것. 시험은 `KZ.forcePopup = true` 로 팝업 경로. 한계: 고급 탭 색 고르기 창 등 GrapesJS 가 띄우는 작은 창은 편집기 쪽에 뜰 수 있음, 창 사이 끌어다 놓기는 보장 안 함.
 
 화면 구조 메모 (0.8.0): 섹션 = 페이지 바로 아래 요소. 레이아웃 `section(d)` 가 있으면 그것, 없으면 `KZ.stripChrome(html)` 로 메뉴 · 바닥글을 뺀 본문. 세트 페이지 다섯째 값 `{ add: [...] }` 로 섹션을 바닥글 위에 이어 붙임.
 
