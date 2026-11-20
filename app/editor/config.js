@@ -34,9 +34,9 @@ window.KZ = window.KZ || {};
     'blur-in': [{ opacity: 0, filter: 'blur(14px)' }, { opacity: 1, filter: 'blur(0px)' }],
     mask: [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }]
   };
-  C.DEFAULT_SET = 'kangizo';
+  C.DEFAULT_SET = 'basic';
   C.DEFAULT_S = function () {
-    return { siteName: 'kangizo', theme: 'white', colors: Object.assign({}, C.THEMES.white), font: 'serif', transition: 'fade', speed: 'normal', assets: [] };
+    return { siteName: '내 사이트', theme: 'white', colors: Object.assign({}, C.THEMES.white), font: 'serif', transition: 'fade', speed: 'normal', assets: [] };
   };
   C.SECTORS = [
     { name: '배치 · 크기', open: false, properties: ['display', 'position', 'top', 'right', 'left', 'bottom', 'width', 'height', 'max-width', 'min-height', 'margin', 'padding', 'z-index'] },

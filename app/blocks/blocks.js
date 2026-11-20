@@ -28,11 +28,11 @@
     ['b-title', '큰 제목', '텍스트', IC.h, '<h1 class="title">제목을 입력하세요</h1>'],
     ['b-h2', '소제목', '텍스트', IC.h, '<h2 class="h2">소제목</h2>'],
     ['b-p', '본문', '텍스트', IC.p, '<p class="body-p">본문을 입력하세요. 두 번 눌러 바로 고칠 수 있습니다.</p>'],
-    ['b-cap', '캡션', '텍스트', IC.p, '<p class="cap">[작품명], 2026 · [재료], [크기]</p>'],
+    ['b-cap', '캡션', '텍스트', IC.p, '<p class="cap">[항목 이름], 2026 · [짧은 설명]</p>'],
     ['b-quote', '인용', '텍스트', IC.q, '<blockquote class="ed-q">“[인용문]”</blockquote>'],
     ['b-img', '이미지', '미디어', IC.img, () => '<img src="' + ph('이미지', 1200, 800, 0) + '" alt="">'],
     ['b-video', '영상', '미디어', IC.vid, { type: 'video', src: '', autoplay: true, loop: true, muted: true, controls: false, style: { width: '100%', 'aspect-ratio': '16/9' } }],
-    ['b-work', '작품 카드', '미디어', IC.img, () => fig(0, 2026, { hover: 'zoom' })],
+    ['b-work', '이미지 카드', '미디어', IC.img, () => fig(0, 2026, { hover: 'zoom' })],
     ['b-gal', '갤러리 3열', '미디어', IC.grid, () => '<div class="grid g3">' + fig(0, 2026, { hover: 'zoom' }) + fig(1, 2026, { hover: 'zoom' }) + fig(2, 2026, { hover: 'zoom' }) + '</div>'],
     ['b-rect', '사각형', '도형 · 장식', IC.rect, '<div class="shape"></div>'],
     ['b-circ', '원', '도형 · 장식', IC.circ, '<div class="shape circle"></div>'],
@@ -47,10 +47,10 @@
     ['b-pop', '팝업 버튼', '버튼 · 팝업', IC.pop, '<button class="btn-line" type="button" data-click="modal" data-title="제목" data-text="팝업 내용을 입력하세요.">자세히 보기</button>'],
     ['s-nav', '상단 메뉴', '섹션', IC.sec, () => nav()],
     ['s-hero', '영상 히어로', '섹션', IC.sec, () => KZ.layouts.t1.html().split('</section>')[0] + '</section>'],
-    ['s-works', '작품 그리드', '섹션', IC.sec, () => '<section class="wrap"><div class="row-head"><h2 class="h2">Works</h2><a class="more" href="#works">전체 →</a></div><div class="grid g3">' + fig(0, 2026, { hover: 'zoom' }) + fig(1, 2025, { hover: 'zoom' }) + fig(2, 2024, { hover: 'zoom' }) + '</div></section>'],
-    ['s-ex', '전시 목록', '섹션', IC.sec, () => '<section class="wrap"><h2 class="h2" style="margin-bottom:20px">Exhibitions</h2><div>' + exRow('개인전') + exRow('단체전') + '</div></section>'],
+    ['s-works', '이미지 그리드', '섹션', IC.sec, () => '<section class="wrap"><div class="row-head"><h2 class="h2">갤러리</h2><a class="more" href="#gallery">전체 →</a></div><div class="grid g3">' + fig(0, 2026, { hover: 'zoom' }) + fig(1, 2025, { hover: 'zoom' }) + fig(2, 2024, { hover: 'zoom' }) + '</div></section>'],
+    ['s-ex', '목록 (제목·장소·날짜)', '섹션', IC.sec, () => '<section class="wrap"><h2 class="h2" style="margin-bottom:20px">소식</h2><div>' + exRow('[분류 A]') + exRow('[분류 B]') + '</div></section>'],
     ['s-text', '글 단락', '섹션', IC.sec, '<section class="wrap"><h2 class="h2" style="margin-bottom:18px">소제목</h2><p class="body-p">본문을 입력하세요.</p></section>'],
-    ['s-contact', '연락처', '섹션', IC.sec, '<section class="wrap"><h2 class="h2" style="margin-bottom:18px">Contact</h2><p class="body-p">[이메일]<br>[갤러리 · 연락처]</p><a class="btn" href="#" data-click="modal" data-title="Contact" data-text="[이메일]">문의하기</a></section>'],
+    ['s-contact', '연락처', '섹션', IC.sec, '<section class="wrap"><h2 class="h2" style="margin-bottom:18px">Contact</h2><p class="body-p">[이메일]<br>[전화 · 주소]</p><a class="btn" href="#" data-click="modal" data-title="Contact" data-text="[이메일]">문의하기</a></section>'],
     ['s-foot', '바닥글', '섹션', IC.sec, FOOT]
   ];
   KZ.BLOCKS = BLOCKS;

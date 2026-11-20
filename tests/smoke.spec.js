@@ -15,7 +15,7 @@ test('편집기가 열리고 기본 세트가 적용된다', async ({ page }) =>
     const e = window.__kzEditor;
     return { pages: e.Pages.getAll().map(p => p.getId()), layouts: KZ.layoutOrder.length, tpl: document.querySelectorAll('.tpl').length, css: !!e.Canvas.getDocument().getElementById('kz-base'), ver: document.getElementById('ver').textContent };
   });
-  expect(info.pages).toEqual(['home', 'works', 'work', 'exhibitions', 'texts', 'about', 'effects']);
+  expect(info.pages).toEqual(['home', 'gallery', 'detail', 'news', 'journal', 'about', 'effects']);
   expect(info.layouts).toBeGreaterThanOrEqual(14);
   expect(info.tpl).toBe(info.layouts);
   expect(info.css).toBe(true);
@@ -46,8 +46,8 @@ test('미리보기에서 페이지 이동과 팝업이 작동한다', async ({ p
   await open(page);
   await page.click('#previewBtn');
   const fr = page.frameLocator('#pvFrame');
-  await fr.locator('.rt-page:not([hidden]) .nav a[href="#works"]').first().click();
-  await expect(fr.locator('.rt-page[data-page="works"]')).toBeVisible();
+  await fr.locator('.rt-page:not([hidden]) .nav a[href="#gallery"]').first().click();
+  await expect(fr.locator('.rt-page[data-page="gallery"]')).toBeVisible();
   await fr.locator('.rt-page:not([hidden]) figure.work').first().click();
   await expect(fr.locator('#rt-ov')).toBeVisible();
 });
@@ -75,4 +75,22 @@ test('작업 파일 형식이 읽히고 옛 형식도 변환된다', async ({ pa
     return [a.v, old.kind, refused];
   });
   expect(r).toEqual([1, 'kz-editor', true]);
+});
+
+test('기본 문구에 특정 업종 단어가 남아 있지 않다', async ({ page }) => {
+  await open(page);
+  const found = await page.evaluate(() => {
+    const words = ['작가', '작품', '전시', '개인전', '단체전', '평론', 'Exhibitions'];
+    const all = KZ.layoutOrder.map(id => KZ.layouts[id].html()).join('\n') + KZ.BLOCKS.map(b => typeof b[4] === 'function' ? b[4]() : (typeof b[4] === 'string' ? b[4] : '')).join('\n');
+    return words.filter(w => all.includes(w));
+  });
+  expect(found).toEqual([]);
+});
+
+test('세트가 레이아웃에 자기 내용을 넣을 수 있다', async ({ page }) => {
+  await open(page);
+  const html = await page.evaluate(() => { const p = KZ.sets.kangyonz.pages[0]; return KZ.layouts[p[2]].html(p[3]); });
+  expect(html).toContain('MONEY PIE');
+  const generic = await page.evaluate(() => KZ.layouts.t5.html());
+  expect(generic).not.toContain('MONEY PIE');
 });

@@ -25,21 +25,21 @@ window.KZ = window.KZ || {};
   var MENU_BTN = '<button class="menu-btn" type="button" data-click="menu" aria-label="메뉴 열기">≡</button>';
   function nav(light) {
     return '<header class="nav' + (light ? ' nav--light' : '') + '">' +
-      '<a class="brand" href="#home">[작가명]</a>' +
-      '<nav class="links"><a href="#works">Works</a><a href="#exhibitions">Exhibitions</a><a href="#texts">Texts</a><a href="#about">About</a><a href="#effects">효과 샘플</a></nav>' +
+      '<a class="brand" href="#home">[사이트 이름]</a>' +
+      '<nav class="links"><a href="#gallery">갤러리</a><a href="#news">소식</a><a href="#journal">글</a><a href="#about">소개</a><a href="#effects">효과 샘플</a></nav>' +
       '<div class="lang"><a href="#" class="on">KR</a><a href="#">EN</a><a href="#">JP</a></div>' + MENU_BTN + '</header>';
   }
-  var FOOT = '<footer class="foot"><span>© [작가명]</span><span>[이메일] · Instagram</span></footer>';
+  var FOOT = '<footer class="foot"><span>© [사이트 이름]</span><span>[이메일] · [SNS]</span></footer>';
   function fig(i, year, o) {
     o = o || {};
     var w = o.w || 800, h = o.h || 1000;
-    return '<figure class="work"' + (o.hover ? ' data-hover="' + o.hover + '"' : '') + ' data-click="lightbox" data-title="[작품명], ' + year + '"' + (o.anim === false ? '' : ' data-anim="' + (o.anim || 'fade-up') + '"') + '>' +
-      '<div class="imgbox"><img src="' + ph('이미지', w, h, i) + '" alt="[작품명]"></div>' +
-      '<figcaption class="cap">[작품명], ' + year + '<br>[재료], [크기]</figcaption></figure>';
+    return '<figure class="work"' + (o.hover ? ' data-hover="' + o.hover + '"' : '') + ' data-click="lightbox" data-title="[항목 이름], ' + year + '"' + (o.anim === false ? '' : ' data-anim="' + (o.anim || 'fade-up') + '"') + '>' +
+      '<div class="imgbox"><img src="' + ph('이미지', w, h, i) + '" alt="[이미지 설명]"></div>' +
+      '<figcaption class="cap">[항목 이름], ' + year + '<br>[짧은 설명]</figcaption></figure>';
   }
   function exRow(kind) {
-    return '<a class="ex-row" href="#" data-anim="fade-up" data-click="modal" data-title="[전시명]' + (kind ? ' (' + kind + ')' : '') + '" data-text="[장소], [도시] · [기간]&#10;&#10;전시 소개 글을 입력하세요.">' +
-      '<span>[전시명]' + (kind ? ' (' + kind + ')' : '') + '</span><span>[장소], [도시]</span><span>[기간]</span></a>';
+    return '<a class="ex-row" href="#" data-anim="fade-up" data-click="modal" data-title="[제목]' + (kind ? ' (' + kind + ')' : '') + '" data-text="[장소] · [날짜]&#10;&#10;소개 글을 입력하세요.">' +
+      '<span>[제목]' + (kind ? ' (' + kind + ')' : '') + '</span><span>[장소]</span><span>[날짜]</span></a>';
   }
 
   // 썸네일 SVG: 각 레이아웃의 thumb(r, C) 가 도형을 그립니다

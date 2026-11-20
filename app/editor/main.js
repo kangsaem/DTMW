@@ -71,10 +71,10 @@
       const tmp = PM.add({ id: '__tmp' + Date.now(), name: 'tmp', component: '' });
       PM.select(tmp);
       old.forEach(p => PM.remove(p));
-      set.pages.forEach(([id, name, t]) => PM.add({ id, name, component: KZ.layouts[t].html() }));
+      set.pages.forEach(([id, name, t, data]) => PM.add({ id, name, component: KZ.layouts[t].html(data) }));
       PM.select(set.pages[0][0]);
       PM.remove(tmp);
-      S.siteName = key; $('#siteName').value = key;
+      S.siteName = set.siteName || S.siteName; $('#siteName').value = S.siteName;
       editor.UndoManager.clear();
       renderPages(); save();
     }
@@ -253,7 +253,7 @@
     function nameOf(c) {
       const tag = (c.get('tagName') || '').toLowerCase();
       const base = KIND_NAMES[c.get('type')] || KIND_NAMES.default;
-      const tagName = { h1: '큰 제목', h2: '소제목', h3: '소제목', p: '문단', a: '링크', button: '버튼', figure: '작품 카드', section: '섹션', header: '상단 메뉴', footer: '바닥글', nav: '메뉴', img: '이미지' }[tag];
+      const tagName = { h1: '큰 제목', h2: '소제목', h3: '소제목', p: '문단', a: '링크', button: '버튼', figure: '이미지 카드', section: '섹션', header: '상단 메뉴', footer: '바닥글', nav: '메뉴', img: '이미지' }[tag];
       return (tagName || base) + (tag ? ' · ' + tag : '');
     }
 
@@ -333,7 +333,7 @@
         box.appendChild(slider('흑백', 0, 100, 1, F.grayscale, v => v + '%', v => { F.grayscale = v; applyF(); }));
         box.appendChild(slider('흐림', 0, 12, 0.5, F.blur, v => v + 'px', v => { F.blur = v; applyF(); }));
         if (kind === 'image') {
-          const alt = h('input', { className: 'inp', value: attr(sel, 'alt'), placeholder: '예: [작품명], 2026' });
+          const alt = h('input', { className: 'inp', value: attr(sel, 'alt'), placeholder: '예: 매장 내부 사진' });
           alt.onchange = () => sel.addAttributes({ alt: alt.value });
           box.appendChild(field('대체 텍스트 (시각장애인 · 검색용)', alt));
         } else {
@@ -378,7 +378,7 @@
       box.appendChild(opts(HOVERS, attr(sel, 'data-hover'), v => {
         setA('data-hover', v);
         if (v === 'cursor' && !attr(sel, 'data-preview')) { const im = sel.find('img')[0]; sel.addAttributes({ 'data-preview': im ? im.get('src') : KZ.H.ph('미리보기', 440, 560, 2) }); toast('업로드 탭에서 사진을 누르면 미리보기 이미지가 바뀝니다'); }
-        if (v === 'caption' && !sel.find('figcaption').length) toast('캡션(figcaption)이 있는 작품 카드에서 작동합니다');
+        if (v === 'caption' && !sel.find('figcaption').length) toast('캡션(figcaption)이 있는 이미지 카드에서 작동합니다');
       }));
       sec('스크롤 연출');
       box.appendChild(opts(SCROLLS, attr(sel, 'data-scroll'), v => {
@@ -397,7 +397,7 @@
           const x = h('textarea', { className: 'inp', value: attr(sel, 'data-text') }); x.onchange = () => sel.addAttributes({ 'data-text': x.value });
           clickBox.append(h('div', { style: 'height:10px' }), field('팝업 제목', t), field('팝업 내용 (줄바꿈 가능)', x));
         } else if (v === 'lightbox') {
-          const t = h('input', { className: 'inp', value: attr(sel, 'data-title'), placeholder: '[작품명], 2026' }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
+          const t = h('input', { className: 'inp', value: attr(sel, 'data-title'), placeholder: '[항목 이름], 2026' }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
           clickBox.append(h('div', { style: 'height:10px' }), field('캡션', t), h('p', { className: 'hint', textContent: '같은 페이지의 라이트박스끼리 화살표로 넘겨 봅니다.' }));
         } else if (v === 'menu') clickBox.append(h('p', { className: 'hint', textContent: '모든 페이지 목록이 전체 화면으로 펼쳐집니다.', style: 'margin-top:8px' }));
       }

@@ -40,7 +40,7 @@ tests/                자동 점검 (Playwright)
 | 하고 싶은 것 | 고칠 곳 |
 |---|---|
 | 레이아웃 추가 | `app/layouts/` 에 파일 추가 → `app/index.html` 에 `<script>` 한 줄 |
-| 사이트 세트 추가 | `app/sets/` 에 파일 추가 → `app/index.html` 에 `<script>` 한 줄 |
+| 사이트 세트 추가 | `app/sets/` 에 파일 추가 → `app/index.html` 에 `<script>` 한 줄. 페이지별 내용은 `pages` 항목의 4번째 값으로 (예: `sets/app-kangyonz.js`) |
 | 테마 · 글꼴 추가 | `app/editor/config.js` |
 | 완성 사이트 디자인 | `app/site/base.css` |
 | 효과 동작 | `app/site/runtime.js`, `app/site/motion.css` |

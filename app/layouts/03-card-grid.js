@@ -7,7 +7,7 @@
   html: () => {
     const ys = [2026, 2026, 2026, 2025, 2025, 2025, 2024, 2024];
     const hs = [1000, 820, 1100, 900, 800, 1050, 950, 860];
-    return nav() + '<section class="wrap"><h1 class="title">Works</h1><div class="chips"><a class="chip on" href="#">전체</a><a class="chip" href="#">2026</a><a class="chip" href="#">2025</a><a class="chip" href="#">2024</a><a class="chip" href="#">[시리즈 A]</a><a class="chip" href="#">드로잉</a></div>' +
+    return nav() + '<section class="wrap"><h1 class="title">갤러리</h1><div class="chips"><a class="chip on" href="#">전체</a><a class="chip" href="#">2026</a><a class="chip" href="#">2025</a><a class="chip" href="#">2024</a><a class="chip" href="#">[분류 A]</a><a class="chip" href="#">[분류 B]</a></div>' +
       '<div class="grid g4">' + ys.map((y, i) => fig(i, y, { hover: 'zoom', h: hs[i] })).join('') + '</div></section>' + FOOT;
   } });
 })(window.KZ);
