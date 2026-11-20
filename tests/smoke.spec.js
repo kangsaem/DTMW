@@ -94,3 +94,40 @@ test('레이아웃에 내용 데이터를 넣을 수 있다 (세트용)', async 
   expect(r[0]).toContain('테스트 제목');
   expect(r[1]).not.toContain('테스트 제목');
 });
+
+test('모든 세트: 페이지 링크가 실제 페이지로 이어지고 스타일이 올바르다', async ({ page }) => {
+  await open(page);
+  const problems = await page.evaluate(() => {
+    const out = [];
+    KZ.setOrder.forEach(id => {
+      const s = KZ.sets[id], ids = s.pages.map(p => p[0]);
+      if (new Set(ids).size !== ids.length) out.push(id + ': 주소 중복');
+      if (s.style && !KZ.C.THEMES[s.style.theme]) out.push(id + ': 없는 테마 ' + s.style.theme);
+      if (s.style && !KZ.C.FONTS[s.style.font]) out.push(id + ': 없는 글꼴 ' + s.style.font);
+      s.pages.forEach(p => {
+        const html = KZ.setPageHtml(s, p);
+        (html.match(/href="#([a-z0-9-]+)"/g) || []).map(m => m.slice(7, -1)).forEach(h => { if (!ids.includes(h)) out.push(id + '/' + p[0] + ': #' + h + ' 페이지 없음'); });
+      });
+    });
+    return [...new Set(out)];
+  });
+  expect(problems).toEqual([]);
+});
+
+test('세트를 적용하면 테마와 글꼴도 바뀐다', async ({ page }) => {
+  await open(page);
+  await page.locator('.set', { hasText: '카페' }).click();
+  await page.locator('#dlgF button', { hasText: '적용' }).click();
+  await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,gallery,news,about');
+  const css = await page.evaluate(() => window.__kzEditor.Canvas.getDocument().getElementById('kz-theme').textContent);
+  expect(css).toContain('#EDE6D9');
+  expect(css).toContain('Gowun Batang');
+});
+
+test('가림막(mask) 등장 효과가 실제로 나타난다', async ({ page }) => {
+  await open(page);
+  await page.click('#previewBtn');
+  const fr = page.frameLocator('#pvFrame');
+  await fr.locator('.rt-page:not([hidden]) .nav a[href="#journal"]').first().click();
+  await expect(fr.locator('.rt-page[data-page="journal"] .ed-fig')).toHaveClass(/\bin\b/, { timeout: 5000 });
+});

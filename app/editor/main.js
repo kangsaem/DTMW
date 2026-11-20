@@ -71,18 +71,26 @@
       const tmp = PM.add({ id: '__tmp' + Date.now(), name: 'tmp', component: '' });
       PM.select(tmp);
       old.forEach(p => PM.remove(p));
-      set.pages.forEach(([id, name, t, data]) => PM.add({ id, name, component: KZ.layouts[t].html(data) }));
+      set.pages.forEach(pg => PM.add({ id: pg[0], name: pg[1], component: KZ.setPageHtml(set, pg) }));
       PM.select(set.pages[0][0]);
       PM.remove(tmp);
       S.siteName = set.siteName || S.siteName; $('#siteName').value = S.siteName;
+      if (set.style) {
+        const st = set.style, th = THEMES[st.theme];
+        if (th) { S.theme = st.theme; S.colors = { bg: th.bg, ink: th.ink, sub: th.sub, line: th.line, accent: th.accent }; }
+        if (st.font && FONTS[st.font]) S.font = st.font;
+        if (st.transition) S.transition = st.transition;
+        if (st.speed) S.speed = st.speed;
+        refreshTheme(); if (booted) renderSite();
+      }
       editor.UndoManager.clear();
       renderPages(); save();
     }
     function renderSets() {
       const box = $('#sets'); box.innerHTML = '';
-      Object.entries(KZ.sets).forEach(([k, s]) => {
+      KZ.setOrder.map(k => [k, KZ.sets[k]]).forEach(([k, s]) => {
         const b = document.createElement('button'); b.className = 'set';
-        b.innerHTML = '<b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span>';
+        const th = THEMES[(s.style || {}).theme] || THEMES.white; b.innerHTML = '<i class="set-sw"><b style="background:' + th.bg + '"></b><b style="background:' + th.ink + '"></b><b style="background:' + th.accent + '"></b></i><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span>';
         b.onclick = async () => { if (await confirmDlg('사이트 세트 적용', '지금 사이트의 모든 페이지가 <b>' + esc(s.name) + '</b> 세트로 바뀝니다. 계속할까요?', '적용')) { applySet(k); toast('세트를 적용했습니다'); } };
         box.appendChild(b);
       });

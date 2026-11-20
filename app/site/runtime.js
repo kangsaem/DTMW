@@ -13,8 +13,24 @@
     blur: [[{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(16px)' }], [{ opacity: 0, filter: 'blur(16px)' }, { opacity: 1, filter: 'blur(0px)' }]],
     zoom: [[{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.05)' }], [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }]]
   };
-  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' }) : null;
-  function arm(p) { [].forEach.call(p.querySelectorAll('[data-anim]'), function (el) { if (!io || !D) { el.classList.add('in'); return; } el.classList.remove('in'); io.observe(el); }); }
+  // 가림막(mask) 효과는 clip-path 때문에 요소 자체가 '안 보이는' 것으로 계산되므로, 바깥 요소를 대신 관찰합니다
+  var waiting = typeof Map === 'function' ? new Map() : null;
+  var io = ('IntersectionObserver' in window && waiting) ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      (waiting.get(e.target) || []).forEach(function (el) { el.classList.add('in'); });
+      waiting.delete(e.target); io.unobserve(e.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' }) : null;
+  function arm(p) {
+    [].forEach.call(p.querySelectorAll('[data-anim]'), function (el) {
+      if (!io || !D) { el.classList.add('in'); return; }
+      el.classList.remove('in');
+      var watch = el.getAttribute('data-anim') === 'mask' && el.parentElement ? el.parentElement : el;
+      var list = waiting.get(watch); if (!list) { list = []; waiting.set(watch, list); io.observe(watch); }
+      list.push(el);
+    });
+  }
   function find(id) { for (var i = 0; i < pages.length; i++) if (pages[i].getAttribute('data-page') === id) return pages[i]; return null; }
   function reveal(p) { p.hidden = false; window.scrollTo(0, 0); arm(p); par(); }
   function go(id, anim) {
