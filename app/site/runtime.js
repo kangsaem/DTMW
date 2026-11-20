@@ -123,6 +123,13 @@
   });
   document.addEventListener('click', function (e) {
     var t = e.target.closest && e.target.closest('[data-click]');
+    if (t && !ov.contains(t) && t.getAttribute('data-click') === 'go') {
+      // 누르면 → 페이지 이동: #주소 는 사이트 안 페이지, 그 밖의 주소는 새 창
+      var g = t.getAttribute('data-go') || ''; e.preventDefault();
+      if (g.charAt(0) === '#') { if (g.length > 1) go(g.slice(1), true); }
+      else if (/^(https?:|mailto:|tel:)/i.test(g)) { var w = window.open(g, '_blank', 'noopener'); if (w) w.opener = null; }
+      return;
+    }
     if (t && !ov.contains(t)) { e.preventDefault(); open(t.getAttribute('data-click'), t); return; }
     var a = e.target.closest && e.target.closest('a[href^="#"]');
     if (a) { var id = a.getAttribute('href').slice(1); e.preventDefault(); if (!id) return; if (!ov.hidden) { close(); setTimeout(function () { go(id, true); }, D * 0.5); } else go(id, true); }
