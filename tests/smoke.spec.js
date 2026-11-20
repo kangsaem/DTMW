@@ -262,7 +262,7 @@ test('효과 탭에서 페이지 이동을 고르면 페이지 목록이 나오�
   await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('figure.work')[0]); });
   await page.click('.tabs button[data-tab="fx"]');
   await page.locator('#tabFx .opts button', { hasText: '페이지 이동' }).click();
-  await page.locator('#tabFx select').selectOption('#about');
+  await page.locator('#tabFx select').first().selectOption('#about');
   const a = await page.evaluate(() => window.__kzEditor.getSelected().getAttributes());
   expect(a['data-click']).toBe('go');
   expect(a['data-go']).toBe('#about');
@@ -397,4 +397,79 @@ test('페이지를 복제해도 요소별 스타일(히어로 배경 그림)이 
   expect(r.copy.bg).toBe(true);
   expect(r.copy.id).not.toBe(r.src.id);
   expect(errors).toEqual([]);
+});
+
+// ---------- 0.10.0 ----------
+async function addFakePhoto(page) {
+  await page.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 40; c.height = 30; const g = c.getContext('2d'); g.fillStyle = '#c0392b'; g.fillRect(0, 0, 40, 30);
+    const src = c.toDataURL('image/png'), e = window.__kzEditor, S = window.__kz.S;
+    S.assets.unshift({ id: 'a-test', type: 'image', name: '가게 사진 1.PNG', src });
+    e.Pages.select('home'); const img = e.getWrapper().find('img')[0]; img.set('src', src);
+  });
+}
+
+test('히어로 안내 문구는 편집 화면에만 보이고 미리보기에서는 숨겨진다', async ({ page }) => {
+  await open(page);
+  const inCanvas = await page.evaluate(() => { const el = window.__kzEditor.Canvas.getDocument().querySelector('.hero-note'); return el && getComputedStyle(el).display; });
+  expect(inCanvas).not.toBe('none');
+  await page.click('#previewBtn');
+  await expect(page.frameLocator('#pvFrame').locator('.rt-page:not([hidden]) .hero-note')).toBeHidden();
+});
+
+test('올린 사진이 있으면 ZIP(index.html + media/)으로 받고, 없으면 index.html 하나다', async ({ page }) => {
+  await open(page);
+  await page.click('#publishBtn');
+  await expect(page.locator('#dlgF button', { hasText: 'index.html 받기' })).toBeVisible();
+  await expect(page.locator('#dlgF button', { hasText: 'ZIP' })).toHaveCount(0);
+  await page.locator('#dlgF button', { hasText: '닫기' }).click();
+  await addFakePhoto(page);
+  await page.click('#publishBtn');
+  await expect(page.locator('#dlgB')).toContainText('1개');
+  const dl = page.waitForEvent('download');
+  await page.locator('#dlgF button', { hasText: 'ZIP 받기' }).click();
+  const d = await dl; const buf = require('fs').readFileSync(await d.path());
+  // ZIP 구조 읽기 (무압축)
+  const files = {}; let p = 0;
+  while (buf.readUInt32LE(p) === 0x04034b50) {
+    const size = buf.readUInt32LE(p + 18), nl = buf.readUInt16LE(p + 26), xl = buf.readUInt16LE(p + 28);
+    const name = buf.slice(p + 30, p + 30 + nl).toString('utf8'); files[name] = buf.slice(p + 30 + nl + xl, p + 30 + nl + xl + size); p += 30 + nl + xl + size;
+  }
+  expect(Object.keys(files).sort()).toEqual(['index.html', 'media/photo-1.png']);
+  const media = 'media/photo-1.png';
+  const html = files['index.html'].toString('utf8');
+  expect(html).toContain('src="' + media + '"');
+  expect(html).not.toContain('data:image/png');
+  expect(files[media].slice(1, 4).toString()).toBe('PNG');
+  expect(buf.readUInt32LE(buf.length - 22)).toBe(0x06054b50);
+});
+
+test('연결 안 된 버튼은 편집 화면에 빨간 점선, 내보내기 창에서 개수를 알려 준다 · 25MB 경고', async ({ page }) => {
+  await open(page);
+  await page.selectOption('#pageSel', 'about');
+  await expect.poll(() => page.evaluate(() => { const d = window.__kzEditor.Canvas.getDocument(); const el = d.querySelector('a.ct-i[href="#"]'); return el && getComputedStyle(el).outlineColor; }), { timeout: 5000 }).toBe('rgb(229, 72, 77)');
+  await addFakePhoto(page);
+  await page.evaluate(() => { KZ.GH_LIMIT = 10; });
+  await page.click('#publishBtn');
+  await expect(page.locator('#dlgB')).toContainText('연결 안 된 버튼');
+  await expect(page.locator('#dlgB')).toContainText('25MB가 넘는 파일');
+});
+
+test('링크 빠른 입력: 전화를 고르면 tel: 이 채워지고 저장된다', async ({ page }) => {
+  await open(page);
+  await page.selectOption('#pageSel', 'about');
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('a.btn-line')[0]); });
+  const url = page.locator('#tabDesign input[placeholder^="https://"]');
+  await page.locator('#tabDesign select').filter({ hasText: '빠른 입력' }).selectOption('tel:');
+  await expect(url).toHaveValue('tel:');
+  await url.type('01012345678'); await url.press('Enter');
+  expect(await page.evaluate(() => window.__kzEditor.getSelected().getAttributes().href)).toBe('tel:01012345678');
+});
+
+test('GitHub 안내 페이지가 열리고 편집기에서 연결된다', async ({ page }) => {
+  await page.goto('/guide/');
+  await expect(page.locator('h1')).toContainText('GitHub');
+  for (const id of ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7']) await expect(page.locator('#' + id)).toHaveCount(1);
+  await open(page);
+  expect(await page.locator('#fileMenu a[href="guide/"]').count()).toBe(1);
 });
