@@ -2,8 +2,20 @@
 window.KZ = window.KZ || {};
 (function (KZ) {
   'use strict';
-  var $ = function (s, r) { return (r || document).querySelector(s); };
-  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  // 바깥 창(패널을 창 밖으로 꺼냈을 때)의 document 도 함께 찾습니다 — KZ.ui.docs 에 등록
+  var docs = [];
+  var $ = function (s, r) {
+    if (r) return r.querySelector(s);
+    var x = document.querySelector(s);
+    for (var i = 0; !x && i < docs.length; i++) { try { x = docs[i].querySelector(s); } catch (e) { /* 닫힌 창 */ } }
+    return x;
+  };
+  var $$ = function (s, r) {
+    if (r) return Array.prototype.slice.call(r.querySelectorAll(s));
+    var out = Array.prototype.slice.call(document.querySelectorAll(s));
+    docs.forEach(function (d) { try { out = out.concat(Array.prototype.slice.call(d.querySelectorAll(s))); } catch (e) { /* 닫힌 창 */ } });
+    return out;
+  };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
 
   var toastT;
@@ -65,6 +77,6 @@ window.KZ = window.KZ || {};
   }
   function num(v, d) { var n = parseFloat(v); return isNaN(n) ? d : n; }
 
-  KZ.ui = { $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, toHex: toHex, num: num,
+  KZ.ui = { docs: docs, $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, toHex: toHex, num: num,
     setStatus: function (s) { $('#status').textContent = s; } };
 })(window.KZ);

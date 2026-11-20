@@ -11,7 +11,7 @@
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="vendor/grapesjs/grapes.min.css">
-<link rel="stylesheet" href="editor/editor.css?v=0.10.0">
+<link rel="stylesheet" href="editor/editor.css?v=0.11.0">
 </head>
 <body>
 <div class="app">
@@ -60,7 +60,7 @@
       <button data-pane="site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="7.5" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/><path d="M12 21c-2 0-2-3 0-4s1-4-2-3"/></svg>사이트</button>
     </nav>
     <aside class="drawer" id="drawer">
-      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b id="drawerTitle">템플릿</b><button class="pbtn" data-detach="drawer" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button></div>
+      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b id="drawerTitle">템플릿</b><button class="pbtn" data-detach="drawer" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button><button class="pbtn" data-popout="drawer" title="브라우저 창 밖으로 (따로 띄우기)" aria-label="브라우저 창 밖으로 (따로 띄우기)">↗</button></div>
       <section class="pane on" data-pane="tpl">
         <p class="hint">세트를 고르면 사이트 전체가 바뀝니다. 레이아웃은 지금 페이지에 <b>섹션으로 추가</b>하거나 새 페이지로 만들 수 있습니다. 언제든 되돌리기(Ctrl+Z) 가능.</p>
         <button class="fold" id="setsFold" aria-expanded="false" aria-controls="sets"><span class="fold-sw" aria-hidden="true"><b style="background:#141414"></b><b style="background:#EDE6D9"></b><b style="background:#DCDDDB"></b></span><span class="fold-t"><b>샘플 사이트 모음</b><small id="setsCount">업종별 페이지 묶음</small></span><span class="fold-c" aria-hidden="true">▸</span></button>
@@ -70,7 +70,7 @@
         <div class="tpl-grid" id="tplGrid"></div>
       </section>
       <section class="pane" data-pane="el">
-        <p class="hint">끌어서 화면에 놓으세요. 놓은 뒤 두 번 누르면 글을 고칠 수 있습니다.</p>
+        <p class="hint">끌어서 화면에 놓거나, <b>누르면</b> 선택한 요소 아래에 들어갑니다. 넣은 뒤 두 번 누르면 글을 고칠 수 있습니다.</p>
         <div id="blocks"></div>
       </section>
       <section class="pane" data-pane="up">
@@ -111,7 +111,7 @@
       <nav class="pagestrip" id="pageStrip" aria-label="페이지"></nav>
     </section>
     <aside class="side" id="side">
-      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b>디자인</b><button class="pbtn" data-detach="side" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button></div>
+      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b>디자인</b><button class="pbtn" data-detach="side" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button><button class="pbtn" data-popout="side" title="브라우저 창 밖으로 (따로 띄우기)" aria-label="브라우저 창 밖으로 (따로 띄우기)">↗</button></div>
       <div id="sideEmpty" class="empty"><b>요소를 선택하세요</b><br>화면에서 글 · 사진 · 섹션을 한 번 누르면 여기서 글꼴 · 색 · 크기 · 효과를 바꿀 수 있습니다.<br><br>· 두 번 누르기: 글 바로 고치기<br>· 끌기: 위치 옮기기<br>· Ctrl+Z / Ctrl+Shift+Z: 되돌리기<br>· Delete: 삭제</div>
       <div id="sideBody" hidden>
         <div class="side-head"><span class="nm" id="selName">선택</span><button class="btn" id="selParent" title="바깥 요소 선택">↑ 바깥</button></div>
@@ -128,51 +128,52 @@
 <input type="file" id="jsonIn" accept=".json,application/json" hidden>
 <div class="toast" id="toast" role="status"></div>
 <script src="vendor/grapesjs/grapes.min.js"></script>
-<script src="version.js?v=0.10.0"></script>
-<script src="layouts/_samples.js?v=0.10.0"></script>
-<script src="layouts/_helpers.js?v=0.10.0"></script>
-<script src="layouts/01-hero.js?v=0.10.0"></script>
-<script src="layouts/02-type-hero.js?v=0.10.0"></script>
-<script src="layouts/03-card-grid.js?v=0.10.0"></script>
-<script src="layouts/04-masonry.js?v=0.10.0"></script>
-<script src="layouts/05-h-scroll.js?v=0.10.0"></script>
-<script src="layouts/06-text-index.js?v=0.10.0"></script>
-<script src="layouts/07-group-list.js?v=0.10.0"></script>
-<script src="layouts/08-card-sheet.js?v=0.10.0"></script>
-<script src="layouts/09-slides.js?v=0.10.0"></script>
-<script src="layouts/10-split.js?v=0.10.0"></script>
-<script src="layouts/11-article.js?v=0.10.0"></script>
-<script src="layouts/12-timeline.js?v=0.10.0"></script>
-<script src="layouts/13-profile.js?v=0.10.0"></script>
-<script src="layouts/14-effects.js?v=0.10.0"></script>
-<script src="layouts/15-pricing.js?v=0.10.0"></script>
-<script src="layouts/16-menu-board.js?v=0.10.0"></script>
-<script src="layouts/17-faq.js?v=0.10.0"></script>
-<script src="layouts/18-team.js?v=0.10.0"></script>
-<script src="layouts/19-stats.js?v=0.10.0"></script>
-<script src="layouts/20-events.js?v=0.10.0"></script>
-<script src="layouts/21-location.js?v=0.10.0"></script>
-<script src="layouts/22-contact.js?v=0.10.0"></script>
-<script src="layouts/23-reviews.js?v=0.10.0"></script>
-<script src="layouts/24-cta.js?v=0.10.0"></script>
-<script src="sets/_sets.js?v=0.10.0"></script>
-<script src="sets/basic.js?v=0.10.0"></script>
-<script src="sets/portfolio.js?v=0.10.0"></script>
-<script src="sets/cafe.js?v=0.10.0"></script>
-<script src="sets/class.js?v=0.10.0"></script>
-<script src="sets/event.js?v=0.10.0"></script>
-<script src="sets/resume.js?v=0.10.0"></script>
-<script src="sets/magazine.js?v=0.10.0"></script>
-<script src="sets/service.js?v=0.10.0"></script>
-<script src="sets/stay.js?v=0.10.0"></script>
-<script src="sets/nonprofit.js?v=0.10.0"></script>
-<script src="sets/local.js?v=0.10.0"></script>
-<script src="blocks/blocks.js?v=0.10.0"></script>
-<script src="editor/config.js?v=0.10.0"></script>
-<script src="editor/ui.js?v=0.10.0"></script>
-<script src="editor/storage.js?v=0.10.0"></script>
-<script src="editor/export.js?v=0.10.0"></script>
-<script src="editor/layout.js?v=0.10.0"></script>
-<script src="editor/main.js?v=0.10.0"></script>
+<script src="version.js?v=0.11.0"></script>
+<script src="layouts/_samples.js?v=0.11.0"></script>
+<script src="layouts/_helpers.js?v=0.11.0"></script>
+<script src="layouts/01-hero.js?v=0.11.0"></script>
+<script src="layouts/02-type-hero.js?v=0.11.0"></script>
+<script src="layouts/03-card-grid.js?v=0.11.0"></script>
+<script src="layouts/04-masonry.js?v=0.11.0"></script>
+<script src="layouts/05-h-scroll.js?v=0.11.0"></script>
+<script src="layouts/06-text-index.js?v=0.11.0"></script>
+<script src="layouts/07-group-list.js?v=0.11.0"></script>
+<script src="layouts/08-card-sheet.js?v=0.11.0"></script>
+<script src="layouts/09-slides.js?v=0.11.0"></script>
+<script src="layouts/10-split.js?v=0.11.0"></script>
+<script src="layouts/11-article.js?v=0.11.0"></script>
+<script src="layouts/12-timeline.js?v=0.11.0"></script>
+<script src="layouts/13-profile.js?v=0.11.0"></script>
+<script src="layouts/14-effects.js?v=0.11.0"></script>
+<script src="layouts/15-pricing.js?v=0.11.0"></script>
+<script src="layouts/16-menu-board.js?v=0.11.0"></script>
+<script src="layouts/17-faq.js?v=0.11.0"></script>
+<script src="layouts/18-team.js?v=0.11.0"></script>
+<script src="layouts/19-stats.js?v=0.11.0"></script>
+<script src="layouts/20-events.js?v=0.11.0"></script>
+<script src="layouts/21-location.js?v=0.11.0"></script>
+<script src="layouts/22-contact.js?v=0.11.0"></script>
+<script src="layouts/23-reviews.js?v=0.11.0"></script>
+<script src="layouts/24-cta.js?v=0.11.0"></script>
+<script src="sets/_sets.js?v=0.11.0"></script>
+<script src="sets/basic.js?v=0.11.0"></script>
+<script src="sets/portfolio.js?v=0.11.0"></script>
+<script src="sets/cafe.js?v=0.11.0"></script>
+<script src="sets/class.js?v=0.11.0"></script>
+<script src="sets/event.js?v=0.11.0"></script>
+<script src="sets/resume.js?v=0.11.0"></script>
+<script src="sets/magazine.js?v=0.11.0"></script>
+<script src="sets/service.js?v=0.11.0"></script>
+<script src="sets/stay.js?v=0.11.0"></script>
+<script src="sets/nonprofit.js?v=0.11.0"></script>
+<script src="sets/local.js?v=0.11.0"></script>
+<script src="blocks/blocks.js?v=0.11.0"></script>
+<script src="editor/config.js?v=0.11.0"></script>
+<script src="editor/ui.js?v=0.11.0"></script>
+<script src="editor/storage.js?v=0.11.0"></script>
+<script src="editor/export.js?v=0.11.0"></script>
+<script src="editor/layout.js?v=0.11.0"></script>
+<script src="editor/popout.js?v=0.11.0"></script>
+<script src="editor/main.js?v=0.11.0"></script>
 </body>
 </html>

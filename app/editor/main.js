@@ -83,7 +83,14 @@
 
     // 블록
     KZ.BLOCKS.forEach(([id, label, category, media, content]) => {
-      editor.Blocks.add(id, { label, category, media, content: typeof content === 'function' ? content() : content });
+      editor.Blocks.add(id, { label, category, media, content: typeof content === 'function' ? content() : content, attributes: { 'data-bid': id } });
+    });
+    // 블록을 누르기만 해도 넣기 (선택한 요소 아래) — 패널을 창 밖으로 꺼냈을 때 끌어다 놓기 대신
+    $('#blocks').addEventListener('click', e => {
+      const el = e.target.closest && e.target.closest('.gjs-block'); if (!el) return;
+      const b = editor.Blocks.get(el.getAttribute('data-bid')); if (!b) return;
+      const c = b.get('content'); insertNear(editor.getSelected(), typeof c === 'string' ? c : JSON.parse(JSON.stringify(c)));
+      toast(b.get('label') + ' 을(를) 넣었습니다');
     });
 
     // ---------- 저장 (IndexedDB) ----------
@@ -686,7 +693,8 @@
       setTimeout(() => editor.refresh(), 50);
     }
     $$('.rail button').forEach(b => b.onclick = () => {
-      if (b.classList.contains('on') && !$('#main').classList.contains('no-drawer')) { $('#main').classList.add('no-drawer'); b.classList.remove('on'); setTimeout(() => editor.refresh(), 50); return; }
+      const drawerOut = KZ.popout && KZ.popout.current() && KZ.popout.current().name === 'drawer';
+      if (!drawerOut && b.classList.contains('on') && !$('#main').classList.contains('no-drawer')) { $('#main').classList.add('no-drawer'); b.classList.remove('on'); setTimeout(() => editor.refresh(), 50); return; }
       openPane(b.dataset.pane);
     });
     $('#sideToggle').onclick = () => $('#side').classList.toggle('mob-open');
@@ -789,6 +797,11 @@
       renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);
       $('#fxMarkBtn').onclick = () => setFxMark(!fxMark); setFxMark(fxMark);
       $('#fileWarn').onclick = saveProjectFile;
+      // 패널을 브라우저 창 밖으로
+      KZ.popout.onChange = () => setTimeout(() => { try { editor.refresh(); } catch (e) { /* 무시 */ } renderSide(); }, 60);
+      $$('[data-popout]').forEach(b => b.onclick = () => KZ.popout.toggle(b.dataset.popout).then(kind => {
+        if (kind) toast(kind === 'pip' ? '항상 위에 뜨는 창으로 꺼냈습니다. 창을 닫으면 제자리로 돌아옵니다' : '새 창으로 꺼냈습니다. 창을 닫거나 ⇲ 를 누르면 돌아옵니다');
+      }, err => dialog('창 밖으로 꺼내지 못했습니다', '<p>' + esc(err.message || '브라우저가 새 창을 막았습니다.') + '</p>')));
       let wasDirty = false; try { wasDirty = localStorage.getItem(FILE_KEY) === '1'; } catch (e) { /* 무시 */ }
       fileDirty(wasDirty);
       setTimeout(() => { armed = true; }, 1000); // 시작할 때 생기는 변경은 세지 않음
