@@ -11,7 +11,7 @@
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="vendor/grapesjs/grapes.min.css">
-<link rel="stylesheet" href="editor/editor.css?v=0.6.3">
+<link rel="stylesheet" href="editor/editor.css?v=0.7.0">
 </head>
 <body>
 <div class="app">
@@ -33,6 +33,7 @@
     <button class="tb" data-dev="mobile" title="모바일 화면 — 여기서 바꾼 스타일은 모바일에만 적용"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg><span class="hide-sm">모바일</span></button>
     <span class="grow"></span>
     <span class="status hide-sm" id="status">불러오는 중…</span>
+    <button class="file-warn" id="fileWarn" hidden title="브라우저 데이터를 지우면 작업이 사라집니다. 눌러서 작업 파일(.json)로 저장하세요">작업 파일 미저장</button>
     <a class="ver hide-sm" id="ver" href="https://github.com/kangsaem/SITE/issues/new" target="_blank" rel="noopener" title="문제 신고 · 의견 보내기 (GitHub)">v?</a>
     <div class="menu-wrap">
       <button class="tb" id="fileBtn" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6"/></svg><span class="hide-sm">파일</span></button>
@@ -60,7 +61,7 @@
     <aside class="drawer" id="drawer">
       <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b id="drawerTitle">템플릿</b><button class="pbtn" data-detach="drawer" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button></div>
       <section class="pane on" data-pane="tpl">
-        <p class="hint">세트를 고르면 사이트 전체가, 페이지 템플릿을 고르면 현재 페이지가 바뀝니다. 언제든 되돌리기(Ctrl+Z) 가능.</p>
+        <p class="hint">세트를 고르면 사이트 전체가 바뀝니다. 레이아웃은 지금 페이지에 <b>섹션으로 추가</b>하거나 새 페이지로 만들 수 있습니다. 언제든 되돌리기(Ctrl+Z) 가능.</p>
         <button class="fold" id="setsFold" aria-expanded="false" aria-controls="sets"><span class="fold-sw" aria-hidden="true"><b style="background:#141414"></b><b style="background:#EDE6D9"></b><b style="background:#DCDDDB"></b></span><span class="fold-t"><b>샘플 사이트 모음</b><small id="setsCount">업종별 페이지 묶음</small></span><span class="fold-c" aria-hidden="true">▸</span></button>
         <div id="sets" hidden></div>
         <h3>레이아웃</h3>
@@ -104,7 +105,7 @@
       </section>
     </aside>
     <section class="stage" aria-label="편집 중인 페이지">
-      <div class="stage-head"><span id="stageTitle"></span><span class="grow"></span><span class="dim hide-sm">Alt+클릭: 링크한 페이지로 이동</span><span id="stageDev" class="dim"></span></div>
+      <div class="stage-head"><span id="stageTitle"></span><span class="grow"></span><button class="fxmark on" id="fxMarkBtn" aria-pressed="true" title="효과가 걸린 요소에 노란 점선 표시 (편집 화면에서만)"><i aria-hidden="true"></i>효과 표시</button><span class="dim hide-sm">Alt+클릭: 링크한 페이지로 이동</span><span id="stageDev" class="dim"></span></div>
       <div class="canvas-wrap"><div id="gjs"></div></div>
       <nav class="pagestrip" id="pageStrip" aria-label="페이지"></nav>
     </section>

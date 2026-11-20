@@ -38,17 +38,28 @@
         const l = doc.createElement('link'); l.rel = 'stylesheet'; l.href = C.FONT_LINK; doc.head.appendChild(l);
         const b = doc.createElement('style'); b.id = 'kz-base'; b.textContent = KZ.site.base + '\n' + KZ.site.motion; doc.head.appendChild(b);
         const t = doc.createElement('style'); t.id = 'kz-theme'; doc.head.appendChild(t);
+        // 효과 표시: 편집 화면에서만 노란 점선 (미리보기 · 내보내기에는 없음)
+        const fm = doc.createElement('style'); fm.id = 'kz-fxmark';
+        fm.textContent = 'html.kz-fx [data-anim]:not([data-anim=""]),html.kz-fx [data-hover]:not([data-hover=""]),html.kz-fx [data-click]:not([data-click=""]),html.kz-fx [data-scroll]:not([data-scroll=""]){outline:1px dashed rgba(242,201,76,.95);outline-offset:3px}';
+        doc.head.appendChild(fm);
         // Alt(⌥)+클릭: 링크가 가리키는 페이지로 이동
         const jump = e => {
           if (!e.altKey) return;
-          const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return;
-          const id = a.getAttribute('href').slice(1);
+          const a = e.target.closest && e.target.closest('[data-click="go"][data-go^="#"], a[href^="#"]'); if (!a) return;
+          const id = (a.getAttribute('data-go') || a.getAttribute('href') || '').slice(1);
           if (id && editor.Pages.get(id)) { e.preventDefault(); e.stopPropagation(); if (e.type === 'click') editor.Pages.select(id); }
         };
         doc.addEventListener('mousedown', jump, true); doc.addEventListener('click', jump, true);
       }
       doc.getElementById('kz-theme').textContent = KZ.themeCss(S);
+      doc.documentElement.classList.toggle('kz-fx', fxMark);
       docs.add(doc);
+    }
+    let fxMark = true; try { fxMark = localStorage.getItem('kz-fxmark') !== '0'; } catch (e) { /* 기본 켬 */ }
+    function setFxMark(on) {
+      fxMark = on; try { localStorage.setItem('kz-fxmark', on ? '1' : '0'); } catch (e) { /* 무시 */ }
+      docs.forEach(d => { try { d.documentElement.classList.toggle('kz-fx', on); } catch (e) { docs.delete(d); } });
+      const b = $('#fxMarkBtn'); if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
     }
     function refreshTheme() { docs.forEach(d => { try { const t = d.getElementById('kz-theme'); if (t) t.textContent = KZ.themeCss(S); else docs.delete(d); } catch (e) { docs.delete(d); } }); }
     editor.on('canvas:frame:load', ({ window: w }) => injectDoc(w.document));
@@ -61,9 +72,20 @@
     });
 
     // ---------- 저장 (IndexedDB) ----------
-    let booted = false, saveT;
+    let booted = false, saveT, armed = false;
+    // 작업 파일(.json) 미저장 표시: 받은 뒤 고친 내용이 있으면 상단에 노란 글씨. 상태는 이 브라우저에 기억
+    const FILE_KEY = 'kz-file-dirty';
+    function fileDirty(on) {
+      try { localStorage.setItem(FILE_KEY, on ? '1' : '0'); } catch (e) { /* 무시 */ }
+      const b = $('#fileWarn'); if (b) b.hidden = !on;
+    }
+    function saveProjectFile() {
+      offerFile((S.siteName || 'site') + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
+      fileDirty(false);
+    }
     function save() {
       if (!booted) return;
+      if (armed) fileDirty(true);
       setStatus('저장 중…'); clearTimeout(saveT);
       saveT = setTimeout(async () => {
         try { await KZ.store.DB.set('project', KZ.store.pack(S, editor.getProjectData())); setStatus('저장됨 · 이 브라우저'); }
@@ -121,9 +143,32 @@
     }
     async function useTemplate(id) {
       const t = KZ.layouts[id];
-      const v = await dialog(t.name, '<p>이 템플릿을 어떻게 쓸까요?</p><p class="hint">현재 페이지에 적용하면 지금 페이지 내용이 바뀝니다 (Ctrl+Z로 되돌리기 가능).</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur', 'pri']]);
+      const v = await dialog(t.name, '<p>이 레이아웃을 어떻게 쓸까요?</p><p class="hint"><b>섹션으로 추가</b>: 지금 페이지에 이어 붙입니다 (선택한 섹션 아래, 없으면 바닥글 위). 상단 메뉴 · 바닥글은 빼고 넣습니다.<br><b>현재 페이지에 적용</b>: 지금 페이지 내용이 바뀝니다. 모두 Ctrl+Z로 되돌릴 수 있습니다.</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur'], ['섹션으로 추가', 'sec', 'pri']]);
+      if (v === 'sec') { addSection(KZ.sectionHtml(id)); toast('섹션을 추가했습니다'); }
       if (v === 'cur') { editor.setComponents(t.html()); toast('현재 페이지에 적용했습니다'); }
       if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), SLUG[id]); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
+    }
+
+    // ---------- 섹션 (페이지 바로 아래 요소) ----------
+    const isNavTop = c => (c.get('tagName') || '').toLowerCase() === 'header' && hasCls(c, 'nav');
+    const isFootTop = c => hasCls(c, 'foot');
+    function topOf(c) { const w = editor.getWrapper(); while (c && c.parent() && c.parent() !== w) c = c.parent(); return c && c.parent() === w ? c : null; }
+    function addSection(html) {
+      const w = editor.getWrapper(), comps = w.components();
+      const top = topOf(editor.getSelected());
+      let at;
+      if (top && isFootTop(top)) at = top.index();
+      else if (top) at = top.index() + 1;
+      else { const f = comps.filter(isFootTop).pop(); at = f ? f.index() : comps.length; }
+      const added = w.append(html, { at });
+      if (added[0]) { editor.select(added[0]); try { added[0].getEl().scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* 무시 */ } }
+      return added;
+    }
+    // 섹션 옮기기: 상단 메뉴 위 · 바닥글 아래로는 가지 않음
+    function moveSection(sec, d) {
+      const w = editor.getWrapper(), list = w.components().models, i = list.indexOf(sec), j = i + d;
+      if (i < 0 || j < 0 || j >= list.length || isNavTop(list[j]) || isFootTop(list[j])) return false;
+      sec.move(w, { at: d > 0 ? j + 1 : j }); editor.select(sec); return true;
     }
 
     // ---------- 페이지 · 트리 ----------
@@ -428,6 +473,16 @@
       if (devNote) box.appendChild(devNote);
       if (sel.get('type') !== 'wrapper') box.appendChild(arrangeRow(sel));
       const sec = t => box.appendChild(h('h3', { textContent: t, style: 'font-size:12px;color:var(--ui-sub);font-weight:500;margin:18px 0 10px' }));
+      const top = topOf(sel);
+      if (top && !isNavTop(top) && !isFootTop(top)) {
+        sec('섹션');
+        const sb = (t, fn) => { const b = h('button', { className: 'btn', textContent: t }); b.onclick = fn; return b; };
+        box.appendChild(h('div', { className: 'row sec-acts' }, [
+          sb('↑ 섹션 위로', () => { if (!moveSection(top, -1)) toast('더 올릴 수 없습니다'); }),
+          sb('↓ 섹션 아래로', () => { if (!moveSection(top, 1)) toast('더 내릴 수 없습니다'); }),
+          top !== sel ? sb('섹션 선택', () => editor.select(top)) : null
+        ]));
+      }
 
       if (kind === 'text') {
         sec('글자');
@@ -526,7 +581,7 @@
       }));
       sec('누르면');
       const clickBox = h('div');
-      box.appendChild(opts(CLICKS, attr(sel, 'data-click'), v => { setA('data-click', v); drawClick(v); }));
+      box.appendChild(opts(CLICKS, attr(sel, 'data-click'), v => { setA('data-click', v); if (v !== 'go') sel.removeAttributes('data-go'); drawClick(v); }));
       box.appendChild(clickBox);
       function drawClick(v) {
         clickBox.innerHTML = '';
@@ -538,6 +593,18 @@
           const t = h('input', { className: 'inp', value: attr(sel, 'data-title'), placeholder: '[항목 이름], 2026' }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
           clickBox.append(h('div', { style: 'height:10px' }), field('캡션', t), h('p', { className: 'hint', textContent: '같은 페이지의 라이트박스끼리 화살표로 넘겨 봅니다.' }));
         } else if (v === 'menu') clickBox.append(h('p', { className: 'hint', textContent: '모든 페이지 목록이 전체 화면으로 펼쳐집니다.', style: 'margin-top:8px' }));
+        else if (v === 'go') {
+          const cur = attr(sel, 'data-go');
+          const ls = h('select', { className: 'inp' });
+          ls.appendChild(h('option', { value: '', textContent: '— 페이지 선택 —' }));
+          orderedPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (treeEnsure()[p.getId()].parent ? '└ ' : '') + pname(p) + '  (#' + p.getId() + ')' })));
+          ls.value = realPages().some(p => '#' + p.getId() === cur) ? cur : '';
+          const url = h('input', { className: 'inp', value: cur, placeholder: 'https://… (새 창으로 열림)' });
+          ls.onchange = () => { if (ls.value) { sel.addAttributes({ 'data-go': ls.value }); url.value = ls.value; } };
+          url.onchange = () => { const u = url.value.trim(); if (u) sel.addAttributes({ 'data-go': u }); else sel.removeAttributes('data-go'); ls.value = realPages().some(p => '#' + p.getId() === u) ? u : ''; };
+          clickBox.append(h('div', { style: 'height:10px' }), field('이동할 페이지', ls), field('또는 바깥 주소', url),
+            h('p', { className: 'hint', textContent: '편집 화면에서는 Alt+클릭으로 따라갑니다.' }));
+        }
       }
       drawClick(attr(sel, 'data-click'));
       const pv = h('button', { className: 'btn pri full', textContent: '미리보기에서 확인', style: 'margin-top:18px' }); pv.onclick = () => openPreview(); box.appendChild(pv);
@@ -613,12 +680,12 @@
     fileMenu.onclick = async e => {
       const b = e.target.closest('button'); if (!b) return; fileMenu.classList.remove('open');
       const act = b.dataset.act;
-      if (act === 'export-json') offerFile((S.siteName || 'site') + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
+      if (act === 'export-json') saveProjectFile();
       if (act === 'import-json') $('#jsonIn').click();
       if (act === 'export-html') offerFile('index.html', buildSite(), 'text/html');
       if (act === 'reset' && await confirmDlg('처음 상태로', '이 브라우저에 저장된 작업을 지우고 기본 세트로 돌아갑니다. 먼저 작업 파일을 저장해 두세요.', '되돌리기')) {
         try { await KZ.store.DB.del('project'); } catch (er) { /* 무시 */ }
-        S = DEFAULT_S(); applySet(C.DEFAULT_SET); refreshTheme(); renderSite(); renderAssets(); toast('처음 상태로 돌아왔습니다');
+        S = DEFAULT_S(); applySet(C.DEFAULT_SET); refreshTheme(); renderSite(); renderAssets(); setTimeout(() => fileDirty(false), 1200); toast('처음 상태로 돌아왔습니다');
       }
     };
     $('#jsonIn').onchange = async e => {
@@ -626,10 +693,10 @@
       try {
         const d = KZ.store.migrate(JSON.parse(await f.text()));
         S = Object.assign(DEFAULT_S(), d.S || {}); editor.loadProjectData(d.gjs);
-        treeEnsure(); syncMenus(); syncAll(); save(); toast('작업 파일을 불러왔습니다');
+        treeEnsure(); syncMenus(); syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
-    $('#publishBtn').onclick = () => dialog('내보내기', '<p>완성한 사이트를 파일로 받아 원하는 곳에 올립니다.</p><ul style="padding-left:18px;line-height:1.8"><li><b>사이트 HTML</b> — 업로드용 완성 파일 (index.html)</li><li><b>작업 파일</b> — 나중에 이어서 고칠 때 (.json)</li></ul><p class="hint">GitHub 등으로 바로 올리기는 다음 단계에서 연결합니다.</p>', [['닫기', null], ['작업 파일', d => { d(null); offerFile((S.siteName || 'site') + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json'); }], ['사이트 HTML', d => { d(null); offerFile('index.html', buildSite(), 'text/html'); }, 'pri']]);
+    $('#publishBtn').onclick = () => dialog('내보내기', '<p>완성한 사이트를 파일로 받아 원하는 곳에 올립니다.</p><ul style="padding-left:18px;line-height:1.8"><li><b>사이트 HTML</b> — 업로드용 완성 파일 (index.html)</li><li><b>작업 파일</b> — 나중에 이어서 고칠 때 (.json)</li></ul><p class="hint">GitHub 등으로 바로 올리기는 다음 단계에서 연결합니다.</p>', [['닫기', null], ['작업 파일', d => { d(null); saveProjectFile(); }], ['사이트 HTML', d => { d(null); offerFile('index.html', buildSite(), 'text/html'); }, 'pri']]);
 
     // ---------- 내보내기 ----------
     const offerFile = (name, data, mime) => KZ.offerFile(name, data, mime);
@@ -668,6 +735,11 @@
       editor.UndoManager.clear();
       booted = true;
       renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);
+      $('#fxMarkBtn').onclick = () => setFxMark(!fxMark); setFxMark(fxMark);
+      $('#fileWarn').onclick = saveProjectFile;
+      let wasDirty = false; try { wasDirty = localStorage.getItem(FILE_KEY) === '1'; } catch (e) { /* 무시 */ }
+      fileDirty(wasDirty);
+      setTimeout(() => { armed = true; }, 1000); // 시작할 때 생기는 변경은 세지 않음
       window.__kz = { orderedPages, movePage, syncMenus, treeEnsure, get S() { return S; } };
       try { injectDoc(editor.Canvas.getDocument()); } catch (e) { /* 프레임 대기 */ }
       setStatus(saved ? '저장됨 · 이 브라우저' : '새 작업');

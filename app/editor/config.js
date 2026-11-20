@@ -24,7 +24,7 @@ window.KZ = window.KZ || {};
   C.ANIMS = [['', '없음'], ['fade-up', '떠오르기'], ['fade', '페이드'], ['zoom-in', '확대 등장'], ['slide-left', '오른쪽에서'], ['slide-right', '왼쪽에서'], ['blur-in', '흐림 해제'], ['mask', '가림막 열림']];
   C.HOVERS = [['', '없음'], ['zoom', '이미지 확대'], ['gray', '흑백→컬러'], ['caption', '캡션 올라옴'], ['lift', '떠오름'], ['cursor', '커서 미리보기']];
   C.SCROLLS = [['', '없음'], ['parallax', '패럴랙스'], ['sticky', '화면 고정']];
-  C.CLICKS = [['', '없음'], ['lightbox', '라이트박스'], ['panel', '측면 패널'], ['sheet', '하단 시트'], ['modal', '중앙 모달'], ['menu', '전체화면 메뉴']];
+  C.CLICKS = [['', '없음'], ['lightbox', '라이트박스'], ['panel', '측면 패널'], ['sheet', '하단 시트'], ['modal', '중앙 모달'], ['menu', '전체화면 메뉴'], ['go', '페이지 이동']];
   C.ENTER_KF = {
     'fade-up': [{ opacity: 0, transform: 'translateY(40px)' }, { opacity: 1, transform: 'none' }],
     fade: [{ opacity: 0 }, { opacity: 1 }],

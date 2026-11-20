@@ -46,5 +46,17 @@ window.KZ = window.KZ || {};
     return "<svg viewBox='0 0 120 84' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><rect width='120' height='84' fill='#F1EFEA'/>" + s + '</svg>';
   };
 
+  // 섹션으로 쓰기: 레이아웃 HTML 에서 상단 메뉴(header.nav)와 바닥글(footer.foot)을 뺀 본문만
+  // 레이아웃에 section(data) 가 있으면 그것을, 없으면 html(data) 에서 떼어 냅니다.
+  KZ.stripChrome = function (html) {
+    var t = document.createElement('template'); t.innerHTML = html;
+    [].forEach.call(t.content.querySelectorAll('header.nav, footer.foot'), function (el) { el.remove(); });
+    return t.innerHTML.trim();
+  };
+  KZ.sectionHtml = function (id, data) {
+    var L = KZ.layouts[id]; if (!L) throw new Error('레이아웃 없음: ' + id);
+    return L.section ? L.section(data) : KZ.stripChrome(L.html(data));
+  };
+
   KZ.H = { ph: ph, phl: phl, nav: nav, FOOT: FOOT, fig: fig, exRow: exRow, MENU_BTN: MENU_BTN };
 })(window.KZ);
