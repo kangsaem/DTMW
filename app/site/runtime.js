@@ -95,7 +95,7 @@
   function open(type, t) {
     lastFocus = document.activeElement; ov.setAttribute('data-type', type); box.innerHTML = '';
     if (type === 'lightbox') { lbItems = [].slice.call(cur.querySelectorAll('[data-click="lightbox"]')).filter(function (x) { return srcOf(x); }); if (!lbItems.length) return; lb(Math.max(0, lbItems.indexOf(t))); }
-    else if (type === 'menu') { box.appendChild(xBtn()); (meta.pages || []).forEach(function (p) { var a = mk('a', null, p.name); a.href = '#' + p.id; box.appendChild(a); }); }
+    else if (type === 'menu') { box.appendChild(xBtn()); (meta.pages || []).forEach(function (p) { if (p.menu === false) return; var a = mk('a', p.parent ? 'sub' : null, p.name); a.href = '#' + p.id; box.appendChild(a); }); }
     else {
       box.appendChild(xBtn());
       var im = t.querySelector && t.querySelector('img');

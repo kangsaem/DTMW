@@ -19,6 +19,7 @@ app/                  ← 공개되는 편집기 (Cloudflare Pages 출력 폴더
 │   ├─ ui.js          알림 · 대화상자 · 입력 컨트롤
 │   ├─ storage.js     브라우저 저장 · 작업 파일 형식 · 버전 변환
 │   ├─ export.js      완성 HTML 만들기 · 파일 받기
+│   ├─ layout.js      패널 떼어내기 · 도구 숨기기 (화면 배치)
 │   ├─ main.js        편집기 본체 (GrapesJS 초기화 · 패널 · 미리보기)
 │   └─ editor.css     편집기 화면 스타일
 ├─ layouts/           레이아웃: 1종 = 파일 1개 (_helpers.js 공통 도구, _samples.js 샘플 이미지)

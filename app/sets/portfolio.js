@@ -2,7 +2,7 @@
 KZ.set({
   id: 'portfolio', name: '포트폴리오', desc: '작업 · 작업 상세 · 활동 · 소개 — 어두운 배경, 명조', siteName: '내 포트폴리오',
   style: { theme: 'dark', font: 'serif', transition: 'fade', speed: 'normal' },
-  pages: [['home', '홈', 't1'], ['gallery', '작업', 't9'], ['detail', '작업 상세', 't4'], ['news', '활동', 't2'], ['about', '소개', 't13']],
+  pages: [['home', '홈', 't1'], ['gallery', '작업', 't9'], ['detail', '작업 상세', 't4', null, {parent:'gallery'}], ['news', '활동', 't2'], ['about', '소개', 't13']],
   words: [].concat(KZ.W.noEffects, KZ.W.noJournal,
     KZ.W.profileDl([['활동 시작', '[연도], [도시]'], ['분야', '[분야]'], ['최근 활동', '[제목], [장소], 2026'], ['협업', '[이름]']]),
     [['[사이트 이름]', '[이름]'], ['대표 항목', '대표 작업'], ['>갤러리<', '>작업<'], ['>소식<', '>활동<'], ['전체 소식 →', '전체 활동 →'],

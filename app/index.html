@@ -18,6 +18,7 @@
   <div class="top">
     <span class="logo">KZ 편집기</span>
     <input class="site-name hide-sm" id="siteName" aria-label="사이트 이름" value="내 사이트">
+    <label class="pagesel" title="편집할 페이지"><span class="sr">편집할 페이지</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/></svg><select id="pageSel" aria-label="편집할 페이지"></select></label>
     <span class="sep hide-sm"></span>
     <button class="tb" id="undo" title="실행 취소 (Ctrl+Z)" aria-label="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
     <button class="tb" id="redo" title="다시 실행 (Ctrl+Shift+Z)" aria-label="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
@@ -42,8 +43,9 @@
         <button data-act="reset">처음 상태로 되돌리기<small>브라우저에 저장된 작업 삭제</small></button>
       </div>
     </div>
-    <button class="tb" id="previewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="hide-sm">미리보기</span></button>
-    <button class="tb pri" id="publishBtn" title="GitHub 게시는 2차에서 연결">게시</button>
+    <button class="tb" id="zenBtn" aria-pressed="false" title="도구 숨기기 · 보이기 (Tab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="hide-sm">도구 숨기기</span></button>
+    <button class="tb bv" id="previewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="hide-sm">미리보기</span></button>
+    <button class="tb run" id="publishBtn" title="사이트 HTML · 작업 파일 받기">내보내기</button>
     <button class="tb" id="sideToggle" style="display:none" aria-label="속성 패널">⚙</button>
   </div>
   <div class="main" id="main">
@@ -56,46 +58,43 @@
       <button data-pane="site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="7.5" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/><path d="M12 21c-2 0-2-3 0-4s1-4-2-3"/></svg>사이트</button>
     </nav>
     <aside class="drawer" id="drawer">
+      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b id="drawerTitle">템플릿</b><button class="pbtn" data-detach="drawer" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button></div>
       <section class="pane on" data-pane="tpl">
-        <h2>템플릿</h2>
         <p class="hint">세트를 고르면 사이트 전체가, 페이지 템플릿을 고르면 현재 페이지가 바뀝니다. 언제든 되돌리기(Ctrl+Z) 가능.</p>
-        <h3>사이트 세트</h3>
-        <div id="sets"></div>
-        <h3>레이아웃 (14)</h3>
+        <button class="fold" id="setsFold" aria-expanded="false" aria-controls="sets"><span class="fold-sw" aria-hidden="true"><b style="background:#141414"></b><b style="background:#EDE6D9"></b><b style="background:#DCDDDB"></b></span><span class="fold-t"><b>샘플 사이트 모음</b><small id="setsCount">업종별 페이지 묶음</small></span><span class="fold-c" aria-hidden="true">▸</span></button>
+        <div id="sets" hidden></div>
+        <h3>레이아웃</h3>
         <div class="cat-chips" id="tplCats"></div>
         <div class="tpl-grid" id="tplGrid"></div>
       </section>
       <section class="pane" data-pane="el">
-        <h2>요소</h2>
         <p class="hint">끌어서 화면에 놓으세요. 놓은 뒤 두 번 누르면 글을 고칠 수 있습니다.</p>
         <div id="blocks"></div>
       </section>
       <section class="pane" data-pane="up">
-        <h2>업로드</h2>
         <p class="hint">사진은 긴 변 1920px · WebP로 자동 축소됩니다. 영상은 배경용 짧은 클립(20MB 이하)을 권장합니다.</p>
         <label class="drop" id="drop" tabindex="0">사진 · 영상을 여기에 끌어 놓거나 눌러서 선택<input type="file" id="fileIn" accept="image/*,video/*" multiple hidden></label>
         <p class="hint" style="margin-top:12px">선택한 요소가 이미지·영상이면 <b>교체</b>, 영상 히어로 영역이면 <b>배경 영상</b>으로, 그 외에는 <b>새로 추가</b>됩니다.</p>
         <div class="assets" id="assets"></div>
       </section>
       <section class="pane" data-pane="pg">
-        <h2>페이지</h2>
-        <p class="hint">이름을 바로 고칠 수 있습니다. 메뉴 링크는 <code>#주소</code>로 연결됩니다.</p>
+        <p class="hint">끌어서 순서 · 위치를 바꿉니다 (가운데에 놓으면 하위 페이지). 사이트 상단 메뉴는 이 트리대로 자동으로 만들어집니다. ● = 메뉴에 표시</p>
         <div id="pages"></div>
         <button class="btn full" id="addPage">+ 빈 페이지 추가</button>
       </section>
       <section class="pane" data-pane="ly">
-        <h2>레이어</h2>
         <p class="hint">요소 구조를 보고 끌어서 순서를 바꿉니다. 눈 아이콘으로 숨길 수 있습니다.</p>
         <div id="layers"></div>
       </section>
       <section class="pane" data-pane="site">
-        <h2>사이트 · 브랜드</h2>
         <h3>색 테마</h3>
         <div class="themes" id="themes"></div>
         <h3>세부 색</h3>
         <div id="colorFields"></div>
         <h3>글꼴</h3>
         <select class="inp" id="fontSel"></select>
+        <h3>메뉴</h3>
+        <label class="row chk"><input type="checkbox" id="autoMenu" checked><span>페이지 트리로 상단 메뉴 자동 만들기</span></label>
         <h3>페이지 전환 효과</h3>
         <div id="transOpts"></div>
         <h3>움직임 속도</h3>
@@ -104,8 +103,13 @@
         <button class="btn full" id="pvTrans">미리보기에서 확인</button>
       </section>
     </aside>
-    <div class="canvas-wrap"><div id="gjs"></div></div>
+    <section class="stage" aria-label="편집 중인 페이지">
+      <div class="stage-head"><span id="stageTitle"></span><span class="grow"></span><span class="dim hide-sm">Alt+클릭: 링크한 페이지로 이동</span><span id="stageDev" class="dim"></span></div>
+      <div class="canvas-wrap"><div id="gjs"></div></div>
+      <nav class="pagestrip" id="pageStrip" aria-label="페이지"></nav>
+    </section>
     <aside class="side" id="side">
+      <div class="panel-head"><span class="grip" aria-hidden="true">⠿</span><b>디자인</b><button class="pbtn" data-detach="side" title="떼어내서 떠 있는 창으로" aria-label="떼어내서 떠 있는 창으로">⧉</button></div>
       <div id="sideEmpty" class="empty"><b>요소를 선택하세요</b><br>화면에서 글 · 사진 · 섹션을 한 번 누르면 여기서 글꼴 · 색 · 크기 · 효과를 바꿀 수 있습니다.<br><br>· 두 번 누르기: 글 바로 고치기<br>· 끌기: 위치 옮기기<br>· Ctrl+Z / Ctrl+Shift+Z: 되돌리기<br>· Delete: 삭제</div>
       <div id="sideBody" hidden>
         <div class="side-head"><span class="nm" id="selName">선택</span><button class="btn" id="selParent" title="바깥 요소 선택">↑ 바깥</button></div>
@@ -153,6 +157,7 @@
 <script src="editor/ui.js"></script>
 <script src="editor/storage.js"></script>
 <script src="editor/export.js"></script>
+<script src="editor/layout.js"></script>
 <script src="editor/main.js"></script>
 </body>
 </html>

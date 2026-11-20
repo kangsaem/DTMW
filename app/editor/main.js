@@ -38,6 +38,14 @@
         const l = doc.createElement('link'); l.rel = 'stylesheet'; l.href = C.FONT_LINK; doc.head.appendChild(l);
         const b = doc.createElement('style'); b.id = 'kz-base'; b.textContent = KZ.site.base + '\n' + KZ.site.motion; doc.head.appendChild(b);
         const t = doc.createElement('style'); t.id = 'kz-theme'; doc.head.appendChild(t);
+        // Alt(⌥)+클릭: 링크가 가리키는 페이지로 이동
+        const jump = e => {
+          if (!e.altKey) return;
+          const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return;
+          const id = a.getAttribute('href').slice(1);
+          if (id && editor.Pages.get(id)) { e.preventDefault(); e.stopPropagation(); if (e.type === 'click') editor.Pages.select(id); }
+        };
+        doc.addEventListener('mousedown', jump, true); doc.addEventListener('click', jump, true);
       }
       doc.getElementById('kz-theme').textContent = KZ.themeCss(S);
       docs.add(doc);
@@ -74,6 +82,8 @@
       set.pages.forEach(pg => PM.add({ id: pg[0], name: pg[1], component: KZ.setPageHtml(set, pg) }));
       PM.select(set.pages[0][0]);
       PM.remove(tmp);
+      S.tree = {};
+      set.pages.forEach((pg, i) => { const o = pg[4] || {}; S.tree[pg[0]] = { parent: o.parent || null, order: i, menu: o.menu !== false }; });
       S.siteName = set.siteName || S.siteName; $('#siteName').value = S.siteName;
       if (set.style) {
         const st = set.style, th = THEMES[st.theme];
@@ -83,11 +93,14 @@
         if (st.speed) S.speed = st.speed;
         refreshTheme(); if (booted) renderSite();
       }
+      syncMenus();
       editor.UndoManager.clear();
-      renderPages(); save();
+      renderNav(); save();
     }
     function renderSets() {
       const box = $('#sets'); box.innerHTML = '';
+      $('#setsCount').textContent = KZ.setOrder.length + '종 · 업종별 페이지 묶음';
+      $('#setsFold').onclick = () => { const open = box.hidden; box.hidden = !open; $('#setsFold').setAttribute('aria-expanded', String(open)); $('#setsFold .fold-c').textContent = open ? '▾' : '▸'; };
       KZ.setOrder.map(k => [k, KZ.sets[k]]).forEach(([k, s]) => {
         const b = document.createElement('button'); b.className = 'set';
         const th = THEMES[(s.style || {}).theme] || THEMES.white; b.innerHTML = '<i class="set-sw"><b style="background:' + th.bg + '"></b><b style="background:' + th.ink + '"></b><b style="background:' + th.accent + '"></b></i><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span>';
@@ -113,39 +126,155 @@
       if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), SLUG[id]); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
     }
 
-    // ---------- 페이지 ----------
+    // ---------- 페이지 · 트리 ----------
+    // S.tree[페이지 주소] = { parent: 상위 주소 | null, order: 순서, menu: 메뉴에 표시 }  — 2단계까지
     const realPages = () => editor.Pages.getAll().filter(p => !String(p.getId()).startsWith('__'));
+    const pname = p => p.get('name') || p.getId();
+    const collapsed = new Set();
+    function treeEnsure() {
+      if (!S.tree || typeof S.tree !== 'object') S.tree = {};
+      const T = S.tree, pages = realPages();
+      let max = Math.max(-1, ...Object.values(T).map(t => +t.order || 0));
+      pages.forEach(p => { const id = p.getId(); if (!T[id]) T[id] = { parent: null, order: ++max, menu: true }; });
+      Object.keys(T).forEach(id => { if (!editor.Pages.get(id)) delete T[id]; });
+      Object.keys(T).forEach(id => { const pa = T[id].parent; if (pa && (!T[pa] || T[pa].parent)) T[id].parent = null; });
+      return T;
+    }
+    function kids(pid) { const T = treeEnsure(); return realPages().filter(p => (T[p.getId()].parent || null) === pid).sort((x, y) => T[x.getId()].order - T[y.getId()].order); }
+    function orderedPages() { const out = []; kids(null).forEach(p => { out.push(p); kids(p.getId()).forEach(c => out.push(c)); }); return out; }
+    function renumberAll() { const T = treeEnsure(); [null, ...Object.keys(T)].forEach(pid => kids(pid).forEach((p, i) => { T[p.getId()].order = i; })); }
+    function movePage(id, targetId, where) {
+      const T = treeEnsure(); if (!T[id] || !T[targetId] || id === targetId) return false;
+      const hasKids = kids(id).length > 0;
+      if (where === 'inside') {
+        if (T[targetId].parent) { toast('2단계까지만 넣을 수 있습니다'); return false; }
+        if (hasKids) { toast('하위 페이지가 있는 페이지는 다른 페이지 아래로 넣을 수 없습니다'); return false; }
+        T[id].parent = targetId; T[id].order = 1e6;
+      } else {
+        const np = T[targetId].parent || null;
+        if (np && hasKids) { toast('하위 페이지가 있는 페이지는 2단계로 내릴 수 없습니다'); return false; }
+        T[id].parent = np; T[id].order = T[targetId].order + (where === 'before' ? -0.5 : 0.5);
+      }
+      renumberAll(); afterTree(); return true;
+    }
+    function indent(id) { const T = treeEnsure(); const sib = kids(T[id].parent || null); const i = sib.findIndex(p => p.getId() === id); if (T[id].parent) return toast('2단계까지만 넣을 수 있습니다'); if (i < 1) return toast('위에 같은 단계 페이지가 있어야 합니다'); movePage(id, sib[i - 1].getId(), 'inside'); }
+    function outdent(id) { const T = treeEnsure(); const pa = T[id].parent; if (!pa) return; movePage(id, pa, 'after'); }
+    function step(id, d) { const T = treeEnsure(); const sib = kids(T[id].parent || null); const i = sib.findIndex(p => p.getId() === id); const j = i + d; if (j < 0 || j >= sib.length) return; movePage(id, sib[j].getId(), d < 0 ? 'before' : 'after'); }
+    function afterTree() { syncMenus(); renderNav(); save(); }
+
+    // 자동 메뉴: 모든 페이지의 nav.links · .th-menu 를 트리로 다시 만듭니다
+    function walk(c, fn) { fn(c); c.components().forEach(x => walk(x, fn)); }
+    function hasCls(c, n) { return (c.getClasses ? c.getClasses() : []).includes(n); }
+    function menuItems() {
+      const T = treeEnsure();
+      return kids(null).filter(p => T[p.getId()].menu !== false).map(p => ({ id: p.getId(), name: pname(p), kids: kids(p.getId()).filter(c => T[c.getId()].menu !== false).map(c => ({ id: c.getId(), name: pname(c) })) }));
+    }
+    function syncMenus() {
+      if (S.autoMenu === false) return;
+      const first = (orderedPages()[0] || { getId: () => 'home' }).getId();
+      const items = menuItems().filter(i => i.id !== first);
+      const nav = items.map(i => i.kids.length
+        ? '<div class="nav-item"><a href="#' + i.id + '">' + esc(i.name) + '</a><div class="nav-sub">' + i.kids.map(k => '<a href="#' + k.id + '">' + esc(k.name) + '</a>').join('') + '</div></div>'
+        : '<a href="#' + i.id + '">' + esc(i.name) + '</a>').join('');
+      const th = items.map(i => '<a href="#' + i.id + '" data-anim="fade-up">' + esc(i.name) + '</a>').join('');
+      realPages().forEach(p => walk(p.getMainComponent(), c => {
+        const tag = (c.get('tagName') || '').toLowerCase();
+        if (tag === 'nav' && hasCls(c, 'links')) c.components(nav);
+        else if (hasCls(c, 'th-menu')) c.components(th);
+        else if (tag === 'a' && hasCls(c, 'brand')) c.addAttributes({ href: '#' + first });
+      }));
+    }
+
     function uniqueId(base) {
       let id = (base || 'page').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
       let n = 1, out = id; while (editor.Pages.get(out)) out = id + '-' + (++n); return out;
     }
-    function addPage(name, html, id) {
+    function addPage(name, html, id, parent) {
       const p = editor.Pages.add({ id: uniqueId(id || 'page'), name: name || '새 페이지', component: html || '<section class="wrap"><h1 class="title">새 페이지</h1><p class="body-p">요소 탭에서 섹션을 끌어 오세요.</p></section>' });
-      editor.Pages.select(p); renderPages(); save(); return p;
+      const T = treeEnsure(); if (parent && T[parent] && !T[parent].parent) { T[p.getId()].parent = parent; renumberAll(); }
+      editor.Pages.select(p); afterTree(); return p;
     }
+    async function deletePage(p) {
+      if (realPages().length < 2) return toast('마지막 페이지는 지울 수 없습니다');
+      const ks = kids(p.getId());
+      if (!await confirmDlg('페이지 삭제', '<b>' + esc(pname(p)) + '</b> 페이지를 삭제할까요?' + (ks.length ? '<br>하위 페이지 ' + ks.length + '개는 위 단계로 올라갑니다.' : ''), '삭제')) return;
+      const T = treeEnsure(); ks.forEach(c => { T[c.getId()].parent = null; T[c.getId()].order = T[p.getId()].order + 0.5; });
+      const other = orderedPages().find(x => x !== p); editor.Pages.select(other); editor.Pages.remove(p); renumberAll(); afterTree();
+    }
+    function iconBtn(label, txt, fn) { const b = h('button', { className: 'ib', title: label, textContent: txt }); b.setAttribute('aria-label', label); b.onclick = e => { e.stopPropagation(); fn(); }; return b; }
+    let dragId = null;
     function renderPages() {
       const box = $('#pages'); if (!box) return; box.innerHTML = '';
-      const cur = editor.Pages.getSelected();
-      realPages().forEach(p => {
-        const row = document.createElement('div'); row.className = 'pg' + (p === cur ? ' on' : '');
-        const inp = document.createElement('input'); inp.value = p.get('name') || p.getId(); inp.setAttribute('aria-label', '페이지 이름');
-        inp.onchange = () => { p.set('name', inp.value); save(); };
-        inp.onfocus = () => { if (editor.Pages.getSelected() !== p) { editor.Pages.select(p); } };
-        const code = document.createElement('code'); code.textContent = '#' + p.getId();
-        const open = document.createElement('button'); open.title = '열기'; open.textContent = '↗'; open.onclick = () => editor.Pages.select(p);
-        const dup = document.createElement('button'); dup.title = '복제'; dup.textContent = '⧉'; dup.onclick = () => { addPage((p.get('name') || '') + ' 복사', p.getMainComponent().getInnerHTML(), p.getId() + '-copy'); };
-        const del = document.createElement('button'); del.title = '삭제'; del.textContent = '✕';
-        del.onclick = async () => { if (realPages().length < 2) return toast('마지막 페이지는 지울 수 없습니다'); if (await confirmDlg('페이지 삭제', '<b>' + esc(p.get('name')) + '</b> 페이지를 삭제할까요?', '삭제')) { const other = realPages().find(x => x !== p); editor.Pages.select(other); editor.Pages.remove(p); renderPages(); save(); } };
-        row.append(inp, code, open, dup, del); box.appendChild(row);
-      });
+      const T = treeEnsure(), cur = editor.Pages.getSelected();
+      kids(null).forEach(p => { row(p, 0); if (!collapsed.has(p.getId())) kids(p.getId()).forEach(c => row(c, 1)); });
+      function row(p, depth) {
+        const id = p.getId(), t = T[id], ks = depth ? [] : kids(id);
+        const r = h('div', { className: 'pg' + (p === cur ? ' on' : '') + (t.menu === false ? ' hid' : ''), draggable: true });
+        r.style.paddingLeft = (6 + depth * 20) + 'px';
+        const car = h('button', { className: 'ib car', textContent: ks.length ? (collapsed.has(id) ? '▸' : '▾') : (depth ? '└' : '') });
+        car.setAttribute('aria-label', '하위 페이지 접기 · 펼치기'); car.tabIndex = ks.length ? 0 : -1;
+        car.onclick = e => { e.stopPropagation(); if (!ks.length) return; collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); renderPages(); };
+        const inp = h('input', { value: pname(p) }); inp.setAttribute('aria-label', '페이지 이름');
+        inp.onchange = () => { p.set('name', inp.value || id); afterTree(); };
+        inp.onfocus = () => { if (editor.Pages.getSelected() !== p) editor.Pages.select(p); };
+        const code = h('code', { textContent: '#' + id });
+        const acts = h('span', { className: 'pg-acts' }, [
+          iconBtn(t.menu === false ? '메뉴에 표시' : '메뉴에서 숨기기', t.menu === false ? '◌' : '●', () => { t.menu = t.menu === false; afterTree(); }),
+          iconBtn('위로', '↑', () => step(id, -1)), iconBtn('아래로', '↓', () => step(id, 1)),
+          depth ? iconBtn('위 단계로', '⇤', () => outdent(id)) : iconBtn('위 페이지의 하위로', '⇥', () => indent(id)),
+          iconBtn('하위 페이지 추가', '+', () => addPage('새 하위 페이지', null, id + '-sub', depth ? t.parent : id)),
+          iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().getInnerHTML(), id + '-copy', t.parent)),
+          iconBtn('삭제', '✕', () => deletePage(p))
+        ]);
+        r.append(car, inp, code, acts);
+        r.onclick = () => { if (editor.Pages.getSelected() !== p) editor.Pages.select(p); };
+        r.ondragstart = e => { dragId = id; r.classList.add('drag'); try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (er) { /* 무시 */ } };
+        r.ondragend = () => { dragId = null; $$('.pg', box).forEach(x => x.classList.remove('drag', 'dz-before', 'dz-after', 'dz-inside')); };
+        const zone = e => { const b = r.getBoundingClientRect(), y = (e.clientY - b.top) / b.height; return y < 0.28 ? 'before' : y > 0.72 ? 'after' : (depth ? (y < 0.5 ? 'before' : 'after') : 'inside'); };
+        r.ondragover = e => { if (!dragId || dragId === id) return; e.preventDefault(); const z = zone(e); r.classList.remove('dz-before', 'dz-after', 'dz-inside'); r.classList.add('dz-' + z); };
+        r.ondragleave = () => r.classList.remove('dz-before', 'dz-after', 'dz-inside');
+        r.ondrop = e => { e.preventDefault(); const z = zone(e); r.classList.remove('dz-before', 'dz-after', 'dz-inside'); if (dragId) movePage(dragId, id, z); };
+        box.appendChild(r);
+      }
     }
-    editor.on('page:select', () => { renderPages(); editor.select(null); renderSide(); });
+    editor.on('page:select', () => { renderNav(); editor.select(null); renderSide(); });
     $('#addPage').onclick = async () => {
       const f = document.createElement('div');
       f.innerHTML = '<div class="field"><label for="npName">페이지 이름</label><input class="inp" id="npName" value="새 페이지"></div><div class="field"><label for="npId">주소 (영문 · 숫자 · -)</label><input class="inp" id="npId" value="new-page"></div>';
       const v = await dialog('빈 페이지 추가', f, [['취소', null], ['추가', d => d({ n: $('#npName').value, i: $('#npId').value }), 'pri']]);
       if (v) addPage(v.n, null, v.i);
     };
+
+    // 상단 페이지 선택 · 작업대 머리글 · 아래 페이지 띠
+    function thumbOf(p) {
+      let src = '';
+      try { walk(p.getMainComponent(), c => { if (src) return; if (c.get('type') === 'image' && c.get('src')) src = c.get('src'); else { const bg = (c.getStyle && c.getStyle()['background-image']) || ''; const m = bg.match(/url\(["']?(.*?)["']?\)$/); if (m) src = m[1]; } }); } catch (e) { src = ''; }
+      return src;
+    }
+    function renderNav() {
+      const T = treeEnsure(), cur = editor.Pages.getSelected(), list = orderedPages();
+      const sel = $('#pageSel'); sel.innerHTML = '';
+      list.forEach(p => sel.appendChild(h('option', { value: p.getId(), textContent: (T[p.getId()].parent ? '　└ ' : '') + pname(p) })));
+      if (cur) sel.value = cur.getId();
+      const strip = $('#pageStrip'); strip.innerHTML = '';
+      list.forEach(p => {
+        const b = h('button', { className: 'ps' + (p === cur ? ' on' : '') + (T[p.getId()].parent ? ' sub' : ''), title: pname(p) + ' (#' + p.getId() + ')' });
+        const th = h('span', { className: 'ps-th' }); const src = thumbOf(p); if (src) th.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")';
+        b.append(th, h('span', { className: 'ps-n', textContent: (T[p.getId()].parent ? '└ ' : '') + pname(p) }));
+        b.onclick = () => editor.Pages.select(p); strip.appendChild(b);
+      });
+      const add = h('button', { className: 'ps add', textContent: '+ 페이지' }); add.onclick = () => $('#addPage').click(); strip.appendChild(add);
+      renderStageHead();
+      if ($('.pane[data-pane="pg"]').classList.contains('on')) renderPages();
+    }
+    function renderStageHead() {
+      const cur = editor.Pages.getSelected(); if (!cur) return;
+      const T = treeEnsure(), pa = T[cur.getId()] && T[cur.getId()].parent;
+      const dev = { desktop: 'PC · 전체 폭', tablet: '태블릿 · 820px', mobile: '모바일 · 390px' }[editor.getDevice()] || '';
+      $('#stageTitle').innerHTML = (pa ? '<span class="dim">' + esc(pname(editor.Pages.get(pa))) + ' ›</span> ' : '') + '<b>' + esc(pname(cur)) + '</b> <span class="dim">#' + esc(cur.getId()) + '</span>';
+      $('#stageDev').textContent = dev;
+    }
+    $('#pageSel').onchange = e => editor.Pages.select(e.target.value);
 
     // ---------- 업로드 ----------
     const readDataURL = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
@@ -444,6 +573,7 @@
       Object.entries(FONTS).forEach(([k, f]) => fs.appendChild(h('option', { value: k, textContent: f.name })));
       fs.value = S.font; fs.onchange = () => { S.font = fs.value; refreshTheme(); save(); };
       const to = $('#transOpts'); to.innerHTML = ''; to.appendChild(opts(TRANS, S.transition, v => { S.transition = v; save(); }));
+      const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; if (am.checked) syncMenus(); save(); toast(am.checked ? '메뉴를 페이지 트리대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
       $$('#speedSeg button').forEach(b => { b.classList.toggle('on', b.dataset.v === S.speed); b.onclick = () => { S.speed = b.dataset.v; $$('#speedSeg button').forEach(x => x.classList.toggle('on', x === b)); refreshTheme(); save(); }; });
     }
     $('#pvTrans').onclick = () => openPreview();
@@ -454,6 +584,7 @@
       $('#main').classList.remove('no-drawer');
       $$('.rail button').forEach(b => b.classList.toggle('on', b.dataset.pane === id));
       $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === id));
+      const rb = $('.rail button[data-pane="' + id + '"]'); $('#drawerTitle').textContent = rb ? rb.textContent.trim() : '';
       if (id === 'pg') renderPages();
       setTimeout(() => editor.refresh(), 50);
     }
@@ -472,7 +603,7 @@
     $$('[data-dev]').forEach(b => b.onclick = () => {
       editor.setDevice(b.dataset.dev); $$('[data-dev]').forEach(x => x.classList.toggle('on', x === b));
       if (b.dataset.dev !== 'desktop') toast((b.dataset.dev === 'mobile' ? '모바일' : '태블릿') + ' 화면 — 여기서 바꾼 디자인은 이 크기에만 적용됩니다');
-      renderSide();
+      renderSide(); renderStageHead();
     });
     $('#modeFlow').onclick = () => { editor.setDragMode(''); $('#modeFlow').classList.add('on'); $('#modeFree').classList.remove('on'); toast('정렬 배치 — 요소가 위아래로 정렬됩니다'); };
     $('#modeFree').onclick = () => { editor.setDragMode('absolute'); $('#modeFree').classList.add('on'); $('#modeFlow').classList.remove('on'); toast('자유 배치 — 끌어서 원하는 위치에 놓습니다. 모바일 화면도 꼭 확인하세요'); };
@@ -495,16 +626,16 @@
       try {
         const d = KZ.store.migrate(JSON.parse(await f.text()));
         S = Object.assign(DEFAULT_S(), d.S || {}); editor.loadProjectData(d.gjs);
-        syncAll(); save(); toast('작업 파일을 불러왔습니다');
+        treeEnsure(); syncMenus(); syncAll(); save(); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
-    $('#publishBtn').onclick = () => dialog('게시 (2차에서 연결)', '<p>이 시제품에서는 아직 GitHub로 올리지 않습니다. 2차에서 연결할 흐름은 다음과 같습니다.</p><ol style="padding-left:18px"><li>GitHub 저장소와 접근 토큰을 한 번 등록</li><li>[게시]를 누르면 <code>index.html</code>과 작업 파일이 저장소에 올라감</li><li>GitHub Pages가 1~2분 안에 사이트에 반영</li></ol><p class="hint">지금은 [파일 → 사이트 HTML 내보내기]로 받은 파일을 직접 올릴 수 있습니다.</p>', [['닫기', null], ['HTML 내보내기', d => { d(null); offerFile('index.html', buildSite(), 'text/html'); }, 'pri']]);
+    $('#publishBtn').onclick = () => dialog('내보내기', '<p>완성한 사이트를 파일로 받아 원하는 곳에 올립니다.</p><ul style="padding-left:18px;line-height:1.8"><li><b>사이트 HTML</b> — 업로드용 완성 파일 (index.html)</li><li><b>작업 파일</b> — 나중에 이어서 고칠 때 (.json)</li></ul><p class="hint">GitHub 등으로 바로 올리기는 다음 단계에서 연결합니다.</p>', [['닫기', null], ['작업 파일', d => { d(null); offerFile((S.siteName || 'site') + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json'); }], ['사이트 HTML', d => { d(null); offerFile('index.html', buildSite(), 'text/html'); }, 'pri']]);
 
     // ---------- 내보내기 ----------
     const offerFile = (name, data, mime) => KZ.offerFile(name, data, mime);
     function buildSite(startId) {
       return KZ.buildSite({
-        pages: realPages().map(p => ({ id: p.getId(), name: p.get('name') || p.getId(), html: p.getMainComponent().getInnerHTML() })),
+        pages: orderedPages().map(p => { const t = treeEnsure()[p.getId()]; return { id: p.getId(), name: pname(p), parent: t.parent || null, menu: t.menu !== false, html: p.getMainComponent().getInnerHTML() }; }),
         css: editor.getCss({ keepUnusedStyles: true }) || '', S, startId
       });
     }
@@ -524,7 +655,7 @@
 
     // ---------- 시작 ----------
     function syncAll() {
-      $('#siteName').value = S.siteName; refreshTheme(); renderSite(); renderAssets(); renderPages(); renderSide();
+      $('#siteName').value = S.siteName; treeEnsure(); refreshTheme(); renderSite(); renderAssets(); renderNav(); renderSide();
     }
     editor.on('load', async () => {
       let saved = null;
@@ -533,9 +664,11 @@
         if (saved && saved.gjs) { S = Object.assign(DEFAULT_S(), saved.S || {}); editor.loadProjectData(saved.gjs); if (!realPages().length) applySet(C.DEFAULT_SET); }
         else applySet(C.DEFAULT_SET);
       } catch (e) { applySet(C.DEFAULT_SET); }
+      treeEnsure(); syncMenus();
       editor.UndoManager.clear();
       booted = true;
-      renderSets(); renderTemplates(); syncAll();
+      renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);
+      window.__kz = { orderedPages, movePage, syncMenus, treeEnsure, get S() { return S; } };
       try { injectDoc(editor.Canvas.getDocument()); } catch (e) { /* 프레임 대기 */ }
       setStatus(saved ? '저장됨 · 이 브라우저' : '새 작업');
     });

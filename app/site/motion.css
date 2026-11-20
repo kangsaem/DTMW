@@ -43,5 +43,6 @@
 .rt-prev{left:14px}.rt-next{right:14px}
 .rt-ov[data-type="menu"] .rt-back{background:var(--bg)}
 .rt-ov[data-type="menu"] .rt-box{inset:0;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:8vw}
+.rt-ov[data-type="menu"] .rt-box a.sub{font-size:clamp(20px,3.5vw,32px);padding-left:1.2em;opacity:.8}
 .rt-ov[data-type="menu"] .rt-box a{font-family:var(--fh);font-size:clamp(32px,7vw,68px);text-decoration:none;line-height:1.2;align-self:flex-start}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}

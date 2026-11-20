@@ -28,7 +28,7 @@ window.KZ = window.KZ || {};
   KZ.setPageHtml = function (set, page) {
     var L = KZ.layouts[page[2]];
     if (!L) throw new Error('레이아웃 없음: ' + page[2]);
-    return KZ.applyWords(L.html(page[3]), set.words);
+    return KZ.applyWords(L.html(page[3] == null ? undefined : page[3]), set.words);
   };
   // 여러 세트에서 쓰는 문구 묶음
   KZ.W = {

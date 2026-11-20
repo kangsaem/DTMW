@@ -17,7 +17,7 @@ window.KZ = window.KZ || {};
     var esc = ui.esc, S = o.S;
     var fix = function (html) { return html.replace(/<video\b(?![^>]*\bplaysinline)/g, '<video playsinline muted'); };
     var body = o.pages.map(function (p) { return '<div class="rt-page" data-page="' + esc(p.id) + '" hidden>' + fix(p.html) + '</div>'; }).join('\n');
-    var meta = JSON.stringify({ start: o.startId || (o.pages[0] && o.pages[0].id), pages: o.pages.map(function (p) { return { id: p.id, name: p.name }; }) }).replace(/</g, '\\u003c');
+    var meta = JSON.stringify({ start: o.startId || (o.pages[0] && o.pages[0].id), pages: o.pages.map(function (p) { var m = { id: p.id, name: p.name }; if (p.parent) m.parent = p.parent; if (p.menu === false) m.menu = false; return m; }) }).replace(/</g, '\\u003c');
     return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + esc(S.siteName) + '</title>\n' +
       '<meta name="generator" content="KZ site editor ' + esc(KZ.VERSION) + '">\n' +
       '<link rel="stylesheet" href="' + KZ.C.FONT_LINK.replace(/&/g, '&amp;') + '">\n<style>\n' + KZ.themeCss(S) + '\n' + KZ.site.base + '\n' + KZ.site.motion + '\n' + (o.css || '') + '\n</style>\n</head>\n' +

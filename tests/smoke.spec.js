@@ -38,6 +38,7 @@ test('모든 레이아웃과 세트가 오류 없이 만들어진다', async ({ 
 test('사이트 세트를 다시 적용하면 기본 페이지로 돌아간다', async ({ page }) => {
   await open(page);
   await page.evaluate(() => { window.__kzEditor.Pages.add({ id: 'extra', name: '추가', component: '<p>x</p>' }); });
+  await page.click('#setsFold');
   await page.locator('.set', { hasText: '기본 사이트' }).click();
   await page.locator('#dlgF button', { hasText: '적용' }).click();
   await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,gallery,detail,news,journal,about,effects');
@@ -116,6 +117,7 @@ test('모든 세트: 페이지 링크가 실제 페이지로 이어지고 스타
 
 test('세트를 적용하면 테마와 글꼴도 바뀐다', async ({ page }) => {
   await open(page);
+  await page.click('#setsFold');
   await page.locator('.set', { hasText: '카페' }).click();
   await page.locator('#dlgF button', { hasText: '적용' }).click();
   await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,gallery,news,about');
@@ -141,4 +143,43 @@ test('레이아웃 이미지는 회색 빈칸이 아닌 샘플 이미지다', as
   expect(r.gray).toBe(false);
   expect(r.count).toBeGreaterThanOrEqual(12);
   expect(r.distinct).toBe(r.count);
+});
+
+test('페이지 트리: 하위 페이지가 메뉴 드롭다운과 내보낸 메뉴에 들어간다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor, k = window.__kz;
+    const order = k.orderedPages().map(p => p.getId());
+    const html = e.Pages.get('home').getMainComponent().getInnerHTML();
+    const sel = [...document.querySelectorAll('#pageSel option')].map(o => o.value);
+    const strip = document.querySelectorAll('#pageStrip .ps:not(.add)').length;
+    return { order, parent: k.S.tree.detail.parent, dropdown: /nav-item[^]*nav-sub[^]*#detail/.test(html), sel, strip };
+  });
+  expect(r.parent).toBe('gallery');
+  expect(r.order.indexOf('detail')).toBe(r.order.indexOf('gallery') + 1);
+  expect(r.dropdown).toBe(true);
+  expect(r.sel.length).toBe(7);
+  expect(r.strip).toBe(7);
+  // 옮기기: 소개를 소식 아래로
+  const after = await page.evaluate(() => { const k = window.__kz; k.movePage('about', 'news', 'inside'); return { p: k.S.tree.about.parent, html: window.__kzEditor.Pages.get('home').getMainComponent().getInnerHTML() }; });
+  expect(after.p).toBe('news');
+  expect(after.html).toMatch(/nav-sub[^]*#about/);
+  expect(errors).toEqual([]);
+});
+
+test('위쪽 페이지 선택으로 이동하고 패널 떼기 · 도구 숨기기가 된다', async ({ page }) => {
+  const errors = await open(page);
+  await page.selectOption('#pageSel', 'about');
+  expect(await page.evaluate(() => window.__kzEditor.Pages.getSelected().getId())).toBe('about');
+  await expect(page.locator('#stageTitle')).toContainText('소개');
+  await page.click('[data-detach="side"]');
+  await expect(page.locator('#side')).toHaveClass(/floating/);
+  await page.click('[data-detach="side"]');
+  await expect(page.locator('#side')).not.toHaveClass(/floating/);
+  await page.click('#zenBtn');
+  await expect(page.locator('.app')).toHaveClass(/zen/);
+  await expect(page.locator('#side')).toBeHidden();
+  await page.click('#zenBtn');
+  await expect(page.locator('#side')).toBeVisible();
+  expect(errors).toEqual([]);
 });

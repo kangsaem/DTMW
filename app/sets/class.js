@@ -2,7 +2,7 @@
 KZ.set({
   id: 'class', name: '클래스 · 스튜디오', desc: '클래스 · 클래스 상세 · 일정 · 소개 · 문의 — 콘크리트, 고딕', siteName: '우리 스튜디오',
   style: { theme: 'concrete', font: 'sans', transition: 'slide', speed: 'normal' },
-  pages: [['home', '홈', 't12'], ['gallery', '클래스', 't3'], ['detail', '클래스 상세', 't6'], ['news', '일정', 't2'], ['about', '소개 · 문의', 't13']],
+  pages: [['home', '홈', 't12'], ['gallery', '클래스', 't3'], ['detail', '클래스 상세', 't6', null, {parent:'gallery'}], ['news', '일정', 't2'], ['about', '소개 · 문의', 't13']],
   words: [].concat(KZ.W.noEffects, KZ.W.noJournal,
     KZ.W.profileDl([['운영 시간', '[요일 · 시간]'], ['위치', '[주소]'], ['수강 신청', '[신청 방법]'], ['문의', '[전화 · 이메일]']]),
     [['[사이트 이름]', '[스튜디오 이름]'], ['>갤러리<', '>클래스<'], ['>소식<', '>일정<'], ['>소개<', '>소개 · 문의<'],
