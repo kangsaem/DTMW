@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub에 올리는 방법 — WMW</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--ink:#1d1d1d;--sub:#5f5f5f;--line:#dcd9d2;--bg:#f6f4ef;--card:#fff;--acc:#c0392b;--note:#fff7dc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+.top{position:sticky;top:0;background:#1f1f1f;color:#fff;display:flex;align-items:center;gap:16px;padding:12px 20px;z-index:2}
+.top b{letter-spacing:.08em}.top a{color:#ddd;font-size:14px;text-decoration:none}.top a:hover{color:#fff}.top .grow{flex:1}
+main{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+h1{font-size:30px;line-height:1.3;margin:0 0 8px}
+h2{font-size:20px;margin:48px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+.lead{color:var(--sub);margin:0 0 24px}
+.toc{background:var(--card);border:1px solid var(--line);padding:16px 20px;margin:0 0 8px}
+.toc ol{margin:0;padding-left:20px}
+ol.steps{padding-left:22px}ol.steps li{margin:0 0 12px}
+code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:#ece9e2;padding:1px 6px;border-radius:3px}
+kbd{border:1px solid #cfcbc3;background:#fff}
+.box{background:var(--card);border:1px solid var(--line);padding:14px 18px;margin:16px 0}
+.key{background:var(--note);border:1px solid #ecd98b;padding:14px 18px;margin:16px 0}
+.key b{color:#8a5a00}
+.tree{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;line-height:1.6;background:#fff;border:1px solid var(--line);padding:12px 16px;white-space:pre}
+.ok{color:#1d6b3a}.no{color:var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+td,th{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;background:#fff}
+th{background:#efece6;font-weight:600}
+small,.small{font-size:13px;color:var(--sub)}
+a{color:#1f4fa8}
+</style>
+</head>
+<body>
+<div class="top"><b>WMW</b><span>GitHub에 올리는 방법</span><span class="grow"></span><a href="../">← 편집기로</a></div>
+<main>
+<h1>만든 사이트를 GitHub에 올리기</h1>
+<p class="lead">GitHub Pages는 무료로 사이트를 계속 열어 둘 수 있는 곳입니다. 처음 한 번은 10~15분쯤 걸리고, 그 뒤로 고칠 때는 파일만 다시 올리면 됩니다.</p>
+
+<div class="toc"><b>순서</b>
+<ol>
+<li><a href="#s0">WMW에서 내보내기</a></li>
+<li><a href="#s1">GitHub 가입</a></li>
+<li><a href="#s2">저장소 만들기</a></li>
+<li><a href="#s3">파일 올리기</a> — 가장 많이 틀리는 곳</li>
+<li><a href="#s4">사이트 켜기 (Pages)</a></li>
+<li><a href="#s5">고칠 때</a></li>
+<li><a href="#s6">내 도메인 연결 (선택)</a></li>
+<li><a href="#s7">주의할 점 · 문제 해결</a></li>
+</ol></div>
+
+<h2 id="s0">1. WMW에서 내보내기</h2>
+<p>편집기 오른쪽 위 <b>내보내기</b>를 누릅니다. 받는 파일은 둘 중 하나입니다.</p>
+<table>
+<tr><th>내 사이트</th><th>받는 파일</th><th>올릴 것</th></tr>
+<tr><td>사진 · 영상을 직접 올리지 않음</td><td><code>index.html</code> 한 파일</td><td>그 파일 하나</td></tr>
+<tr><td>사진 · 영상을 올림</td><td><code>site-날짜.zip</code></td><td>압축을 푼 폴더 <b>안의 것 전부</b></td></tr>
+</table>
+<p>ZIP을 풀면 이렇게 생겼습니다.</p>
+<div class="tree">site-20261120/      ← 이 폴더 자체는 올리지 않습니다
+├─ index.html       ← 올림
+└─ media/           ← 올림 (폴더째)
+   ├─ photo-1.webp
+   └─ video-1.mp4</div>
+<p class="small">함께 받는 <b>작업 파일(.json)</b>은 나중에 고칠 때 편집기에서 여는 파일입니다. 내 컴퓨터에만 보관하고 GitHub에는 올리지 마세요.</p>
+
+<h2 id="s1">2. GitHub 가입</h2>
+<ol class="steps">
+<li><a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a> 에서 이메일로 가입합니다 (무료).</li>
+<li>정한 <b>아이디(사용자 이름)</b>가 사이트 주소에 들어갑니다. 예: 아이디가 <code>harugongbang</code> 이면 주소는 <code>harugongbang.github.io</code>.</li>
+</ol>
+
+<h2 id="s2">3. 저장소 만들기</h2>
+<ol class="steps">
+<li>오른쪽 위 <b>+</b> → <b>New repository</b>.</li>
+<li><b>Repository name</b>을 정합니다. 이름에 따라 주소가 달라집니다.
+  <table>
+  <tr><th>저장소 이름</th><th>사이트 주소</th></tr>
+  <tr><td><code>아이디.github.io</code> (예: <code>harugongbang.github.io</code>)</td><td><code>https://harugongbang.github.io/</code></td></tr>
+  <tr><td>그 밖의 이름 (예: <code>my-shop</code>)</td><td><code>https://harugongbang.github.io/my-shop/</code></td></tr>
+  </table>
+</li>
+<li><b>Public</b>(공개)을 고릅니다. 무료 계정은 공개 저장소에서만 사이트를 켤 수 있습니다.</li>
+<li><b>Add a README file</b>은 체크해도, 안 해도 됩니다. <b>Create repository</b>를 누릅니다.</li>
+</ol>
+
+<h2 id="s3">4. 파일 올리기</h2>
+<ol class="steps">
+<li>저장소 화면에서 <b>Add file</b> → <b>Upload files</b> (빈 저장소면 <b>uploading an existing file</b> 글자).</li>
+<li>내 컴퓨터에서 압축을 푼 폴더를 열고, <b>안의 것을 전부 선택</b>합니다 (윈도 <kbd>Ctrl</kbd>+<kbd>A</kbd>, 맥 <kbd>⌘</kbd>+<kbd>A</kbd>).</li>
+<li>선택한 것을 GitHub 화면으로 <b>끌어다 놓습니다</b>.</li>
+<li>아래 <b>Commit changes</b>를 누릅니다.</li>
+</ol>
+<div class="key">
+<p><b>가장 많이 틀리는 곳</b></p>
+<p class="no">✗ 압축 푼 <b>폴더째</b> 끌어다 놓기 → index.html이 한 칸 안쪽에 들어가 사이트가 빈 화면(404)이 됩니다.</p>
+<p class="ok">✓ 폴더 <b>안에 들어가서</b> 전부 선택해 끌어다 놓기 → 저장소 첫 화면에 <code>index.html</code>과 <code>media</code>가 바로 보여야 합니다.</p>
+<p class="small" style="margin:0">"choose your files" 버튼으로는 폴더(media)를 고를 수 없습니다. 꼭 <b>끌어다 놓기</b>로 올리세요.</p>
+</div>
+
+<h2 id="s4">5. 사이트 켜기 (Pages)</h2>
+<ol class="steps">
+<li>저장소 위쪽 <b>Settings</b> → 왼쪽 메뉴 <b>Pages</b>.</li>
+<li><b>Build and deployment</b>의 <b>Source</b>를 <b>Deploy from a branch</b>로 둡니다.</li>
+<li><b>Branch</b>를 <code>main</code>, 폴더를 <code>/ (root)</code>로 고르고 <b>Save</b>.</li>
+<li>1~2분 뒤 같은 화면 위쪽에 사이트 주소가 나옵니다. 눌러서 열어 보세요.</li>
+</ol>
+<p class="small">처음에는 몇 분 걸릴 수 있습니다. 404가 나오면 2~3분 뒤 새로고침하세요.</p>
+
+<h2 id="s5">6. 고칠 때</h2>
+<ol class="steps">
+<li>WMW 편집기 → <b>파일 → 작업 파일 불러오기</b>로 보관해 둔 .json을 엽니다 (같은 브라우저라면 자동으로 이어집니다).</li>
+<li>고친 뒤 다시 <b>내보내기</b> → 4번처럼 <b>Upload files</b>로 다시 올립니다. 이름이 같은 파일은 <b>덮어써집니다</b>.</li>
+<li>더는 쓰지 않는 사진은 저장소에 남아 있습니다. 지우려면 GitHub에서 그 파일을 열고 <b>⋯ → Delete file</b>.</li>
+<li>1~2분 뒤 사이트에 반영됩니다. 안 바뀌어 보이면 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (맥 <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).</li>
+</ol>
+
+<h2 id="s6">7. 내 도메인 연결 (선택)</h2>
+<p>가지고 있는 도메인(예: <code>www.myshop.com</code>)으로 열고 싶을 때만 합니다.</p>
+<ol class="steps">
+<li>GitHub: <b>Settings → Pages → Custom domain</b>에 도메인을 넣고 <b>Save</b>.</li>
+<li>도메인을 산 곳(가비아 · 카페24 등)의 DNS 설정:
+  <table>
+  <tr><th>연결할 주소</th><th>종류</th><th>값</th></tr>
+  <tr><td><code>www.myshop.com</code> 같은 하위 주소</td><td>CNAME</td><td><code>아이디.github.io</code></td></tr>
+  <tr><td><code>myshop.com</code> (맨 앞 없이)</td><td>A 4개</td><td><code>185.199.108.153</code><br><code>185.199.109.153</code><br><code>185.199.110.153</code><br><code>185.199.111.153</code></td></tr>
+  </table>
+</li>
+<li>DNS가 반영되면(몇 분~하루) <b>Enforce HTTPS</b>를 켭니다.</li>
+</ol>
+<p class="small">자세한 내용: <a href="https://docs.github.com/pages/configuring-a-custom-domain-for-your-github-pages-site" target="_blank" rel="noopener">GitHub 공식 문서 — 내 도메인 설정</a></p>
+
+<h2 id="s7">8. 주의할 점 · 문제 해결</h2>
+<div class="box">
+<ul>
+<li><b>공개 저장소</b>라 올린 파일은 누구나 볼 수 있습니다. 개인정보 · 작업 파일(.json)은 올리지 마세요.</li>
+<li>브라우저로 올리는 파일은 <b>하나에 25MB까지</b>, <b>한 번에 100개까지</b>입니다. 큰 영상은 짧게 · 작게 줄이세요 (WMW 내보내기 창이 미리 알려 줍니다).</li>
+<li>사이트 안에서 예약 · 결제 · 문의 접수는 되지 않습니다. 버튼을 네이버 예약 · 카카오톡 채널 · 구글 폼 · 전화로 연결하세요 (디자인 탭 → 링크 → 빠른 입력).</li>
+</ul>
+</div>
+<table>
+<tr><th>증상</th><th>확인할 것</th></tr>
+<tr><td>404 · 빈 화면</td><td>저장소 첫 화면에 <code>index.html</code>이 바로 보이는지 (폴더째 올리지 않았는지), Pages를 켰는지, 2~3분 기다렸는지</td></tr>
+<tr><td>사진 · 영상만 안 보임</td><td><code>media</code> 폴더가 <code>index.html</code>과 같은 위치에 있는지, 폴더 이름이 <code>media</code> 그대로인지</td></tr>
+<tr><td>고쳤는데 그대로</td><td>1~2분 뒤 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>로 새로고침</td></tr>
+</table>
+<p class="small">공식 문서: <a href="https://docs.github.com/repositories/working-with-files/managing-files/adding-a-file-to-a-repository" target="_blank" rel="noopener">파일 올리기</a> · <a href="https://docs.github.com/pages/getting-started-with-github-pages/creating-a-github-pages-site" target="_blank" rel="noopener">Pages 사이트 만들기</a><br>
+이 안내는 2026-11-20 기준입니다. GitHub 화면 이름은 바뀔 수 있습니다. 다른 점이 있으면 <a href="https://github.com/kangsaem/SITE/issues/new" target="_blank" rel="noopener">알려 주세요</a>.</p>
+</main>
+</body>
+</html>

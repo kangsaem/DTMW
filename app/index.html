@@ -11,7 +11,7 @@
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="vendor/grapesjs/grapes.min.css">
-<link rel="stylesheet" href="editor/editor.css?v=0.9.1">
+<link rel="stylesheet" href="editor/editor.css?v=0.10.0">
 </head>
 <body>
 <div class="app">
@@ -40,7 +40,8 @@
       <div class="dd" id="fileMenu">
         <button data-act="export-json">작업 파일 저장 (.json)<small>다른 기기에서 이어서 작업할 때</small></button>
         <button data-act="import-json">작업 파일 불러오기<small>저장해 둔 .json 열기</small></button>
-        <button data-act="export-html">사이트 HTML 내보내기<small>업로드용 완성 파일 (index.html)</small></button>
+        <button data-act="export-html">사이트 HTML 내보내기<small>index.html 또는 ZIP (사진 · 영상이 있을 때)</small></button>
+        <a class="dd-link" href="guide/" target="_blank" rel="noopener">GitHub에 올리는 방법 ↗<small>내보낸 사이트를 무료로 공개하기</small></a>
         <button data-act="reset">처음 상태로 되돌리기<small>브라우저에 저장된 작업 삭제</small></button>
       </div>
     </div>
@@ -127,51 +128,51 @@
 <input type="file" id="jsonIn" accept=".json,application/json" hidden>
 <div class="toast" id="toast" role="status"></div>
 <script src="vendor/grapesjs/grapes.min.js"></script>
-<script src="version.js?v=0.9.1"></script>
-<script src="layouts/_samples.js?v=0.9.1"></script>
-<script src="layouts/_helpers.js?v=0.9.1"></script>
-<script src="layouts/01-hero.js?v=0.9.1"></script>
-<script src="layouts/02-type-hero.js?v=0.9.1"></script>
-<script src="layouts/03-card-grid.js?v=0.9.1"></script>
-<script src="layouts/04-masonry.js?v=0.9.1"></script>
-<script src="layouts/05-h-scroll.js?v=0.9.1"></script>
-<script src="layouts/06-text-index.js?v=0.9.1"></script>
-<script src="layouts/07-group-list.js?v=0.9.1"></script>
-<script src="layouts/08-card-sheet.js?v=0.9.1"></script>
-<script src="layouts/09-slides.js?v=0.9.1"></script>
-<script src="layouts/10-split.js?v=0.9.1"></script>
-<script src="layouts/11-article.js?v=0.9.1"></script>
-<script src="layouts/12-timeline.js?v=0.9.1"></script>
-<script src="layouts/13-profile.js?v=0.9.1"></script>
-<script src="layouts/14-effects.js?v=0.9.1"></script>
-<script src="layouts/15-pricing.js?v=0.9.1"></script>
-<script src="layouts/16-menu-board.js?v=0.9.1"></script>
-<script src="layouts/17-faq.js?v=0.9.1"></script>
-<script src="layouts/18-team.js?v=0.9.1"></script>
-<script src="layouts/19-stats.js?v=0.9.1"></script>
-<script src="layouts/20-events.js?v=0.9.1"></script>
-<script src="layouts/21-location.js?v=0.9.1"></script>
-<script src="layouts/22-contact.js?v=0.9.1"></script>
-<script src="layouts/23-reviews.js?v=0.9.1"></script>
-<script src="layouts/24-cta.js?v=0.9.1"></script>
-<script src="sets/_sets.js?v=0.9.1"></script>
-<script src="sets/basic.js?v=0.9.1"></script>
-<script src="sets/portfolio.js?v=0.9.1"></script>
-<script src="sets/cafe.js?v=0.9.1"></script>
-<script src="sets/class.js?v=0.9.1"></script>
-<script src="sets/event.js?v=0.9.1"></script>
-<script src="sets/resume.js?v=0.9.1"></script>
-<script src="sets/magazine.js?v=0.9.1"></script>
-<script src="sets/service.js?v=0.9.1"></script>
-<script src="sets/stay.js?v=0.9.1"></script>
-<script src="sets/nonprofit.js?v=0.9.1"></script>
-<script src="sets/local.js?v=0.9.1"></script>
-<script src="blocks/blocks.js?v=0.9.1"></script>
-<script src="editor/config.js?v=0.9.1"></script>
-<script src="editor/ui.js?v=0.9.1"></script>
-<script src="editor/storage.js?v=0.9.1"></script>
-<script src="editor/export.js?v=0.9.1"></script>
-<script src="editor/layout.js?v=0.9.1"></script>
-<script src="editor/main.js?v=0.9.1"></script>
+<script src="version.js?v=0.10.0"></script>
+<script src="layouts/_samples.js?v=0.10.0"></script>
+<script src="layouts/_helpers.js?v=0.10.0"></script>
+<script src="layouts/01-hero.js?v=0.10.0"></script>
+<script src="layouts/02-type-hero.js?v=0.10.0"></script>
+<script src="layouts/03-card-grid.js?v=0.10.0"></script>
+<script src="layouts/04-masonry.js?v=0.10.0"></script>
+<script src="layouts/05-h-scroll.js?v=0.10.0"></script>
+<script src="layouts/06-text-index.js?v=0.10.0"></script>
+<script src="layouts/07-group-list.js?v=0.10.0"></script>
+<script src="layouts/08-card-sheet.js?v=0.10.0"></script>
+<script src="layouts/09-slides.js?v=0.10.0"></script>
+<script src="layouts/10-split.js?v=0.10.0"></script>
+<script src="layouts/11-article.js?v=0.10.0"></script>
+<script src="layouts/12-timeline.js?v=0.10.0"></script>
+<script src="layouts/13-profile.js?v=0.10.0"></script>
+<script src="layouts/14-effects.js?v=0.10.0"></script>
+<script src="layouts/15-pricing.js?v=0.10.0"></script>
+<script src="layouts/16-menu-board.js?v=0.10.0"></script>
+<script src="layouts/17-faq.js?v=0.10.0"></script>
+<script src="layouts/18-team.js?v=0.10.0"></script>
+<script src="layouts/19-stats.js?v=0.10.0"></script>
+<script src="layouts/20-events.js?v=0.10.0"></script>
+<script src="layouts/21-location.js?v=0.10.0"></script>
+<script src="layouts/22-contact.js?v=0.10.0"></script>
+<script src="layouts/23-reviews.js?v=0.10.0"></script>
+<script src="layouts/24-cta.js?v=0.10.0"></script>
+<script src="sets/_sets.js?v=0.10.0"></script>
+<script src="sets/basic.js?v=0.10.0"></script>
+<script src="sets/portfolio.js?v=0.10.0"></script>
+<script src="sets/cafe.js?v=0.10.0"></script>
+<script src="sets/class.js?v=0.10.0"></script>
+<script src="sets/event.js?v=0.10.0"></script>
+<script src="sets/resume.js?v=0.10.0"></script>
+<script src="sets/magazine.js?v=0.10.0"></script>
+<script src="sets/service.js?v=0.10.0"></script>
+<script src="sets/stay.js?v=0.10.0"></script>
+<script src="sets/nonprofit.js?v=0.10.0"></script>
+<script src="sets/local.js?v=0.10.0"></script>
+<script src="blocks/blocks.js?v=0.10.0"></script>
+<script src="editor/config.js?v=0.10.0"></script>
+<script src="editor/ui.js?v=0.10.0"></script>
+<script src="editor/storage.js?v=0.10.0"></script>
+<script src="editor/export.js?v=0.10.0"></script>
+<script src="editor/layout.js?v=0.10.0"></script>
+<script src="editor/main.js?v=0.10.0"></script>
 </body>
 </html>

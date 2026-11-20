@@ -37,6 +37,58 @@ window.KZ = window.KZ || {};
       '<script type="application/json" id="rt-meta">' + meta + '<\/script>\n<script>\n' + KZ.site.runtime + '\n<\/script>\n</body>\n</html>';
   };
 
+  // ---------- ZIP 내보내기 (index.html + media/) ----------
+  // 올린 사진 · 영상(S.assets)의 data URI 를 media/파일 로 바꿉니다. 샘플 그림 · 글꼴은 html 안에 그대로 둡니다.
+  var EXT = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/ogg': 'ogv' };
+  function slug(name, fallback) {
+    var base = String(name || '').replace(/\.[^.]+$/, '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    return /[a-z]/.test(base) ? base : fallback; // 한글 이름 등 영문이 없으면 photo-1 · video-1
+  }
+  function b64bytes(b64) { var bin = atob(b64), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  KZ.packSite = function (html, assets) {
+    var media = [], used = {}, n = { image: 0, video: 0 };
+    (assets || []).forEach(function (a) {
+      if (!a || !a.src || a.src.indexOf('data:') !== 0 || html.indexOf(a.src) < 0) return;
+      var m = a.src.match(/^data:([^;,]+)(;base64)?,/); if (!m || !m[2]) return;
+      var kind = a.type === 'video' ? 'video' : 'image'; n[kind]++;
+      var name = slug(a.name, kind === 'video' ? 'video-' + n.video : 'photo-' + n.image), ext = EXT[m[1]] || 'bin', file = name + '.' + ext, k = 2;
+      while (used[file]) file = name + '-' + (k++) + '.' + ext;
+      used[file] = 1;
+      var bytes = b64bytes(a.src.slice(m[0].length));
+      html = html.split(a.src).join('media/' + file);
+      media.push({ path: 'media/' + file, bytes: bytes, size: bytes.length, type: kind });
+    });
+    return { html: html, media: media };
+  };
+  // 무압축(store) ZIP — 외부 라이브러리 없음. files: [{ path, bytes(Uint8Array) | text }]
+  var CRC = (function () { var t = new Uint32Array(256); for (var i = 0; i < 256; i++) { var c = i; for (var j = 0; j < 8; j++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  KZ.zip = function (files) {
+    var enc = new TextEncoder(), parts = [], central = [], off = 0, d = new Date();
+    var time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    files.forEach(function (f) {
+      var name = enc.encode(f.path), data = f.bytes || enc.encode(f.text || ''), crc = crc32(data);
+      var h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, time, true); h.setUint16(12, date, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      var c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+      c.setUint16(12, time, true); c.setUint16(14, date, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+      c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + data.length;
+    });
+    var csize = central.reduce(function (s, x) { return s + x.length; }, 0);
+    var e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+    var all = parts.concat(central, [new Uint8Array(e.buffer)]), total = all.reduce(function (s, x) { return s + x.length; }, 0), out = new Uint8Array(total), p = 0;
+    all.forEach(function (x) { out.set(x, p); p += x.length; });
+    return out;
+  };
+  KZ.GH_LIMIT = 25 * 1024 * 1024; // GitHub 웹 업로드 · 파일 하나 한도 (25 MiB)
+
   // 파일 받기: Claude 아티팩트 안이면 downloads 기능, 일반 웹이면 바로 내려받기, 막히면 복사 창
   var DL = null;
   (function () { try { if (window.claude && window.claude.use) window.claude.use('downloads').then(function (d) { DL = d; }, function () { DL = null; }); } catch (e) { DL = null; } })();
@@ -50,6 +102,7 @@ window.KZ = window.KZ || {};
     if (!inFrame) { try { directDownload(name, data, mime); ui.toast(name + ' 을(를) 내려받았습니다'); return Promise.resolve(); } catch (e) { /* 아래 창으로 */ } }
     return fallback();
     function fallback() {
+      if (typeof data !== 'string') { return ui.dialog('파일 받기', '<p>이 화면에서는 파일 받기가 막혀 있습니다. 편집기(site.kangyonz.com)를 새 탭으로 열어 다시 시도하세요.</p>'); }
       var h = ui.h, kb = Math.round(data.length / 1024);
       var ta = h('textarea', { readOnly: true, value: data.length > 20000 ? data.slice(0, 20000) + '\n…(미리보기는 앞부분만 표시, 복사하면 전체가 복사됩니다)' : data });
       var body = h('div', {}, [h('p', { innerHTML: '<b>' + ui.esc(name) + '</b> · ' + kb + ' KB<br>파일 저장이 막혀 있으면 [복사]한 뒤 메모장에 붙여 넣어 같은 이름으로 저장하세요.' }), ta]);

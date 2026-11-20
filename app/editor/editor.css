@@ -263,3 +263,10 @@ textarea.inp{min-height:80px;resize:vertical;line-height:1.5}
 .file-warn[hidden]{display:none}
 .sec-acts{flex-wrap:wrap;gap:6px;margin-bottom:4px}
 .sec-acts > *{flex:1 1 auto}
+/* 0.10.0 — 내보내기 경고 */
+.ex-warn{border:1px solid rgba(242,201,76,.5);background:rgba(242,201,76,.08);padding:10px 12px;margin:12px 0;font-size:13px;line-height:1.6}
+.ex-warn p{margin:0 0 6px}.ex-warn p:last-child{margin:0}
+.dlg a{color:#f2c94c}
+.dd .dd-link{display:block;padding:10px 12px;color:var(--ui-ink);text-decoration:none;border-top:1px solid var(--ui-line)}
+.dd .dd-link:hover{background:var(--ui-sel)}
+.dd .dd-link small{display:block}

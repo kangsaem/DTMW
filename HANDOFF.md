@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.9.1
+- 편집기 버전: 0.10.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -13,7 +13,9 @@
 
 - 누구나 쓰는 **무료 공개 편집기**. 회원 · 서버 · DB 없음. 광고는 붙을 수 있음, 유료화 없음.
 - 결과물은 **순수 HTML**. 기본은 직접 올리기(한 파일 + media 폴더), GitHub 자동 배포는 선택 기능(3차).
-- 넣지 않는 기능: 문의 양식 접수 · 로그인 · 댓글 · 결제 · 사이트 검색 · 방문자 통계.
+- 넣지 않는 기능: 문의 양식 접수 · 예약 · 로그인 · 댓글 · 결제 · 사이트 검색 · 방문자 통계. (예약 · 문의는 버튼을 네이버 예약 · 카카오톡 채널 · 구글 폼 · 전화로 연결)
+- 사용자 올리기 안내는 **GitHub Pages 기준** (2026-11-20 결정 — Netlify는 무료 크레딧 한도 · 사이트 멈춤, Cloudflare Pages는 Workers 쪽으로 방향 전환 · 한국 속도 우려). 안내 페이지 `app/guide/`.
+- 내보내기 형식: 올린 사진 · 영상 없으면 index.html 하나, 있으면 ZIP `index.html + media/` (B안 확정)
 - 업종 제한 없음. 레이아웃(구조)과 업종 세트(내용 · 색 · 글꼴)를 분리해 조합.
 - 편집기 주소: **site.kangyonz.com**. build · html · page · make 리디렉트는 보류 (GitHub Pages는 저장소당 주소 1개 — Cloudflare 이전 때 처리, 코드는 이미 들어 있음).
 - 호스팅: GitHub `kangsaem/SITE` + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
@@ -33,6 +35,7 @@
 - [x] 0.8.0: 섹션 레이아웃 10종(요금 · 메뉴판 · FAQ · 팀 · 숫자 띠 · 일정 · 위치 · 연락처 · 후기 칸 · 배너), 세트 섹션 이어 붙이기, 세트 보강, 새 세트 3종(숙소 · 비영리 · 동네 가게). 자동 점검 24개
 - [x] 0.9.0: 색 테마 12종(명암 대비 점검), 글꼴 10종(헬베티카풍 WMW Heros = TeX Gyre Heros 파생본, Pretendard 등), 내보낼 때 쓴 글꼴만. 자동 점검 26개
 - [x] 0.9.1: 페이지 복제 시 스타일 사라짐 고침. 실제 배포 시험용 샘플 사이트 **site.kangyonz.com/demo/** (동네 가게 세트, noindex) — Chrome에서 페이지 이동 · 페이지 이동 효과 · FAQ · 팝업 · 글꼴 · 콘솔 오류 없음 확인. 자동 점검 27개
+- [x] 0.10.0: ZIP 내보내기(index.html + media/), 내보내기 창(25MB · 연결 안 된 버튼 경고), GitHub 안내 페이지 /guide/, 링크 빠른 입력, 히어로 안내 문구 숨김, 영문 파일 이름. 자동 점검 32개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
@@ -53,7 +56,7 @@
    - 언어 버튼: `[KR ▾]` 하나 → 목록. 일본어 · 중국어(간체 · 번체) 글꼴 자동
    - 범위(안): 만든 사이트만. 편집기 화면 번역은 나중에 따로
    - 입력(안): 편집 화면 위에서 언어를 바꿔 같은 화면에서 고쳐 씀. 번역 안 한 글은 기본 언어로 표시. 자동 번역 없음(서버 · 키 필요)
-2. **내보내기 B: ZIP (index.html + media/)** — ③ 둘 다 제공, 영상이 있으면 ZIP 권함.
+2. ~~내보내기 B: ZIP~~ → **0.10.0에서 완료** (아래는 기록용). 남은 일: 언어별 html 파일을 ZIP에 함께 넣기.
    - 현재: 사진은 WebP(가로 1920) data URI, 영상은 원본 data URI → 한 파일. 영상이면 약 1.33배 · 첫 화면 늦음 · IndexedDB 빨리 참
    - 할 일: 내보내기 창에 'ZIP' 추가, data URI → media/파일명, 영상 있으면 ZIP 추천. ZIP은 외부 라이브러리 없이 무압축(store)
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)

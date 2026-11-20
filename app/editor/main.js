@@ -30,6 +30,17 @@
     });
     window.__kzEditor = editor;
 
+    // 연결 안 된 버튼: 버튼 · 카드 모양 링크인데 href 가 비었거나 '#' 이고 팝업 등도 없는 것, 또는 '페이지 이동'인데 주소가 없는 것
+    const UNLINKED_SEL = ['a.btn', 'a.btn-line', 'a.ct-i', 'a.hero-now', 'a.more'].map(c => c + '[href="#"]:not([data-click]),' + c + '[href=""]:not([data-click])').join(',') + ',[data-click="go"]:not([data-go])';
+    function unlinkedReport() {
+      const out = [];
+      orderedPages().forEach(p => {
+        const t = document.createElement('template'); t.innerHTML = p.getMainComponent().getInnerHTML();
+        const n = t.content.querySelectorAll(UNLINKED_SEL).length; if (n) out.push({ name: pname(p), n });
+      });
+      return out;
+    }
+
     // 캔버스에 사이트 CSS 주입
     const docs = new Set();
     function injectDoc(doc) {
@@ -42,6 +53,10 @@
         const fm = doc.createElement('style'); fm.id = 'kz-fxmark';
         fm.textContent = 'html.kz-fx [data-anim]:not([data-anim=""]),html.kz-fx [data-hover]:not([data-hover=""]),html.kz-fx [data-click]:not([data-click=""]),html.kz-fx [data-scroll]:not([data-scroll=""]){outline:1px dashed rgba(242,201,76,.95);outline-offset:3px}';
         doc.head.appendChild(fm);
+        // 연결 안 된 버튼 · 카드: 빨간 점선 (편집 화면만)
+        const ul = doc.createElement('style'); ul.id = 'kz-unlinked';
+        ul.textContent = UNLINKED_SEL + '{outline:1px dashed #e5484d!important;outline-offset:3px}';
+        doc.head.appendChild(ul);
         // Alt(⌥)+클릭: 링크가 가리키는 페이지로 이동
         const jump = e => {
           if (!e.altKey) return;
@@ -79,8 +94,14 @@
       try { localStorage.setItem(FILE_KEY, on ? '1' : '0'); } catch (e) { /* 무시 */ }
       const b = $('#fileWarn'); if (b) b.hidden = !on;
     }
+    // 받는 파일 이름은 영문 · 숫자만 (한글 이름은 일부 브라우저에서 'download' 로 바뀜)
+    function fileBase() {
+      const n = String(S.siteName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+      const d = new Date(), ymd = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+      return (/[a-z]/.test(n) ? n : 'site') + '-' + ymd;
+    }
     function saveProjectFile() {
-      offerFile((S.siteName || 'site') + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
+      offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
       fileDirty(false);
     }
     function save() {
@@ -544,8 +565,9 @@
         realPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (p.get('name') || p.getId()) + '  (#' + p.getId() + ')' })));
         const href = attr(sel, 'href'); ls.value = realPages().some(p => '#' + p.getId() === href) ? href : '';
         ls.onchange = () => { if (ls.value) { sel.addAttributes({ href: ls.value }); url.value = ls.value; } };
-        const url = h('input', { className: 'inp', value: href, placeholder: 'https://… 또는 #주소' }); url.onchange = () => sel.addAttributes({ href: url.value });
-        box.appendChild(field('이동할 페이지', ls)); box.appendChild(field('또는 직접 주소', url));
+        const url = h('input', { className: 'inp', value: href, placeholder: 'https://… 또는 #주소' });
+        url.onchange = () => { const u = url.value.trim(); sel.addAttributes({ href: u }); if (/^https?:/i.test(u)) sel.addAttributes({ target: '_blank', rel: 'noopener' }); else sel.removeAttributes(['target', 'rel']); };
+        box.appendChild(field('이동할 페이지', ls)); box.appendChild(field('또는 직접 주소', url)); box.appendChild(presetField(url));
       }
       sec(kind === 'wrapper' ? '페이지 배경' : '상자');
       box.appendChild(swatches('배경 색', val(sel, 'background-color'), v => setStyle(sel, { 'background-color': v }), true));
@@ -559,6 +581,14 @@
         sh.value = ruleStyle(sel)['box-shadow'] || ''; sh.onchange = () => setStyle(sel, { 'box-shadow': sh.value });
         box.appendChild(field('그림자 · 테두리', sh));
       }
+    }
+    // 링크 빠른 입력: 앞부분만 채우고 뒤는 사용자가 이어서 씀
+    const PRESETS = [['', '빠른 입력 …'], ['tel:', '전화 (tel:번호)'], ['mailto:', '이메일 (mailto:주소)'], ['https://pf.kakao.com/', '카카오톡 채널'], ['https://booking.naver.com/', '네이버 예약'], ['https://forms.gle/', '구글 폼'], ['https://instagram.com/', '인스타그램']];
+    function presetField(url) {
+      const ps = h('select', { className: 'inp' }); PRESETS.forEach(([v, t]) => ps.appendChild(h('option', { value: v, textContent: t })));
+      ps.onchange = () => { if (!ps.value) return; url.value = ps.value; url.focus(); try { url.setSelectionRange(url.value.length, url.value.length); } catch (e) { /* 무시 */ } ps.value = ''; toast('뒤에 번호 · 주소를 이어서 쓰고 Enter'); };
+      url.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); url.dispatchEvent(new Event('change')); url.blur(); } };
+      return field('', ps);
     }
     function renderFx(sel) {
       const box = $('#tabFx'); box.innerHTML = '';
@@ -602,7 +632,7 @@
           const url = h('input', { className: 'inp', value: cur, placeholder: 'https://… (새 창으로 열림)' });
           ls.onchange = () => { if (ls.value) { sel.addAttributes({ 'data-go': ls.value }); url.value = ls.value; } };
           url.onchange = () => { const u = url.value.trim(); if (u) sel.addAttributes({ 'data-go': u }); else sel.removeAttributes('data-go'); ls.value = realPages().some(p => '#' + p.getId() === u) ? u : ''; };
-          clickBox.append(h('div', { style: 'height:10px' }), field('이동할 페이지', ls), field('또는 바깥 주소', url),
+          clickBox.append(h('div', { style: 'height:10px' }), field('이동할 페이지', ls), field('또는 바깥 주소', url), presetField(url),
             h('p', { className: 'hint', textContent: '편집 화면에서는 Alt+클릭으로 따라갑니다.' }));
         }
       }
@@ -682,7 +712,7 @@
       const act = b.dataset.act;
       if (act === 'export-json') saveProjectFile();
       if (act === 'import-json') $('#jsonIn').click();
-      if (act === 'export-html') offerFile('index.html', buildSite(), 'text/html');
+      if (act === 'export-html') exportDialog();
       if (act === 'reset' && await confirmDlg('처음 상태로', '이 브라우저에 저장된 작업을 지우고 기본 세트로 돌아갑니다. 먼저 작업 파일을 저장해 두세요.', '되돌리기')) {
         try { await KZ.store.DB.del('project'); } catch (er) { /* 무시 */ }
         S = DEFAULT_S(); applySet(C.DEFAULT_SET); refreshTheme(); renderSite(); renderAssets(); setTimeout(() => fileDirty(false), 1200); toast('처음 상태로 돌아왔습니다');
@@ -696,7 +726,29 @@
         treeEnsure(); syncMenus(); syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
-    $('#publishBtn').onclick = () => dialog('내보내기', '<p>완성한 사이트를 파일로 받아 원하는 곳에 올립니다.</p><ul style="padding-left:18px;line-height:1.8"><li><b>사이트 HTML</b> — 업로드용 완성 파일 (index.html)</li><li><b>작업 파일</b> — 나중에 이어서 고칠 때 (.json)</li></ul><p class="hint">GitHub 등으로 바로 올리기는 다음 단계에서 연결합니다.</p>', [['닫기', null], ['작업 파일', d => { d(null); saveProjectFile(); }], ['사이트 HTML', d => { d(null); offerFile('index.html', buildSite(), 'text/html'); }, 'pri']]);
+    $('#publishBtn').onclick = () => exportDialog();
+    // 내보내기: 올린 사진 · 영상이 있으면 ZIP(index.html + media/), 없으면 index.html 하나
+    const GUIDE = 'guide/';
+    const mb = n => (n / 1048576).toFixed(n > 10485760 ? 0 : 1) + 'MB';
+    function exportDialog() {
+      const html = buildSite(), pkg = KZ.packSite(html, S.assets), media = pkg.media;
+      const big = media.filter(m => m.size > KZ.GH_LIMIT), htmlBig = html.length > KZ.GH_LIMIT, ul = unlinkedReport();
+      const warn = [];
+      if (big.length) warn.push('<b>25MB가 넘는 파일</b>: ' + big.map(m => esc(m.path.slice(6)) + ' (' + mb(m.size) + ')').join(', ') + ' — GitHub에 올릴 수 없습니다. 영상을 더 짧게 · 작게 줄여 주세요.');
+      if (!media.length && htmlBig) warn.push('<b>index.html이 25MB를 넘습니다</b> (' + mb(html.length) + ') — GitHub 웹 업로드 한도를 넘습니다.');
+      if (ul.length) warn.push('<b>연결 안 된 버튼 ' + ul.reduce((s, x) => s + x.n, 0) + '개</b> (편집 화면의 빨간 점선): ' + ul.map(x => esc(x.name) + ' ' + x.n).join(' · ') + ' — 눌러도 아무 일도 없습니다. 디자인 탭 → 링크에서 연결하세요.');
+      const what = media.length
+        ? '<p>올린 사진 · 영상이 <b>' + media.length + '개</b> 있어 <b>ZIP</b>(index.html + media 폴더)으로 받기를 권합니다.</p><p class="hint">받은 ZIP을 압축 풀고, 폴더 <b>안의 것을 전부</b> 선택해 GitHub에 끌어다 놓으세요.</p>'
+        : '<p>완성한 사이트를 <b>index.html</b> 한 파일로 받습니다. 이 파일 하나만 올리면 됩니다.</p>';
+      const body = what + (warn.length ? '<div class="ex-warn">' + warn.map(w => '<p>⚠ ' + w + '</p>').join('') + '</div>' : '') +
+        '<p class="hint"><a href="' + GUIDE + '" target="_blank" rel="noopener">GitHub에 올리는 방법 보기 ↗</a> · 나중에 고치려면 <b>작업 파일</b>도 받아 두세요 (GitHub에는 올리지 않음).</p>';
+      const btns = [['닫기', null], ['작업 파일', d => { d(null); saveProjectFile(); }]];
+      if (media.length) {
+        btns.push(['index.html 하나', d => { d(null); offerFile('index.html', html, 'text/html'); }]);
+        btns.push(['ZIP 받기', d => { d(null); offerFile(fileBase() + '.zip', KZ.zip([{ path: 'index.html', text: pkg.html }].concat(media)), 'application/zip'); }, 'pri']);
+      } else btns.push(['index.html 받기', d => { d(null); offerFile('index.html', html, 'text/html'); }, 'pri']);
+      return dialog('내보내기', body, btns);
+    }
 
     // ---------- 내보내기 ----------
     const offerFile = (name, data, mime) => KZ.offerFile(name, data, mime);
