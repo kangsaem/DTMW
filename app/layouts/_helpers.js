@@ -1,0 +1,55 @@
+/* 레이아웃 공통 도구 — 모든 레이아웃 파일보다 먼저 불러옵니다.
+   레이아웃 추가 방법: 이 폴더에 파일 하나를 만들고 KZ.layout({...}) 으로 등록한 뒤 index.html 에 <script> 한 줄을 넣습니다. */
+window.KZ = window.KZ || {};
+(function (KZ) {
+  'use strict';
+  KZ.layouts = {};
+  KZ.layoutOrder = [];
+  KZ.layout = function (def) {
+    if (!def || !def.id || typeof def.html !== 'function') throw new Error('레이아웃 정의가 올바르지 않습니다');
+    if (!KZ.layouts[def.id]) KZ.layoutOrder.push(def.id);
+    KZ.layouts[def.id] = def;
+  };
+
+  // 회색 자리표시 이미지 (SVG data URI)
+  var TONES = ['#CFCBC3', '#BDB8AE', '#D8D4CC', '#B3AEA4', '#C6C1B8'];
+  function ph(label, w, h, i) {
+    var c = TONES[(i || 0) % TONES.length];
+    var fs = Math.round(Math.min(w, h) / 13);
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h + "' viewBox='0 0 " + w + ' ' + h + "'>" +
+      "<rect width='100%' height='100%' fill='" + c + "'/>" +
+      "<text x='50%' y='50%' font-family='sans-serif' font-size='" + fs + "' fill='#4F4B45' text-anchor='middle' dominant-baseline='middle'>" + label + '</text></svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  var MENU_BTN = '<button class="menu-btn" type="button" data-click="menu" aria-label="메뉴 열기">≡</button>';
+  function nav(light) {
+    return '<header class="nav' + (light ? ' nav--light' : '') + '">' +
+      '<a class="brand" href="#home">[작가명]</a>' +
+      '<nav class="links"><a href="#works">Works</a><a href="#exhibitions">Exhibitions</a><a href="#texts">Texts</a><a href="#about">About</a><a href="#effects">효과 샘플</a></nav>' +
+      '<div class="lang"><a href="#" class="on">KR</a><a href="#">EN</a><a href="#">JP</a></div>' + MENU_BTN + '</header>';
+  }
+  var FOOT = '<footer class="foot"><span>© [작가명]</span><span>[이메일] · Instagram</span></footer>';
+  function fig(i, year, o) {
+    o = o || {};
+    var w = o.w || 800, h = o.h || 1000;
+    return '<figure class="work"' + (o.hover ? ' data-hover="' + o.hover + '"' : '') + ' data-click="lightbox" data-title="[작품명], ' + year + '"' + (o.anim === false ? '' : ' data-anim="' + (o.anim || 'fade-up') + '"') + '>' +
+      '<div class="imgbox"><img src="' + ph('이미지', w, h, i) + '" alt="[작품명]"></div>' +
+      '<figcaption class="cap">[작품명], ' + year + '<br>[재료], [크기]</figcaption></figure>';
+  }
+  function exRow(kind) {
+    return '<a class="ex-row" href="#" data-anim="fade-up" data-click="modal" data-title="[전시명]' + (kind ? ' (' + kind + ')' : '') + '" data-text="[장소], [도시] · [기간]&#10;&#10;전시 소개 글을 입력하세요.">' +
+      '<span>[전시명]' + (kind ? ' (' + kind + ')' : '') + '</span><span>[장소], [도시]</span><span>[기간]</span></a>';
+  }
+
+  // 썸네일 SVG: 각 레이아웃의 thumb(r, C) 가 도형을 그립니다
+  var C = { g: '#C9C5BD', d: '#8D887F', k: '#3A3833' };
+  function r(x, y, w, h, c) { return "<rect x='" + x + "' y='" + y + "' width='" + w + "' height='" + h + "' fill='" + (c || C.g) + "'/>"; }
+  KZ.thumbSvg = function (id) {
+    var L = KZ.layouts[id], s = '';
+    try { s = L && L.thumb ? L.thumb(r, C) : ''; } catch (e) { s = ''; }
+    return "<svg viewBox='0 0 120 84' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><rect width='120' height='84' fill='#F1EFEA'/>" + s + '</svg>';
+  };
+
+  KZ.H = { ph: ph, nav: nav, FOOT: FOOT, fig: fig, exRow: exRow, MENU_BTN: MENU_BTN };
+})(window.KZ);

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사이트 편집기 · site.kangyonz.com</title>
+<link rel="icon" href="data:,">
+<script>
+/* build · html · page · make.kangyonz.com 으로 들어오면 site.kangyonz.com 으로 보냅니다 */
+(function () { var h = location.hostname; if (/^(build|html|page|make)\.kangyonz\.com$/i.test(h)) location.replace('https://site.kangyonz.com' + location.pathname + location.search + location.hash); })();
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="vendor/grapesjs/grapes.min.css">
+<link rel="stylesheet" href="editor/editor.css">
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span class="logo">KZ 편집기</span>
+    <input class="site-name hide-sm" id="siteName" aria-label="사이트 이름" value="kangizo">
+    <span class="sep hide-sm"></span>
+    <button class="tb" id="undo" title="실행 취소 (Ctrl+Z)" aria-label="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
+    <button class="tb" id="redo" title="다시 실행 (Ctrl+Shift+Z)" aria-label="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
+    <span class="sep"></span>
+    <div class="seg hide-sm" role="group" aria-label="배치 방식" style="width:150px">
+      <button id="modeFlow" class="on" title="요소가 위아래로 정렬됩니다 (반응형에 안전)">정렬 배치</button>
+      <button id="modeFree" title="요소를 원하는 위치로 끌어 놓습니다">자유 배치</button>
+    </div>
+    <span class="sep hide-sm"></span>
+    <button class="tb on" data-dev="desktop" title="PC 화면"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/></svg><span class="hide-sm">PC</span></button>
+    <button class="tb" data-dev="tablet" title="태블릿 화면"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="3" width="14" height="18" rx="2"/></svg><span class="hide-sm">태블릿</span></button>
+    <button class="tb" data-dev="mobile" title="모바일 화면 — 여기서 바꾼 스타일은 모바일에만 적용"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg><span class="hide-sm">모바일</span></button>
+    <span class="grow"></span>
+    <span class="status hide-sm" id="status">불러오는 중…</span>
+    <a class="ver hide-sm" id="ver" href="https://github.com/kangsaem/SITE/issues/new" target="_blank" rel="noopener" title="문제 신고 · 의견 보내기 (GitHub)">v?</a>
+    <div class="menu-wrap">
+      <button class="tb" id="fileBtn" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6"/></svg><span class="hide-sm">파일</span></button>
+      <div class="dd" id="fileMenu">
+        <button data-act="export-json">작업 파일 저장 (.json)<small>다른 기기에서 이어서 작업할 때</small></button>
+        <button data-act="import-json">작업 파일 불러오기<small>저장해 둔 .json 열기</small></button>
+        <button data-act="export-html">사이트 HTML 내보내기<small>업로드용 완성 파일 (index.html)</small></button>
+        <button data-act="reset">처음 상태로 되돌리기<small>브라우저에 저장된 작업 삭제</small></button>
+      </div>
+    </div>
+    <button class="tb" id="previewBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="hide-sm">미리보기</span></button>
+    <button class="tb pri" id="publishBtn" title="GitHub 게시는 2차에서 연결">게시</button>
+    <button class="tb" id="sideToggle" style="display:none" aria-label="속성 패널">⚙</button>
+  </div>
+  <div class="main" id="main">
+    <nav class="rail" aria-label="도구">
+      <button data-pane="tpl" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>템플릿</button>
+      <button data-pane="el"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="7.5" r="4"/><rect x="13" y="3.5" width="8" height="8" rx="1"/><path d="M3 21l4.5-7 4.5 7zM13 17h8"/></svg>요소</button>
+      <button data-pane="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>업로드</button>
+      <button data-pane="pg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>페이지</button>
+      <button data-pane="ly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>레이어</button>
+      <button data-pane="site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="7.5" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/><path d="M12 21c-2 0-2-3 0-4s1-4-2-3"/></svg>사이트</button>
+    </nav>
+    <aside class="drawer" id="drawer">
+      <section class="pane on" data-pane="tpl">
+        <h2>템플릿</h2>
+        <p class="hint">세트를 고르면 사이트 전체가, 페이지 템플릿을 고르면 현재 페이지가 바뀝니다. 언제든 되돌리기(Ctrl+Z) 가능.</p>
+        <h3>사이트 세트</h3>
+        <div id="sets"></div>
+        <h3>레이아웃 (14)</h3>
+        <div class="cat-chips" id="tplCats"></div>
+        <div class="tpl-grid" id="tplGrid"></div>
+      </section>
+      <section class="pane" data-pane="el">
+        <h2>요소</h2>
+        <p class="hint">끌어서 화면에 놓으세요. 놓은 뒤 두 번 누르면 글을 고칠 수 있습니다.</p>
+        <div id="blocks"></div>
+      </section>
+      <section class="pane" data-pane="up">
+        <h2>업로드</h2>
+        <p class="hint">사진은 긴 변 1920px · WebP로 자동 축소됩니다. 영상은 배경용 짧은 클립(20MB 이하)을 권장합니다.</p>
+        <label class="drop" id="drop" tabindex="0">사진 · 영상을 여기에 끌어 놓거나 눌러서 선택<input type="file" id="fileIn" accept="image/*,video/*" multiple hidden></label>
+        <p class="hint" style="margin-top:12px">선택한 요소가 이미지·영상이면 <b>교체</b>, 영상 히어로 영역이면 <b>배경 영상</b>으로, 그 외에는 <b>새로 추가</b>됩니다.</p>
+        <div class="assets" id="assets"></div>
+      </section>
+      <section class="pane" data-pane="pg">
+        <h2>페이지</h2>
+        <p class="hint">이름을 바로 고칠 수 있습니다. 메뉴 링크는 <code>#주소</code>로 연결됩니다.</p>
+        <div id="pages"></div>
+        <button class="btn full" id="addPage">+ 빈 페이지 추가</button>
+      </section>
+      <section class="pane" data-pane="ly">
+        <h2>레이어</h2>
+        <p class="hint">요소 구조를 보고 끌어서 순서를 바꿉니다. 눈 아이콘으로 숨길 수 있습니다.</p>
+        <div id="layers"></div>
+      </section>
+      <section class="pane" data-pane="site">
+        <h2>사이트 · 브랜드</h2>
+        <h3>색 테마</h3>
+        <div class="themes" id="themes"></div>
+        <h3>세부 색</h3>
+        <div id="colorFields"></div>
+        <h3>글꼴</h3>
+        <select class="inp" id="fontSel"></select>
+        <h3>페이지 전환 효과</h3>
+        <div id="transOpts"></div>
+        <h3>움직임 속도</h3>
+        <div class="seg" id="speedSeg"><button data-v="slow">느림</button><button data-v="normal">보통</button><button data-v="fast">빠름</button></div>
+        <p class="hint" style="margin-top:14px">전환 효과는 미리보기에서 메뉴를 눌러 확인하세요. 방문자 기기에 '동작 줄이기'가 켜져 있으면 움직임 없이 보여 줍니다.</p>
+        <button class="btn full" id="pvTrans">미리보기에서 확인</button>
+      </section>
+    </aside>
+    <div class="canvas-wrap"><div id="gjs"></div></div>
+    <aside class="side" id="side">
+      <div id="sideEmpty" class="empty"><b>요소를 선택하세요</b><br>화면에서 글 · 사진 · 섹션을 한 번 누르면 여기서 글꼴 · 색 · 크기 · 효과를 바꿀 수 있습니다.<br><br>· 두 번 누르기: 글 바로 고치기<br>· 끌기: 위치 옮기기<br>· Ctrl+Z / Ctrl+Shift+Z: 되돌리기<br>· Delete: 삭제</div>
+      <div id="sideBody" hidden>
+        <div class="side-head"><span class="nm" id="selName">선택</span><button class="btn" id="selParent" title="바깥 요소 선택">↑ 바깥</button></div>
+        <div class="tabs" role="tablist"><button data-tab="design" class="on">디자인</button><button data-tab="fx">효과</button><button data-tab="adv">고급</button></div>
+        <div class="tabpane on" data-tab="design" id="tabDesign"></div>
+        <div class="tabpane" data-tab="fx" id="tabFx"></div>
+        <div class="tabpane" data-tab="adv"><p class="hint">모든 CSS 속성을 직접 다룹니다. 모바일 화면에서 바꾸면 모바일에만 적용됩니다.</p><div id="selectors"></div><div id="traits"></div><div id="styles"></div></div>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="dlg-back" id="dlg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT"><header id="dlgT"></header><div class="body" id="dlgB"></div><footer id="dlgF"></footer></div></div>
+<div class="pv" id="pv"><div class="pv-bar"><b style="margin-right:8px">미리보기</b><button class="tb on" data-pw="100%">PC</button><button class="tb" data-pw="820px">태블릿</button><button class="tb" data-pw="390px">모바일</button><span class="grow"></span><span class="hide-sm" style="opacity:.75;font-size:12px">링크 · 팝업 · 스크롤 효과가 실제처럼 작동합니다</span><button class="tb" id="pvReload">처음부터</button><button class="tb" id="pvClose">닫기 ✕</button></div><div class="pv-stage"><iframe id="pvFrame" title="사이트 미리보기"></iframe></div></div>
+<input type="file" id="jsonIn" accept=".json,application/json" hidden>
+<div class="toast" id="toast" role="status"></div>
+<script src="vendor/grapesjs/grapes.min.js"></script>
+<script src="version.js"></script>
+<script src="layouts/_helpers.js"></script>
+<script src="layouts/01-hero.js"></script>
+<script src="layouts/02-type-hero.js"></script>
+<script src="layouts/03-card-grid.js"></script>
+<script src="layouts/04-masonry.js"></script>
+<script src="layouts/05-h-scroll.js"></script>
+<script src="layouts/06-text-index.js"></script>
+<script src="layouts/07-group-list.js"></script>
+<script src="layouts/08-card-sheet.js"></script>
+<script src="layouts/09-slides.js"></script>
+<script src="layouts/10-split.js"></script>
+<script src="layouts/11-article.js"></script>
+<script src="layouts/12-timeline.js"></script>
+<script src="layouts/13-profile.js"></script>
+<script src="layouts/14-effects.js"></script>
+<script src="sets/_sets.js"></script>
+<script src="sets/portfolio-kangizo.js"></script>
+<script src="sets/app-kangyonz.js"></script>
+<script src="blocks/blocks.js"></script>
+<script src="editor/config.js"></script>
+<script src="editor/ui.js"></script>
+<script src="editor/storage.js"></script>
+<script src="editor/export.js"></script>
+<script src="editor/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "kz-site-editor",
+  "version": "0.2.0",
+  "private": true,
+  "description": "site.kangyonz.com — 누구나 쓰는 웹사이트 편집기 (정적 HTML)",
+  "scripts": {
+    "serve": "python3 -m http.server 8080 --directory app",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
