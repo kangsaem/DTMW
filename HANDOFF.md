@@ -28,6 +28,7 @@
 - [x] 0.4.0: 사이트 세트 8종 (기본 · 포트폴리오 · 카페 · 클래스 · 행사 · 이력 · 매거진 · 서비스), 세트별 스타일, mask 효과 버그 수정
 - [x] 0.5.0: 샘플 이미지 12종(직접 그린 SVG), 히어로 샘플 배경
 - [x] 0.6.0: 편집 화면 A안(DTME 배색) · 패널 떼어내기 · 도구 숨기기(Tab), 페이지 트리 + 자동 메뉴, 페이지 선택 · 페이지 띠 · Alt+클릭 이동, 샘플 사이트 접기
+- [x] 0.6.1~0.6.3: 이름 WMW, 패널 떼어낼 때 편집 화면/디자인 패널이 사라지던 문제 수정(떠 있는 창은 `.main > .floating{grid-column:auto}`), 파일 주소 `?v=버전`으로 캐시 문제 방지. 자동 점검 16개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
