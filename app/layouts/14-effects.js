@@ -1,7 +1,7 @@
 /* 레이아웃: 효과 샘플 */
 (function (KZ) {
   'use strict';
-  var H = KZ.H, ph = H.ph, nav = H.nav, fig = H.fig, exRow = H.exRow, FOOT = H.FOOT, MENU_BTN = H.MENU_BTN;
+  var H = KZ.H, ph = H.phl, nav = H.nav, fig = H.fig, exRow = H.exRow, FOOT = H.FOOT, MENU_BTN = H.MENU_BTN;
   KZ.layout({ id: 'fx', name: '효과 샘플', cat: '효과',
   thumb: function (r, C) { var g = C.g, d = C.d, k = C.k; return [0, 1, 2, 3].map(i => r(8 + i * 27, 8, 23, 22, i % 2 ? '#bdb8ae' : g)).join('') + r(8, 38, 104, 14, d) + r(8, 58, 30, 8, k) + r(42, 58, 30, 8, '#fff') + r(76, 58, 30, 8, '#fff'); },
   html: () => {
@@ -11,7 +11,7 @@
       enter.map(e => '<div class="fx-card" data-anim="' + e[0] + '">' + e[1] + '</div>').join('') + '</div></div>' +
       '<div class="fx-sec"><p class="fx-h">마우스 올림 (5)</p><p class="fx-d">확대 · 흑백→컬러 · 캡션 · 떠오름 · 커서 미리보기</p><div class="grid g4">' +
       '<figure class="fx-card work" data-hover="zoom"><div class="imgbox"><img src="' + ph('확대', 600, 450, 0) + '" alt=""></div></figure>' +
-      '<figure class="fx-card work" data-hover="gray"><div class="imgbox"><img src="' + ph('흑백 → 컬러', 600, 450, 1).replace('%23CFCBC3', '%23C9A27E').replace('%23BDB8AE', '%23B07A5A') + '" alt=""></div></figure>' +
+      '<figure class="fx-card work" data-hover="gray"><div class="imgbox"><img src="' + ph('흑백 → 컬러', 600, 450, 1) + '" alt=""></div></figure>' +
       '<figure class="fx-card work" data-hover="caption"><div class="imgbox"><img src="' + ph('캡션 올라옴', 600, 450, 2) + '" alt=""></div><figcaption>[항목 이름], 2026 · [짧은 설명]</figcaption></figure>' +
       '<div class="fx-card" data-hover="lift">떠오름 (카드)</div></div>' +
       '<div style="margin-top:20px"><a class="ix-row" href="#" data-hover="cursor" data-preview="' + ph('커서 미리보기', 440, 560, 3) + '"><span class="ix-t" style="font-size:24px">커서 미리보기 — 이 줄 위에 마우스</span><span class="ix-s">텍스트 목록형</span><span class="ix-y">목록</span></a></div></div>' +

@@ -21,7 +21,7 @@ app/                  ← 공개되는 편집기 (Cloudflare Pages 출력 폴더
 │   ├─ export.js      완성 HTML 만들기 · 파일 받기
 │   ├─ main.js        편집기 본체 (GrapesJS 초기화 · 패널 · 미리보기)
 │   └─ editor.css     편집기 화면 스타일
-├─ layouts/           레이아웃: 1종 = 파일 1개 (_helpers.js 가 공통 도구)
+├─ layouts/           레이아웃: 1종 = 파일 1개 (_helpers.js 공통 도구, _samples.js 샘플 이미지)
 ├─ sets/              사이트 세트: 1종 = 파일 1개
 ├─ blocks/            요소 탭 블록
 ├─ site/              완성 사이트에 들어가는 것
@@ -42,6 +42,7 @@ tests/                자동 점검 (Playwright)
 | 레이아웃 추가 | `app/layouts/` 에 파일 추가 → `app/index.html` 에 `<script>` 한 줄 |
 | 사이트 세트 추가 | `app/sets/` 에 파일 추가 → `app/index.html` 에 `<script>` 한 줄. 형식은 `app/sets/_sets.js` 맨 위 설명 참고 (pages · words · style) |
 | 테마 · 글꼴 추가 | `app/editor/config.js` |
+| 샘플 이미지 추가 | `app/layouts/_samples.js` 의 SCENES 에 그림 함수 추가 |
 | 완성 사이트 디자인 | `app/site/base.css` |
 | 효과 동작 | `app/site/runtime.js`, `app/site/motion.css` |
 | 작업 파일 형식 변경 | `app/editor/storage.js` 의 `FORMAT` 을 올리고 `migrate()` 에 변환 추가 |

@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.4.0
+- 편집기 버전: 0.5.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -24,6 +24,7 @@
 - [x] 0.2.0: 저장소 구조 정리, 레이아웃 이름 중립화, 작업 파일 버전 변환, 자동 점검(Playwright 6개), 주소 리디렉트
 - [x] 0.3.0: 기본 문구 업종 무관화, 기본 세트 '기본 사이트', 세트별 내용 주입(pages 4번째 값), 실제 사이트 기반 세트 제거
 - [x] 0.4.0: 사이트 세트 8종 (기본 · 포트폴리오 · 카페 · 클래스 · 행사 · 이력 · 매거진 · 서비스), 세트별 스타일, mask 효과 버그 수정
+- [x] 0.5.0: 샘플 이미지 12종(직접 그린 SVG), 히어로 샘플 배경
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중

@@ -131,3 +131,14 @@ test('가림막(mask) 등장 효과가 실제로 나타난다', async ({ page })
   await fr.locator('.rt-page:not([hidden]) .nav a[href="#journal"]').first().click();
   await expect(fr.locator('.rt-page[data-page="journal"] .ed-fig')).toHaveClass(/\bin\b/, { timeout: 5000 });
 });
+
+test('레이아웃 이미지는 회색 빈칸이 아닌 샘플 이미지다', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const all = KZ.layoutOrder.map(id => KZ.layouts[id].html()).join('\n');
+    return { gray: /%23CFCBC3|%23BDB8AE|%23D8D4CC/.test(all), count: KZ.sampleCount, distinct: new Set(Array.from({ length: KZ.sampleCount }, (_, i) => KZ.sample(i, 600, 400))).size };
+  });
+  expect(r.gray).toBe(false);
+  expect(r.count).toBeGreaterThanOrEqual(12);
+  expect(r.distinct).toBe(r.count);
+});

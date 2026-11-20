@@ -222,6 +222,7 @@
         const ex = hero.find('video')[0];
         if (ex) ex.set(vprops); else hero.append(Object.assign({ type: 'video', classes: ['hero-video'] }, vprops), { at: 1 });
         const note = hero.find('.hero-note')[0]; if (note) note.remove();
+      const photo = hero.find('.hero-photo')[0]; if (photo) photo.remove();
         return toast('배경 영상을 넣었습니다');
       }
       const iv = sel && sel.find('video')[0];

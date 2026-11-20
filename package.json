@@ -1,6 +1,6 @@
 {
   "name": "kz-site-editor",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "site.kangyonz.com — 누구나 쓰는 웹사이트 편집기 (정적 HTML)",
   "scripts": {

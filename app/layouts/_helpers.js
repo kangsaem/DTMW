@@ -11,16 +11,11 @@ window.KZ = window.KZ || {};
     KZ.layouts[def.id] = def;
   };
 
-  // 회색 자리표시 이미지 (SVG data URI)
-  var TONES = ['#CFCBC3', '#BDB8AE', '#D8D4CC', '#B3AEA4', '#C6C1B8'];
-  function ph(label, w, h, i) {
-    var c = TONES[(i || 0) % TONES.length];
-    var fs = Math.round(Math.min(w, h) / 13);
-    var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h + "' viewBox='0 0 " + w + ' ' + h + "'>" +
-      "<rect width='100%' height='100%' fill='" + c + "'/>" +
-      "<text x='50%' y='50%' font-family='sans-serif' font-size='" + fs + "' fill='#4F4B45' text-anchor='middle' dominant-baseline='middle'>" + label + '</text></svg>';
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  }
+  // 샘플 이미지 (layouts/_samples.js). label 은 설명용 — 그림에는 표시하지 않음
+  function pick(i, w, h) { return (i || 0) * 5 + Math.floor(w / 97) + Math.floor(h / 89); }
+  function ph(label, w, h, i) { return KZ.sample(pick(i, w, h), w, h); }
+  // 그림 위에 이름표를 띄운 샘플 (효과 샘플 페이지용)
+  function phl(label, w, h, i) { return KZ.sample(pick(i, w, h), w, h, label); }
 
   var MENU_BTN = '<button class="menu-btn" type="button" data-click="menu" aria-label="메뉴 열기">≡</button>';
   function nav(light) {
@@ -51,5 +46,5 @@ window.KZ = window.KZ || {};
     return "<svg viewBox='0 0 120 84' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><rect width='120' height='84' fill='#F1EFEA'/>" + s + '</svg>';
   };
 
-  KZ.H = { ph: ph, nav: nav, FOOT: FOOT, fig: fig, exRow: exRow, MENU_BTN: MENU_BTN };
+  KZ.H = { ph: ph, phl: phl, nav: nav, FOOT: FOOT, fig: fig, exRow: exRow, MENU_BTN: MENU_BTN };
 })(window.KZ);
