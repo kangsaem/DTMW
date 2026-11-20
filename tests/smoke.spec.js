@@ -381,3 +381,20 @@ test('내보낸 사이트에는 실제로 쓴 글꼴만 들어가고, 헬베티�
   expect(r.fonts).toBe(10);
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.9.1 ----------
+test('페이지를 복제해도 요소별 스타일(히어로 배경 그림)이 남는다', async ({ page }) => {
+  const errors = await open(page);
+  await page.click('.rail button[data-pane="pg"]');
+  await page.locator('.pg', { has: page.locator('code', { hasText: '#home' }) }).locator('button[aria-label="복제"]').click();
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor;
+    const info = c => { const m = c.getInnerHTML().match(/class="hero-photo" id="([^"]+)"/); if (!m) return null; const r = e.Css.getRule('#' + m[1]); return { id: m[1], bg: !!(r && r.getStyle()['background-image']) }; };
+    return { src: info(e.Pages.get('home').getMainComponent()), copy: info(e.Pages.getSelected().getMainComponent()), sel: e.Pages.getSelected().getId() };
+  });
+  expect(r.sel).toBe('home-copy');
+  expect(r.src.bg).toBe(true);
+  expect(r.copy.bg).toBe(true);
+  expect(r.copy.id).not.toBe(r.src.id);
+  expect(errors).toEqual([]);
+});

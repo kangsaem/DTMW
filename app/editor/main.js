@@ -268,7 +268,7 @@
           iconBtn('위로', '↑', () => step(id, -1)), iconBtn('아래로', '↓', () => step(id, 1)),
           depth ? iconBtn('위 단계로', '⇤', () => outdent(id)) : iconBtn('위 페이지의 하위로', '⇥', () => indent(id)),
           iconBtn('하위 페이지 추가', '+', () => addPage('새 하위 페이지', null, id + '-sub', depth ? t.parent : id)),
-          iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().getInnerHTML(), id + '-copy', t.parent)),
+          iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().components().map(c => c.clone()), id + '-copy', t.parent)), // clone: 요소별 스타일도 새 id로 복사
           iconBtn('삭제', '✕', () => deletePage(p))
         ]);
         r.append(car, inp, code, acts);
