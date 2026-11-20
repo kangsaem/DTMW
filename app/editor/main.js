@@ -856,7 +856,7 @@
       // 패널을 브라우저 창 밖으로
       KZ.popout.onChange = () => setTimeout(() => { try { editor.refresh(); } catch (e) { /* 무시 */ } renderSide(); }, 60);
       $$('[data-popout]').forEach(b => b.onclick = () => KZ.popout.toggle(b.dataset.popout).then(kind => {
-        if (kind) toast(kind === 'pip' ? '항상 위에 뜨는 창으로 꺼냈습니다. 창을 닫으면 제자리로 돌아옵니다' : (KZ.popout.list().length > 1 ? '새 창으로 꺼냈습니다 (항상 위 창은 하나만 돼서 일반 창). 편집기를 누르면 뒤로 갈 수 있습니다' : '새 창으로 꺼냈습니다. 창을 닫거나 ⇲ 를 누르면 돌아옵니다'));
+        if (kind) toast(kind === 'pip' ? '항상 위에 뜨는 창으로 꺼냈습니다. 창을 닫으면 제자리로 돌아옵니다' : '새 창으로 꺼냈습니다. 창을 닫거나 ⇲ 를 누르면 돌아옵니다');
       }, err => dialog('창 밖으로 꺼내지 못했습니다', '<p>' + esc(err.message || '브라우저가 새 창을 막았습니다.') + '</p>')));
       let wasDirty = false; try { wasDirty = localStorage.getItem(FILE_KEY) === '1'; } catch (e) { /* 무시 */ }
       fileDirty(wasDirty);

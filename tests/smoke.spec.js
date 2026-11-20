@@ -625,7 +625,7 @@ test('좁은 화면에서 처음 열면 PC 사용 안내가 한 번 뜬다', asy
   await expect(page.locator('#dlg')).not.toHaveClass(/open/);
 });
 
-test('두 패널을 차례로 창 밖으로 꺼내도 둘 다 제대로 보이고, 하나를 닫으면 그것만 돌아온다', async ({ page, context }) => {
+test('창 밖 패널은 한 번에 하나: 두 번째를 꺼내면 첫 번째는 돌아오고, 새 창은 비어 있지 않다', async ({ page, context }) => {
   await open(page);
   await page.evaluate(() => { KZ.forcePopup = true; });
   const p1 = context.waitForEvent('page'); await page.click('[data-popout="drawer"]'); const w1 = await p1;
@@ -633,9 +633,6 @@ test('두 패널을 차례로 창 밖으로 꺼내도 둘 다 제대로 보이�
   const p2 = context.waitForEvent('page'); await page.click('[data-popout="side"]'); const w2 = await p2;
   await page.waitForTimeout(1200);
   expect(await w2.evaluate(() => !!document.getElementById('side'))).toBe(true);
-  expect(await w1.evaluate(() => !!document.getElementById('drawer'))).toBe(true);
-  expect(await page.evaluate(() => KZ.popout.list().map(x => x.name).sort().join(','))).toBe('drawer,side');
-  await w1.close();
-  await expect.poll(() => page.evaluate(() => !!document.querySelector('#main #drawer'))).toBe(true);
-  expect(await w2.evaluate(() => !!document.getElementById('side'))).toBe(true);
+  expect(await page.evaluate(() => !!document.querySelector('#main #drawer'))).toBe(true);
+  expect(await page.evaluate(() => KZ.popout.list().map(x => x.name).join(','))).toBe('side');
 });
