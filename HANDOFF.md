@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.9.0 (PR 합치기 전이면 main은 0.8.0)
+- 편집기 버전: 0.9.1
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -32,6 +32,7 @@
 - [x] 0.7.0: 섹션으로 추가 · 섹션 위로/아래로, 누르면 → 페이지 이동(`data-click="go" data-go`), 효과 표시(노란 점선, 편집 화면만), 작업 파일 미저장 표시
 - [x] 0.8.0: 섹션 레이아웃 10종(요금 · 메뉴판 · FAQ · 팀 · 숫자 띠 · 일정 · 위치 · 연락처 · 후기 칸 · 배너), 세트 섹션 이어 붙이기, 세트 보강, 새 세트 3종(숙소 · 비영리 · 동네 가게). 자동 점검 24개
 - [x] 0.9.0: 색 테마 12종(명암 대비 점검), 글꼴 10종(헬베티카풍 WMW Heros = TeX Gyre Heros 파생본, Pretendard 등), 내보낼 때 쓴 글꼴만. 자동 점검 26개
+- [x] 0.9.1: 페이지 복제 시 스타일 사라짐 고침. 실제 배포 시험용 샘플 사이트 **site.kangyonz.com/demo/** (동네 가게 세트, noindex) — Chrome에서 페이지 이동 · 페이지 이동 효과 · FAQ · 팝업 · 글꼴 · 콘솔 오류 없음 확인. 자동 점검 27개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
