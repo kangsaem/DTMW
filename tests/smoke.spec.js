@@ -197,3 +197,10 @@ test('패널을 떼어내도 편집 화면이 그대로 보인다', async ({ pag
   expect(sb.x).toBeLessThan(80);
   expect(errors).toEqual([]);
 });
+
+test('편집기 파일 주소의 ?v= 가 현재 버전과 같다', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => ({ v: KZ.VERSION, urls: [...document.querySelectorAll('script[src],link[rel=stylesheet][href]')].map(e => e.getAttribute('src') || e.getAttribute('href')).filter(u => !/^(https?:|data:|vendor\/)/.test(u)) }));
+  expect(r.urls.length).toBeGreaterThan(30);
+  for (const u of r.urls) expect(u).toContain('?v=' + r.v);
+});

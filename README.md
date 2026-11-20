@@ -1,4 +1,4 @@
-# WMW — 웹에서 웹을 만든다
+# WMW — Web made in web (웹에서 웹을 만든다)
 
 (저장소 이름: SITE)
 

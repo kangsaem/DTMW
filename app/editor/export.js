@@ -6,7 +6,7 @@ window.KZ = window.KZ || {};
   KZ.site = { base: '', motion: '', runtime: '' };
 
   KZ.loadSiteAssets = function () {
-    var get = function (p) { return fetch(p, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(p + ' ' + r.status); return r.text(); }); };
+    var get = function (p) { return fetch(p + '?v=' + (KZ.VERSION || ''), { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(p + ' ' + r.status); return r.text(); }); };
     return Promise.all([get('site/base.css'), get('site/motion.css'), get('site/runtime.js')]).then(function (t) {
       KZ.site.base = t[0]; KZ.site.motion = t[1]; KZ.site.runtime = t[2];
     });
