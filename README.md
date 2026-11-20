@@ -63,17 +63,17 @@ npx playwright test
 ```
 GitHub에 올리면 Actions가 같은 점검을 자동으로 실행합니다.
 
-## 배포 (Cloudflare Pages)
+## 배포 (GitHub Pages)
 
-| 항목 | 값 |
+`main` 에 올리면 GitHub Actions가 자동 점검을 통과한 경우에만 `app/` 폴더를 GitHub Pages에 배포합니다 (`.github/workflows/check.yml`).
+
+| 설정 | 값 |
 |---|---|
-| Production branch | `main` |
-| Framework preset | None |
-| Build command | (비움) |
-| Build output directory | `app` |
-| Custom domain | `site.kangyonz.com` (가비아 DNS의 CNAME) |
+| Settings → Pages → Source | **GitHub Actions** |
+| Settings → Pages → Custom domain | `site.kangyonz.com` (+ Enforce HTTPS) |
+| 가비아 DNS | `site` CNAME → `kangsaem.github.io.` |
 
-`build` · `html` · `page` · `make.kangyonz.com` 은 같은 프로젝트에 연결하면 `app/index.html` 의 스크립트가 `site.kangyonz.com` 으로 보냅니다.
+광고를 붙이거나 build · html · page · make 리디렉트가 필요해지면 Cloudflare Pages로 옮깁니다 (출력 폴더 `app`, 빌드 명령 없음). 이때는 가비아의 `site` 값만 `<프로젝트>.pages.dev` 로 바꾸면 됩니다.
 
 ## Claude가 직접 올릴 수 없을 때 업데이트하는 법
 

@@ -13,8 +13,8 @@
 - 결과물은 **순수 HTML**. 기본은 직접 올리기(한 파일 + media 폴더), GitHub 자동 배포는 선택 기능(3차).
 - 넣지 않는 기능: 문의 양식 접수 · 로그인 · 댓글 · 결제 · 사이트 검색 · 방문자 통계.
 - 업종 제한 없음. 레이아웃(구조)과 업종 세트(내용 · 색 · 글꼴)를 분리해 조합.
-- 편집기 주소: **site.kangyonz.com**. build · html · page · make 는 site로 리디렉트 (make는 나중에 도구 모음 입구).
-- 호스팅: 코드는 GitHub `kangsaem/SITE`, 공개는 Cloudflare Pages (출력 폴더 `app`).
+- 편집기 주소: **site.kangyonz.com**. build · html · page · make 리디렉트는 보류 (GitHub Pages는 저장소당 주소 1개 — Cloudflare 이전 때 처리, 코드는 이미 들어 있음).
+- 호스팅: GitHub `kangsaem/SITE` + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
 - 도메인: 가비아 DNS. kangyonz.com 본체(다른 용도로 사용 중)와 kangizo.com(Canva + 가비아 포워딩)은 **건드리지 않음**.
 - 참고 사이트: kangyonz.com/proto/v3 (앱 카드형), kangizo.com (작가 소개).
 
@@ -23,7 +23,8 @@
 - [x] 1차 시제품: Canva식 화면, 레이아웃 14종, 효과(등장 7 · 마우스 5 · 팝업 5 · 패럴랙스 · 고정 · 전환 5), 모바일 따로 조정, 한 파일 내보내기
 - [x] 0.2.0: 저장소 구조 정리, 레이아웃 이름 중립화, 작업 파일 버전 변환, 자동 점검(Playwright 6개), 주소 리디렉트
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
-- [ ] Cloudflare Pages 프로젝트 생성 · 저장소 연결 · site.kangyonz.com 등록 (사용자 작업 — 안내 필요)
+- [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
+- [ ] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 작업 — Claude 권한으로는 설정 불가)
 
 ## 다음 할 일 (2차, 순서대로)
 

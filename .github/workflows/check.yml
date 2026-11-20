@@ -1,9 +1,15 @@
-# 자동 점검: main에 올리거나 PR을 만들 때마다 편집기를 실제 브라우저로 시험합니다.
-name: 자동 점검
+# 자동 점검 + 배포: main에 올리면 점검을 통과한 경우에만 GitHub Pages(site.kangyonz.com)에 배포합니다.
+name: 점검 · 배포
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -23,3 +29,21 @@ jobs:
           name: playwright-report
           path: test-results/
           retention-days: 7
+  deploy:
+    needs: smoke
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+      - id: deployment
+        uses: actions/deploy-pages@v4
