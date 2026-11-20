@@ -16,7 +16,9 @@ window.KZ = window.KZ || {};
 
       function place(name) {
         var el = panels[name], st = U[name] || {};
-        main.classList.toggle('float-' + name, !!st.float);
+        // 창 밖으로 꺼낸 패널(popout)이면 그 자리를 비운 상태를 유지 — 창 크기를 바꿀 때 빈 칸이 다시 생기던 문제
+        var outside = KZ.popout && KZ.popout.isOut && KZ.popout.isOut(name);
+        main.classList.toggle('float-' + name, !!st.float || !!outside);
         el.classList.toggle('floating', !!st.float);
         if (st.float) {
           var r = main.getBoundingClientRect();

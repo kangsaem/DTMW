@@ -705,3 +705,15 @@ test('배경 고정 창: 높이 · 어둡게 고르기, 히어로에도 걸 수 
   await page.locator('#tabFx .opts').nth(2).locator('button', { hasText: '배경 고정' }).click();
   expect(await page.evaluate(() => window.__kzEditor.getSelected().getAttributes()['data-scroll'])).toBe('bgfix');
 });
+
+test('패널을 창 밖으로 꺼낸 뒤 편집기 창 크기를 바꿔도 빈 칸이 생기지 않는다', async ({ page, context }) => {
+  await open(page);
+  await page.evaluate(() => { KZ.forcePopup = true; });
+  const p1 = context.waitForEvent('page'); await page.click('[data-popout="drawer"]'); await p1;
+  await page.waitForTimeout(500);
+  const w0 = await page.evaluate(() => document.querySelector('.stage').getBoundingClientRect().width);
+  await page.setViewportSize({ width: 1500, height: 900 }); await page.waitForTimeout(400);
+  await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
+  expect(await page.evaluate(() => document.getElementById('main').classList.contains('float-drawer'))).toBe(true);
+  expect(await page.evaluate(() => document.querySelector('.stage').getBoundingClientRect().width)).toBe(w0);
+});
