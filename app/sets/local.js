@@ -1,7 +1,7 @@
 /* 세트: 동네 가게 (미용 · 수리 · 학원 · 공방 등 소상공인) */
 KZ.set({
-  id: 'local', name: '동네 가게', desc: '서비스 · 가격 · 예약 안내 · 오시는 길 (미용 · 수리 · 학원 등) — 콘크리트, 고딕', siteName: '우리 가게',
-  style: { theme: 'concrete', font: 'sans', transition: 'fade', speed: 'fast' },
+  id: 'local', name: '동네 가게', desc: '서비스 · 가격 · 예약 안내 · 오시는 길 (미용 · 수리 · 학원 등) — 테라코타, 고운돋움', siteName: '우리 가게',
+  style: { theme: 'terracotta', font: 'dodum', transition: 'fade', speed: 'fast' },
   pages: [['home', '홈', 't1', null, { add: [['cta', { title: '[예약 · 방문을 권하는 한 문장]', btn: '예약 · 문의', href: '#about' }]] }],
     ['gallery', '서비스 · 가격', 'pricing', { title: '서비스 · 가격' }, { add: [['menuboard', { title: '전체 가격표' }]] }],
     ['news', '예약 안내', 'faq', { title: '예약 · 이용 안내' }, { add: ['reviews'] }],

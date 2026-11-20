@@ -344,3 +344,40 @@ test('새 세트(숙소 · 비영리 · 동네 가게)가 적용되고 미리보
   await expect(fr.locator('.rt-page[data-page="about"] .loc')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.9.0 ----------
+test('색 테마 12종 모두 글자 · 버튼 명암 대비가 4.5:1 이상이다', async ({ page }) => {
+  await open(page);
+  const bad = await page.evaluate(() => {
+    const L = h => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const cr = (a, b) => { const [x, y] = [L(a), L(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const out = [];
+    Object.entries(KZ.C.THEMES).forEach(([k, t]) => {
+      if (cr(t.ink, t.bg) < 4.5) out.push(k + ' 글자');
+      if (cr(t.sub, t.bg) < 4.5) out.push(k + ' 보조 글자');
+      if (cr(t.bg, t.accent) < 4.5) out.push(k + ' 버튼');
+    });
+    return { out, n: Object.keys(KZ.C.THEMES).length };
+  });
+  expect(bad.out).toEqual([]);
+  expect(bad.n).toBeGreaterThanOrEqual(12);
+});
+
+test('내보낸 사이트에는 실제로 쓴 글꼴만 들어가고, 헬베티카풍 글꼴은 파일 안에 담긴다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor, pages = e.Pages.getAll().map(p => ({ id: p.getId(), name: p.get('name'), html: p.getMainComponent().getInnerHTML() }));
+    const a = KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { font: 'serif' }) });
+    const b = KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { font: 'heros' }) });
+    return {
+      aSerif: a.includes('Noto+Serif+KR'), aPret: a.includes('pretendard'), aHeros: a.includes('WMW Heros'),
+      bHeros: /@font-face\{font-family:'WMW Heros';src:url\(data:font\/woff2;base64,/.test(b), bPret: b.includes('pretendardvariable-dynamic-subset'), bSerif: b.includes('Noto+Serif+KR'),
+      loaded: Object.keys(KZ.site.fonts).sort(), fonts: Object.keys(KZ.C.FONTS).length,
+      canvas: !!e.Canvas.getDocument().querySelector('link[href*="pretendard"]')
+    };
+  });
+  expect(r).toMatchObject({ aSerif: true, aPret: false, aHeros: false, bHeros: true, bPret: true, bSerif: false, canvas: true });
+  expect(r.loaded).toEqual(['wmw-heros-bold', 'wmw-heros-regular']);
+  expect(r.fonts).toBe(10);
+  expect(errors).toEqual([]);
+});
