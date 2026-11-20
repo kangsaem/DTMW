@@ -183,3 +183,17 @@ test('위쪽 페이지 선택으로 이동하고 패널 떼기 · 도구 숨기�
   await expect(page.locator('#side')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('패널을 떼어내도 편집 화면이 그대로 보인다', async ({ page }) => {
+  const errors = await open(page);
+  const w0 = await page.locator('.stage').boundingBox();
+  for (const n of ['drawer', 'side']) {
+    await page.click(`[data-detach="${n}"]`);
+    const b = await page.locator('.stage').boundingBox();
+    expect(b.width).toBeGreaterThanOrEqual(w0.width);
+    await expect(page.locator('#gjs')).toBeVisible();
+  }
+  const sb = await page.locator('.stage').boundingBox();
+  expect(sb.x).toBeLessThan(80);
+  expect(errors).toEqual([]);
+});
