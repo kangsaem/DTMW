@@ -1,10 +1,11 @@
 /* 패널을 브라우저 창 밖으로 — 항상 위 작은 창(Document Picture-in-Picture, Chrome · Edge PC),
    안 되는 브라우저는 별도 팝업 창. 패널 요소를 그대로 옮기므로 기능 · 이벤트가 유지됩니다.
-   창을 닫으면 제자리로 돌아옵니다. 한 번에 한 패널만 (PiP 창은 탭마다 1개). */
+   창을 닫으면 제자리로 돌아옵니다. 두 패널을 함께 꺼낼 수 있습니다 — PiP 창은 탭마다 1개라
+   먼저 꺼낸 패널이 PiP 를 쓰고 있으면 두 번째 패널은 일반 팝업 창으로 엽니다. */
 window.KZ = window.KZ || {};
 (function (KZ) {
   'use strict';
-  var cur = null; // { name, el, mark, win, kind }
+  var outs = {}; // name → { name, el, mark, win, kind }
   var TITLE = { drawer: '도구', side: '디자인' };
 
   function copyStyles(doc) {
@@ -13,8 +14,9 @@ window.KZ = window.KZ || {};
       else { var st = doc.createElement('style'); st.textContent = n.textContent; doc.head.appendChild(st); }
     });
   }
+  function pipBusy() { for (var k in outs) if (outs[k].kind === 'pip') return true; return false; }
   function openWindow(name, w, h) {
-    var usePip = !KZ.forcePopup && 'documentPictureInPicture' in window;
+    var usePip = !KZ.forcePopup && 'documentPictureInPicture' in window && !pipBusy();
     var p = usePip ? window.documentPictureInPicture.requestWindow({ width: w, height: h }).then(function (win) { return { win: win, kind: 'pip' }; }) : Promise.reject();
     return p.catch(function () {
       var win = window.open('', 'wmw-' + name, 'popup,width=' + w + ',height=' + h);
@@ -27,9 +29,10 @@ window.KZ = window.KZ || {};
     var b = KZ.ui.$('[data-popout="' + name + '"]'); if (!b) return;
     b.textContent = out ? '⇲' : '↗'; b.title = out ? '편집기 안으로 되돌리기' : '브라우저 창 밖으로 (따로 띄우기)'; b.setAttribute('aria-label', b.title);
   }
-  function back() {
-    if (!cur) return;
-    var c = cur; cur = null;
+  // 창 하나가 닫힐 때 그 창의 패널만 되돌림 (이전에는 늦게 온 닫힘 신호가 새로 꺼낸 패널까지 되돌려 빈 창이 됐음)
+  function back(name, win) {
+    var c = outs[name]; if (!c || (win && c.win !== win)) return;
+    delete outs[name];
     var i = KZ.ui.docs.indexOf(c.win.document); if (i >= 0) KZ.ui.docs.splice(i, 1);
     c.el.classList.remove('outside');
     if (c.mark.parentNode) { c.mark.parentNode.insertBefore(c.el, c.mark); c.mark.remove(); }
@@ -49,25 +52,27 @@ window.KZ = window.KZ || {};
       var mark = document.createComment('panel:' + name); el.parentNode.insertBefore(mark, el);
       doc.body.appendChild(el); el.classList.add('outside');
       KZ.ui.docs.push(doc);
-      cur = { name: name, el: el, mark: mark, win: win, kind: r.kind };
+      outs[name] = { name: name, el: el, mark: mark, win: win, kind: r.kind };
       document.getElementById('main').classList.add('float-' + name);
       btnState(name, true);
-      win.addEventListener('pagehide', back);
-      if (r.kind === 'popup') { var t = setInterval(function () { if (!cur || cur.win !== win) return clearInterval(t); if (win.closed) { clearInterval(t); back(); } }, 500); }
+      win.addEventListener('pagehide', function () { back(name, win); });
+      if (r.kind === 'popup') { var t = setInterval(function () { if (!outs[name] || outs[name].win !== win) return clearInterval(t); if (win.closed) { clearInterval(t); back(name, win); } }, 500); }
       if (KZ.popout.onChange) KZ.popout.onChange();
       return r.kind;
     });
   }
   KZ.popout = {
     supported: function () { return typeof window.open === 'function'; },
-    current: function () { return cur ? { name: cur.name, kind: cur.kind } : null; },
+    current: function () { var k = Object.keys(outs)[0]; return k ? { name: k, kind: outs[k].kind } : null; },
+    list: function () { return Object.keys(outs).map(function (k) { return { name: k, kind: outs[k].kind }; }); },
+    isOut: function (name) { return !!outs[name]; },
     toggle: function (name) {
-      if (cur && cur.name === name) { try { cur.win.close(); } catch (e) { /* 무시 */ } back(); return Promise.resolve(null); }
-      if (cur) { try { cur.win.close(); } catch (e) { /* 무시 */ } back(); }
+      var c = outs[name];
+      if (c) { back(name); try { c.win.close(); } catch (e) { /* 무시 */ } return Promise.resolve(null); }
       return out(name);
     },
     back: back,
     onChange: null
   };
-  window.addEventListener('pagehide', function () { if (cur) try { cur.win.close(); } catch (e) { /* 무시 */ } });
+  window.addEventListener('pagehide', function () { for (var k in outs) try { outs[k].win.close(); } catch (e) { /* 무시 */ } });
 })(window.KZ);

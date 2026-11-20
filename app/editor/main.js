@@ -126,7 +126,13 @@
       setStatus('저장 중…'); clearTimeout(saveT); pending = true;
       saveT = setTimeout(writeNow, 900);
     }
-    window.addEventListener('beforeunload', e => { if (pending) { writeNow(); e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', e => {
+      if (!pending || passive) return;
+      // 그 자리에서 바로 저장을 시작하고(대기 없음), 혹시 못 끝날 때를 대비해 닫기 확인도 띄움
+      clearTimeout(saveT);
+      if (KZ.store.DB.putNow('project', KZ.store.pack(S, editor.getProjectData()))) pending = false; else writeNow();
+      e.preventDefault(); e.returnValue = '';
+    });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') writeNow(); });
     // 두 탭: 나중에 연 탭(또는 '이 탭에서 계속'을 누른 탭)만 저장합니다. 나머지 탭은 저장을 멈추고 알립니다
     const TAB_ID = Math.random().toString(36).slice(2);
@@ -376,7 +382,14 @@
       const dev = { desktop: 'PC · 전체 폭', tablet: '태블릿 · 820px', mobile: '모바일 · 390px' }[editor.getDevice()] || '';
       $('#stageTitle').innerHTML = (pa ? '<span class="dim">' + esc(pname(editor.Pages.get(pa))) + ' ›</span> ' : '') + '<b>' + esc(pname(cur)) + '</b> <span class="dim">#' + esc(cur.getId()) + '</span>';
       $('#stageDev').textContent = dev;
+      narrowCheck();
     }
+    // PC 화면인데 편집 화면이 좁으면(사이트 대부분이 모양을 바꾸는 760px 미만) 모바일 모양으로 보인다고 알림
+    function narrowCheck() {
+      const f = editor.Canvas.getFrameEl(), w = f ? f.clientWidth : 0, n = $('#narrowNote');
+      if (n) n.hidden = !(editor.getDevice() === 'desktop' && w > 0 && w < 760);
+    }
+    if (window.ResizeObserver) new ResizeObserver(() => narrowCheck()).observe($('#gjs'));
     $('#pageSel').onchange = e => editor.Pages.select(e.target.value);
 
     // ---------- 업로드 ----------
@@ -723,7 +736,7 @@
       setTimeout(() => editor.refresh(), 50);
     }
     $$('.rail button').forEach(b => b.onclick = () => {
-      const drawerOut = KZ.popout && KZ.popout.current() && KZ.popout.current().name === 'drawer';
+      const drawerOut = KZ.popout && KZ.popout.isOut('drawer');
       if (!drawerOut && b.classList.contains('on') && !$('#main').classList.contains('no-drawer')) { $('#main').classList.add('no-drawer'); b.classList.remove('on'); setTimeout(() => editor.refresh(), 50); return; }
       openPane(b.dataset.pane);
     });
@@ -836,10 +849,14 @@
       renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);
       $('#fxMarkBtn').onclick = () => setFxMark(!fxMark); setFxMark(fxMark);
       $('#fileWarn').onclick = saveProjectFile;
+      let smallOk = true; try { smallOk = !!sessionStorage.getItem('wmw-small-ok'); sessionStorage.setItem('wmw-small-ok', '1'); } catch (e) { /* 저장 막힘 */ }
+      if ((window.innerWidth < 900 || window.matchMedia('(pointer:coarse)').matches) && !smallOk && !$('#dlg').classList.contains('open')) {
+        dialog('PC에서 쓰기를 권합니다', '<p>WMW 편집기는 <b>PC 화면(가로 1024px 이상, 마우스)</b>에 맞춰져 있습니다. 휴대폰 · 작은 창에서는 패널이 화면을 가리고 일부 버튼이 숨겨집니다.</p><p class="hint">만든 사이트는 휴대폰에서도 잘 보입니다. 위쪽 모바일 버튼으로 확인할 수 있습니다.</p>');
+      }
       // 패널을 브라우저 창 밖으로
       KZ.popout.onChange = () => setTimeout(() => { try { editor.refresh(); } catch (e) { /* 무시 */ } renderSide(); }, 60);
       $$('[data-popout]').forEach(b => b.onclick = () => KZ.popout.toggle(b.dataset.popout).then(kind => {
-        if (kind) toast(kind === 'pip' ? '항상 위에 뜨는 창으로 꺼냈습니다. 창을 닫으면 제자리로 돌아옵니다' : '새 창으로 꺼냈습니다. 창을 닫거나 ⇲ 를 누르면 돌아옵니다');
+        if (kind) toast(kind === 'pip' ? '항상 위에 뜨는 창으로 꺼냈습니다. 창을 닫으면 제자리로 돌아옵니다' : (KZ.popout.list().length > 1 ? '새 창으로 꺼냈습니다 (항상 위 창은 하나만 돼서 일반 창). 편집기를 누르면 뒤로 갈 수 있습니다' : '새 창으로 꺼냈습니다. 창을 닫거나 ⇲ 를 누르면 돌아옵니다'));
       }, err => dialog('창 밖으로 꺼내지 못했습니다', '<p>' + esc(err.message || '브라우저가 새 창을 막았습니다.') + '</p>')));
       let wasDirty = false; try { wasDirty = localStorage.getItem(FILE_KEY) === '1'; } catch (e) { /* 무시 */ }
       fileDirty(wasDirty);

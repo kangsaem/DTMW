@@ -525,6 +525,7 @@ test('요소 탭의 블록을 누르면 선택한 요소 아래에 들어간다 
 // ---------- 0.12.0 작업 손실 방지 ----------
 test('저장본을 열지 못하면 덮어쓰지 않고 백업으로 남기고 알린다', async ({ page }) => {
   await open(page);
+  await page.waitForTimeout(2000); // 시작 직후 한 번 더 일어나는 자동 저장을 기다림
   await page.waitForFunction(() => !KZ.tabState().pending);
   await page.evaluate(async () => { const d = KZ.store.pack({}, window.__kzEditor.getProjectData()); d.v = 99; d.marker = 'MINE'; await KZ.store.DB.set('project', d); });
   await page.reload();
@@ -562,7 +563,7 @@ test('다른 탭에서 편집기를 열면 먼저 연 탭은 저장을 멈추고
 
 test('고친 직후 바로 새로고침해도 마지막 수정이 남는다', async ({ page }) => {
   await open(page);
-  let asked = false; page.on('dialog', d => { asked = d.type() === 'beforeunload'; d.accept(); });
+  let asked = false; page.on('dialog', d => { asked = d.type() === 'beforeunload'; setTimeout(() => d.accept(), 300); }); // 사람이 '새로고침'을 누르는 정도의 시간
   await page.click('#stageTitle'); // 사용자 조작(브라우저가 닫기 확인을 띄우는 조건)
   await page.evaluate(() => { window.__kzEditor.getWrapper().find('h1')[0].components('QUICK-1'); });
   expect(await page.evaluate(() => KZ.tabState().pending)).toBe(true);
@@ -577,4 +578,64 @@ test('글을 고치는 중에 Tab 을 눌러도 도구가 숨겨지지 않는다
   await page.frameLocator('.gjs-frame').locator('h1').first().dblclick();
   await page.keyboard.press('Tab'); await page.waitForTimeout(200);
   expect(await page.evaluate(() => !!document.querySelector('.app.zen'))).toBe(false);
+});
+
+// ---------- 0.12.0 화면 · 창 밖 패널 ----------
+for (const w of [1024, 1280, 1440]) {
+  test(`상단 줄 버튼이 ${w}px 폭에서 꺾이거나 겹치지 않는다`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: 800 });
+    await open(page);
+    const r = await page.evaluate(() => {
+      const items = [...document.querySelectorAll('.top > *')].filter(e => e.offsetParent && !e.classList.contains('grow') && !e.classList.contains('sep'))
+        .map(e => ({ id: e.id || e.className, r: e.getBoundingClientRect() }));
+      const bad = [];
+      items.forEach((a, i) => { if (a.r.right > innerWidth + 1) bad.push('밖: ' + a.id); if (a.r.height > 40) bad.push('높이: ' + a.id);
+        items.slice(i + 1).forEach(b => { if (a.r.right > b.r.left + 1 && a.r.left < b.r.right - 1) bad.push('겹침: ' + a.id + ' / ' + b.id); }); });
+      document.querySelectorAll('.top button, .top .seg button').forEach(b => { if (b.offsetParent && b.getBoundingClientRect().height > 40) bad.push('꺾임: ' + (b.id || b.textContent)); });
+      const sh = document.querySelector('.stage-head'); if (sh.scrollHeight > sh.clientHeight + 1) bad.push('편집 화면 머리 줄 넘침');
+      return bad;
+    });
+    expect(r).toEqual([]);
+  });
+}
+
+test('PC 화면인데 편집 화면이 좁으면 알림이 뜨고, 넓으면 없다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page);
+  await expect(page.locator('#narrowNote')).toBeVisible();
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await expect(page.locator('#narrowNote')).toBeHidden();
+});
+
+test('모양만 있는 언어 버튼(KR · EN · JP)은 내보낸 사이트에서 보이지 않는다', async ({ page }) => {
+  await open(page);
+  await page.click('#previewBtn');
+  const fr = page.frameLocator('#pvFrame');
+  await expect(fr.locator('.rt-page:not([hidden]) .nav').first()).toBeVisible();
+  await expect(fr.locator('.rt-page:not([hidden]) .nav .lang').first()).toBeHidden();
+});
+
+test('좁은 화면에서 처음 열면 PC 사용 안내가 한 번 뜬다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  await expect(page.locator('#dlgT')).toHaveText('PC에서 쓰기를 권합니다');
+  await page.locator('#dlgF button').first().click();
+  await page.reload(); await page.waitForFunction(() => window.__kzEditor && document.getElementById('status').textContent !== '불러오는 중…');
+  await page.waitForTimeout(500);
+  await expect(page.locator('#dlg')).not.toHaveClass(/open/);
+});
+
+test('두 패널을 차례로 창 밖으로 꺼내도 둘 다 제대로 보이고, 하나를 닫으면 그것만 돌아온다', async ({ page, context }) => {
+  await open(page);
+  await page.evaluate(() => { KZ.forcePopup = true; });
+  const p1 = context.waitForEvent('page'); await page.click('[data-popout="drawer"]'); const w1 = await p1;
+  await expect.poll(() => w1.evaluate(() => !!document.getElementById('drawer'))).toBe(true);
+  const p2 = context.waitForEvent('page'); await page.click('[data-popout="side"]'); const w2 = await p2;
+  await page.waitForTimeout(1200);
+  expect(await w2.evaluate(() => !!document.getElementById('side'))).toBe(true);
+  expect(await w1.evaluate(() => !!document.getElementById('drawer'))).toBe(true);
+  expect(await page.evaluate(() => KZ.popout.list().map(x => x.name).sort().join(','))).toBe('drawer,side');
+  await w1.close();
+  await expect.poll(() => page.evaluate(() => !!document.querySelector('#main #drawer'))).toBe(true);
+  expect(await w2.evaluate(() => !!document.getElementById('side'))).toBe(true);
 });
