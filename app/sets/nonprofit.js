@@ -1,7 +1,7 @@
 /* 세트: 비영리 · 단체 · 모임 */
 KZ.set({
-  id: 'nonprofit', name: '비영리 · 단체', desc: '하는 일 · 활동 소식 · 함께하는 사람 · 참여 방법 — 흰 배경, 고딕', siteName: '우리 단체',
-  style: { theme: 'white', font: 'sans', transition: 'fade', speed: 'normal' },
+  id: 'nonprofit', name: '비영리 · 단체', desc: '하는 일 · 활동 소식 · 함께하는 사람 · 참여 방법 — 세이지, Pretendard', siteName: '우리 단체',
+  style: { theme: 'sage', font: 'pretendard', transition: 'fade', speed: 'normal' },
   pages: [['home', '홈', 't12', null, { add: [['stats', null], ['cta', { title: '[함께해 달라는 한 문장]', btn: '참여하기', href: '#about' }]] }],
     ['gallery', '하는 일', 't3'], ['news', '활동 소식', 't2'],
     ['journal', '함께하는 사람', 'team', { title: '함께하는 사람' }],

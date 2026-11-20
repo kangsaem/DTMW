@@ -1,7 +1,7 @@
 /* 세트: 행사 · 컨퍼런스 · 축제 · 세미나 */
 KZ.set({
-  id: 'event', name: '행사 · 컨퍼런스', desc: '프로그램 · 연사 · 행사 소개 · 오시는 길 — 어두운 배경, 모던', siteName: '우리 행사',
-  style: { theme: 'dark', font: 'inter', transition: 'curtain', speed: 'normal' },
+  id: 'event', name: '행사 · 컨퍼런스', desc: '프로그램 · 연사 · 행사 소개 · 오시는 길 — 블랙 · 라임, 헬베티카풍', siteName: '우리 행사',
+  style: { theme: 'lime', font: 'heros', transition: 'curtain', speed: 'normal' },
   pages: [['home', '홈', 't12'], ['news', '프로그램', 'events', { title: '프로그램' }], ['gallery', '연사', 't8'], ['journal', '행사 소개', 't11'], ['about', '오시는 길', 'location', { title: '오시는 길' }, { add: ['faq'] }]],
   words: [].concat(KZ.W.noEffects,
     KZ.W.profileDl([['일시', '[날짜 · 시간]'], ['장소', '[장소 · 주소]'], ['교통', '[대중교통 · 주차]'], ['참가', '[신청 방법]']]),

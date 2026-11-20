@@ -35,7 +35,7 @@
     function injectDoc(doc) {
       if (!doc || !doc.head) return;
       if (!doc.getElementById('kz-base')) {
-        const l = doc.createElement('link'); l.rel = 'stylesheet'; l.href = C.FONT_LINK; doc.head.appendChild(l);
+        doc.head.insertAdjacentHTML('beforeend', KZ.fontHead('', { all: true, base: new URL('.', location.href).href }));
         const b = doc.createElement('style'); b.id = 'kz-base'; b.textContent = KZ.site.base + '\n' + KZ.site.motion; doc.head.appendChild(b);
         const t = doc.createElement('style'); t.id = 'kz-theme'; doc.head.appendChild(t);
         // 효과 표시: 편집 화면에서만 노란 점선 (미리보기 · 내보내기에는 없음)

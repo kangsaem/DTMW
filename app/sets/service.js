@@ -1,7 +1,7 @@
 /* 세트: 제품 · 서비스 소개 — 소규모 회사 · 앱 · 프리랜서 */
 KZ.set({
-  id: 'service', name: '제품 · 서비스', desc: '서비스(카드 + 상세) · 특징 · 공지 · 회사 소개 — 흰 배경, 모던', siteName: '우리 서비스',
-  style: { theme: 'white', font: 'inter', transition: 'slide', speed: 'normal' },
+  id: 'service', name: '제품 · 서비스', desc: '서비스(카드 + 상세) · 특징 · 공지 · 회사 소개 — 블루프린트, 헬베티카풍', siteName: '우리 서비스',
+  style: { theme: 'blueprint', font: 'heros', transition: 'slide', speed: 'normal' },
   pages: [['home', '홈', 't1', null, { add: [['cta', { title: '[서비스를 한 문장으로 권하기]', btn: '문의하기', href: '#about' }]] }], ['gallery', '서비스', 't5', { kicker: '서비스', title: '[서비스를 한 줄로 소개]', badgeOn: '[제공 중]', badgeOff: '[준비 중]', footL: '[이메일]', footR: '© [사이트 이름]' }],
     ['detail', '특징', 't6', null, {parent:'gallery', add: ['pricing']}], ['news', '공지', 't2'], ['about', '회사 소개', 't13', null, { add: ['faq', 'contact'] }]],
   words: [].concat(KZ.W.noEffects, KZ.W.noJournal,

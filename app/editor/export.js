@@ -3,11 +3,22 @@ window.KZ = window.KZ || {};
 (function (KZ) {
   'use strict';
   var ui = KZ.ui;
-  KZ.site = { base: '', motion: '', runtime: '' };
+  KZ.site = { base: '', motion: '', runtime: '', fonts: {} };
 
   KZ.loadSiteAssets = function () {
     var get = function (p) { return fetch(p + '?v=' + (KZ.VERSION || ''), { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(p + ' ' + r.status); return r.text(); }); };
-    return Promise.all([get('site/base.css'), get('site/motion.css'), get('site/runtime.js')]).then(function (t) {
+    // 직접 제공하는 글꼴(app/fonts)은 내보낼 때 html 안에 넣도록 미리 읽어 둡니다. 실패해도 편집기는 열림 (그 경우 내보낸 사이트는 대체 글꼴)
+    var b64 = function (buf) { var s = '', a = new Uint8Array(buf); for (var i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+    var fonts = [];
+    Object.keys(KZ.C.FONT_SRC).forEach(function (n) {
+      var v = KZ.C.FONT_SRC[n]; if (v.indexOf('local:') !== 0) return;
+      ['regular', 'bold'].forEach(function (w) {
+        var key = v.slice(6) + '-' + w;
+        fonts.push(fetch('fonts/' + key + '.woff2?v=' + (KZ.VERSION || '')).then(function (r) { if (!r.ok) throw new Error(key); return r.arrayBuffer(); })
+          .then(function (buf) { KZ.site.fonts[key] = b64(buf); }, function () { /* 글꼴 없음 */ }));
+      });
+    });
+    return Promise.all([get('site/base.css'), get('site/motion.css'), get('site/runtime.js')].concat(fonts)).then(function (t) {
       KZ.site.base = t[0]; KZ.site.motion = t[1]; KZ.site.runtime = t[2];
     });
   };
@@ -20,7 +31,7 @@ window.KZ = window.KZ || {};
     var meta = JSON.stringify({ start: o.startId || (o.pages[0] && o.pages[0].id), pages: o.pages.map(function (p) { var m = { id: p.id, name: p.name }; if (p.parent) m.parent = p.parent; if (p.menu === false) m.menu = false; return m; }) }).replace(/</g, '\\u003c');
     return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + esc(S.siteName) + '</title>\n' +
       '<meta name="generator" content="KZ site editor ' + esc(KZ.VERSION) + '">\n' +
-      '<link rel="stylesheet" href="' + KZ.C.FONT_LINK.replace(/&/g, '&amp;') + '">\n<style>\n' + KZ.themeCss(S) + '\n' + KZ.site.base + '\n' + KZ.site.motion + '\n' + (o.css || '') + '\n</style>\n</head>\n' +
+      KZ.fontHead(KZ.themeCss(S) + (o.css || '') + body, { embed: true }) + '\n<style>\n' + KZ.themeCss(S) + '\n' + KZ.site.base + '\n' + KZ.site.motion + '\n' + (o.css || '') + '\n</style>\n</head>\n' +
       '<body class="rt" data-transition="' + esc(S.transition) + '" data-speed="' + esc(S.speed) + '">\n' + body + '\n' +
       '<div id="rt-curtain"></div><img id="rt-cursor" alt=""><div id="rt-ov" class="rt-ov" hidden><div class="rt-back"></div><div class="rt-box" role="dialog" aria-modal="true"></div></div>\n' +
       '<script type="application/json" id="rt-meta">' + meta + '<\/script>\n<script>\n' + KZ.site.runtime + '\n<\/script>\n</body>\n</html>';

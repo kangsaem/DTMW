@@ -1,7 +1,7 @@
 /* 세트: 숙소 · 펜션 · 게스트하우스 */
 KZ.set({
-  id: 'stay', name: '숙소 · 펜션', desc: '객실(가로 넘김) · 요금 · 이용 안내 · 오시는 길 — 종이 색, 명조', siteName: '우리 숙소',
-  style: { theme: 'paper', font: 'serif', transition: 'fade', speed: 'slow' },
+  id: 'stay', name: '숙소 · 펜션', desc: '객실(가로 넘김) · 요금 · 이용 안내 · 오시는 길 — 먹 · 금, Playfair', siteName: '우리 숙소',
+  style: { theme: 'inkgold', font: 'playfair', transition: 'fade', speed: 'slow' },
   pages: [['home', '홈', 't1'], ['gallery', '객실', 't7', null, { add: [['pricing', { title: '객실 요금' }]] }],
     ['news', '이용 안내', 'faq', { title: '이용 안내' }, { add: [['reviews', { title: '머문 분들의 이야기' }]] }],
     ['about', '오시는 길', 'location', { title: '오시는 길' }, { add: [['cta', { title: '[예약 안내 한 문장]', btn: '예약 문의', href: '#about' }], 'contact'] }]],
