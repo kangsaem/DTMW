@@ -215,3 +215,77 @@ test('편집기 파일 주소의 ?v= 가 현재 버전과 같다', async ({ page
   expect(r.urls.length).toBeGreaterThan(30);
   for (const u of r.urls) expect(u).toContain('?v=' + r.v);
 });
+
+// ---------- 0.7.0 ----------
+test('레이아웃을 섹션으로 붙이면 메뉴 · 바닥글 없이 바닥글 위에 들어간다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const out = {};
+    KZ.layoutOrder.forEach(id => { const s = KZ.sectionHtml(id); if (/class="nav[ "]|class="foot"/.test(s) || s.length < 30) out[id] = 'bad'; });
+    return out;
+  });
+  expect(r).toEqual({});
+  await page.selectOption('#pageSel', 'about');
+  await page.locator('.tpl').nth(2).click();
+  await page.locator('#dlgF button', { hasText: '섹션으로 추가' }).click();
+  const order = await page.evaluate(() => window.__kzEditor.getWrapper().components().map(c => (c.get('tagName') || '') + '.' + (c.getClasses()[0] || '')));
+  expect(order[0]).toBe('header.nav');
+  expect(order[order.length - 1]).toBe('footer.foot');
+  expect(order.length).toBeGreaterThanOrEqual(4);
+  expect(order.filter(x => x === 'header.nav').length).toBe(1);
+  // 섹션 위로: 선택한 새 섹션이 한 칸 올라가고, 메뉴 위로는 못 간다
+  const idx = await page.evaluate(() => { const e = window.__kzEditor; const s = e.getSelected(); return s.index(); });
+  await page.locator('.sec-acts button', { hasText: '섹션 위로' }).click();
+  const idx2 = await page.evaluate(() => window.__kzEditor.getSelected().index());
+  expect(idx2).toBe(idx - 1);
+  for (let i = 0; i < 5; i++) await page.locator('.sec-acts button', { hasText: '섹션 위로' }).click();
+  expect(await page.evaluate(() => window.__kzEditor.getSelected().index())).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('누르면 → 페이지 이동: 미리보기에서 다른 페이지로 간다', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => {
+    const e = window.__kzEditor; e.Pages.select('home');
+    e.getWrapper().append('<div class="go-test" data-click="go" data-go="#about" style="padding:40px">이동</div>', { at: 1 });
+  });
+  await page.click('#previewBtn');
+  const fr = page.frameLocator('#pvFrame');
+  await fr.locator('.rt-page:not([hidden]) .go-test').click();
+  await expect(fr.locator('.rt-page[data-page="about"]')).toBeVisible();
+  await expect(fr.locator('#rt-ov')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('효과 탭에서 페이지 이동을 고르면 페이지 목록이 나오고 값이 저장된다', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('figure.work')[0]); });
+  await page.click('.tabs button[data-tab="fx"]');
+  await page.locator('#tabFx .opts button', { hasText: '페이지 이동' }).click();
+  await page.locator('#tabFx select').selectOption('#about');
+  const a = await page.evaluate(() => window.__kzEditor.getSelected().getAttributes());
+  expect(a['data-click']).toBe('go');
+  expect(a['data-go']).toBe('#about');
+});
+
+test('효과 표시는 편집 화면에만 있고 끌 수 있다', async ({ page }) => {
+  await open(page);
+  const on = await page.evaluate(() => window.__kzEditor.Canvas.getDocument().documentElement.classList.contains('kz-fx'));
+  expect(on).toBe(true);
+  await page.click('#fxMarkBtn');
+  expect(await page.evaluate(() => window.__kzEditor.Canvas.getDocument().documentElement.classList.contains('kz-fx'))).toBe(false);
+  const html = await page.evaluate(() => { const e = window.__kzEditor; return KZ.buildSite({ pages: [{ id: 'a', name: 'a', html: '<p>x</p>' }], css: '', S: KZ.C.DEFAULT_S() }); });
+  expect(html).not.toContain('kz-fx');
+});
+
+test('고친 뒤 작업 파일을 받지 않으면 미저장 표시가 뜨고, 받으면 사라진다', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('#fileWarn')).toBeHidden();
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { window.__kzEditor.getWrapper().append('<p>변경</p>'); });
+  await expect(page.locator('#fileWarn')).toBeVisible();
+  const dl = page.waitForEvent('download');
+  await page.click('#fileWarn');
+  await dl;
+  await expect(page.locator('#fileWarn')).toBeHidden();
+});
