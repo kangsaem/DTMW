@@ -636,3 +636,72 @@ test('창 밖 패널은 한 번에 하나: 두 번째를 꺼내면 첫 번째는
   expect(await page.evaluate(() => !!document.querySelector('#main #drawer'))).toBe(true);
   expect(await page.evaluate(() => KZ.popout.list().map(x => x.name).join(','))).toBe('side');
 });
+
+// ---------- 0.13.0 배경 고정 ----------
+async function addBgfixPage(page) {
+  await page.evaluate(() => {
+    const e = window.__kzEditor;
+    e.Pages.add({ id: 'fixt', name: '고정 시험', component: KZ.layouts.bgfix.html() }, { select: true });
+  });
+  await page.waitForTimeout(500);
+}
+test('배경 고정 창: 미리보기에서 스크롤해도 사진은 제자리, 섹션은 지나간다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const errors = await open(page);
+  expect(await page.evaluate(() => KZ.layouts.bgfix && KZ.layouts.bgfix.cat)).toBe('섹션');
+  await addBgfixPage(page);
+  await page.click('#previewBtn');
+  const fr = page.frameLocator('#pvFrame');
+  await expect(fr.locator('.rt-page:not([hidden]) .bgfix')).toBeVisible();
+  const f = page.frame({ url: /about:srcdoc/ }) || page.frames().find(x => x !== page.mainFrame());
+  const at = async () => f.evaluate(() => { const s = document.querySelector('.rt-page:not([hidden]) .bgfix'); const m = s.querySelector('.bgfix-media'); return { sec: Math.round(s.getBoundingClientRect().top), media: Math.round(m.getBoundingClientRect().top), pos: getComputedStyle(m).position, clip: getComputedStyle(s).clipPath }; });
+  await f.evaluate(() => { const s = document.querySelector('.rt-page:not([hidden]) .bgfix'); window.scrollTo(0, s.offsetTop - 200); });
+  await page.waitForTimeout(300);
+  const a = await at();
+  await f.evaluate(() => window.scrollBy(0, 300)); await page.waitForTimeout(300);
+  const b = await at();
+  expect(a.pos).toBe('fixed'); expect(a.clip).toContain('inset');
+  expect(b.sec).toBe(a.sec - 300);   // 섹션은 올라감
+  expect(b.media).toBe(a.media);      // 사진은 제자리
+  expect(a.media).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('배경 고정: 함께 쓸 수 없는 효과는 흐리게, 고르면 풀린다고 묻는다', async ({ page }) => {
+  await open(page);
+  await addBgfixPage(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.bgfix')[0]); });
+  await page.click('#side [data-tab="fx"]');
+  const anim = page.locator('#tabFx .opts').first();
+  await expect(anim.locator('button', { hasText: '떠오르기' })).toHaveClass(/fx-off/);
+  await expect(anim.locator('button', { hasText: '페이드' })).not.toHaveClass(/fx-off/);
+  await anim.locator('button', { hasText: '떠오르기' }).click();
+  await expect(page.locator('#dlgT')).toHaveText('배경 고정이 풀립니다');
+  await page.locator('#dlgF button', { hasText: '취소' }).click();
+  expect(await page.evaluate(() => { const c = window.__kzEditor.getSelected().getAttributes(); return [c['data-scroll'], c['data-anim'] || '']; })).toEqual(['bgfix', '']);
+  await page.locator('#tabFx .opts').first().locator('button', { hasText: '떠오르기' }).click();
+  await page.locator('#dlgF button', { hasText: '바꾸기' }).click();
+  expect(await page.evaluate(() => { const c = window.__kzEditor.getSelected().getAttributes(); return [c['data-scroll'] || '', c['data-anim']]; })).toEqual(['', 'fade-up']);
+  // 반대: 등장 효과가 있는 요소에 배경 고정을 고르면 묻는다
+  await page.locator('#tabFx .opts').nth(2).locator('button', { hasText: '배경 고정' }).click();
+  await expect(page.locator('#dlgT')).toHaveText('함께 쓸 수 없는 효과');
+  await page.locator('#dlgF button', { hasText: '배경 고정' }).click();
+  expect(await page.evaluate(() => { const c = window.__kzEditor.getSelected().getAttributes(); return [c['data-scroll'], c['data-anim'] || '']; })).toEqual(['bgfix', '']);
+});
+
+test('배경 고정 창: 높이 · 어둡게 고르기, 히어로에도 걸 수 있다', async ({ page }) => {
+  await open(page);
+  await addBgfixPage(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.bgfix')[0]); });
+  await page.click('#side [data-tab="fx"]');
+  await page.locator('#tabFx button', { hasText: '70%' }).click();
+  await page.locator('#tabFx button', { hasText: '진하게' }).click();
+  expect(await page.evaluate(() => { const a = window.__kzEditor.getSelected().getAttributes(); return [a['data-h'], a['data-dim']]; })).toEqual(['70', '55']);
+  // 기본 세트 첫 화면(히어로)에 배경 고정
+  await page.evaluate(() => { const e = window.__kzEditor; e.Pages.select('home'); });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.hero')[0]); });
+  await page.click('#side [data-tab="fx"]');
+  await page.locator('#tabFx .opts').nth(2).locator('button', { hasText: '배경 고정' }).click();
+  expect(await page.evaluate(() => window.__kzEditor.getSelected().getAttributes()['data-scroll'])).toBe('bgfix');
+});

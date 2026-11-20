@@ -134,5 +134,17 @@
     var a = e.target.closest && e.target.closest('a[href^="#"]');
     if (a) { var id = a.getAttribute('href').slice(1); e.preventDefault(); if (!id) return; if (!ov.hidden) { close(); setTimeout(function () { go(id, true); }, D * 0.5); } else go(id, true); }
   });
+  // 배경 고정 영상: 화면에 보일 때만 재생 (숨은 페이지 · 화면 밖이면 멈춤). '움직임 줄이기' 설정이면 재생 안 함
+  (function () {
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var vids = [].slice.call(document.querySelectorAll('[data-scroll="bgfix"] video'));
+    if (!vids.length) return;
+    vids.forEach(function (v) { v.muted = true; v.setAttribute('playsinline', ''); if (still) { v.removeAttribute('autoplay'); v.pause(); } });
+    if (still || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { var v = e.target.querySelector('video'); if (!v) return; if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function () {}); } else v.pause(); });
+    }, { threshold: 0 });
+    [].forEach.call(document.querySelectorAll('[data-scroll="bgfix"]'), function (w) { if (w.querySelector('video')) io.observe(w); });
+  })();
   var start = (location.hash || '').slice(1); if (!find(start)) start = meta.start; go(start, false);
 })();
