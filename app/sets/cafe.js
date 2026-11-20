@@ -2,7 +2,7 @@
 KZ.set({
   id: 'cafe', name: '카페 · 식당', desc: '메뉴(가로 넘김) · 소식 · 매장 안내 — 종이 색, 고운바탕', siteName: '우리 가게',
   style: { theme: 'paper', font: 'gowun', transition: 'fade', speed: 'normal' },
-  pages: [['home', '홈', 't1'], ['gallery', '메뉴', 't7'], ['news', '소식', 't2'], ['about', '매장 안내', 't13']],
+  pages: [['home', '홈', 't1'], ['gallery', '메뉴', 't7', null, { add: [['menuboard', { title: '메뉴판' }]] }], ['news', '소식', 't2'], ['about', '매장 안내', 't13', null, { add: ['location'] }]],
   words: [].concat(KZ.W.noEffects, KZ.W.noJournal,
     KZ.W.profileDl([['영업시간', '[요일 · 시간]'], ['주소', '[주소]'], ['전화', '[전화번호]'], ['주차', '[주차 안내]']]),
     [['[사이트 이름]', '[가게 이름]'], ['>갤러리<', '>메뉴<'], ['>소개<', '>매장 안내<'], ['대표 항목', '대표 메뉴'], ['전체 보기 →', '메뉴 전체 →'],

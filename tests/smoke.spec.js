@@ -289,3 +289,58 @@ test('고친 뒤 작업 파일을 받지 않으면 미저장 표시가 뜨고, �
   await dl;
   await expect(page.locator('#fileWarn')).toBeHidden();
 });
+
+// ---------- 0.8.0 ----------
+test('섹션 레이아웃 10종이 등록되고 가짜 수치 없이 자리표시만 쓴다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const ids = ['pricing', 'menuboard', 'faq', 'team', 'stats', 'events', 'location', 'contact', 'reviews', 'cta'];
+    const missing = ids.filter(id => !KZ.layouts[id] || KZ.layouts[id].cat !== '섹션');
+    const digits = [];
+    ids.forEach(id => {
+      if (!KZ.layouts[id]) return;
+      const t = document.createElement('template'); t.innerHTML = KZ.sectionHtml(id);
+      const text = t.content.textContent.replace(/\[[^\]]*\]/g, '');
+      if (/\d/.test(text)) digits.push(id + ': ' + text.match(/.{0,12}\d.{0,12}/)[0]);
+    });
+    return { missing, digits };
+  });
+  expect(r.missing).toEqual([]);
+  expect(r.digits).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('세트 페이지에 섹션을 이어 붙이면 바닥글 위에 들어간다', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const out = [];
+    KZ.setOrder.forEach(id => KZ.sets[id].pages.forEach(p => {
+      const add = (p[4] && p[4].add) || []; if (!add.length) return;
+      const html = KZ.setPageHtml(KZ.sets[id], p);
+      const foot = html.lastIndexOf('<footer class="foot"');
+      // 바닥글이 있는 레이아웃이면 하나뿐이고 맨 끝이어야 함 (타이포 히어로처럼 바닥글 없는 레이아웃은 맨 끝에 붙음)
+      if (foot >= 0 && (html.indexOf('<footer class="foot"') !== foot || !/<\/footer>\s*$/.test(html))) out.push(id + '/' + p[0] + ': 바닥글');
+      if ((html.match(/<header class="nav/g) || []).length > 1) out.push(id + '/' + p[0] + ': 메뉴 중복');
+      add.forEach(a => { const lid = Array.isArray(a) ? a[0] : a; if (!KZ.layouts[lid]) out.push(id + ': ' + lid + ' 없음'); });
+    }));
+    return { out, sets: KZ.setOrder.length, cafe: KZ.setPageHtml(KZ.sets.cafe, KZ.sets.cafe.pages[1]).includes('class="mb"') };
+  });
+  expect(r.out).toEqual([]);
+  expect(r.sets).toBeGreaterThanOrEqual(11);
+  expect(r.cafe).toBe(true);
+});
+
+test('새 세트(숙소 · 비영리 · 동네 가게)가 적용되고 미리보기에서 열린다', async ({ page }) => {
+  const errors = await open(page);
+  await page.click('#setsFold');
+  for (const [name, first] of [['숙소', 'home'], ['비영리', 'home'], ['동네 가게', 'home']]) {
+    await page.locator('.set', { hasText: name }).click();
+    await page.locator('#dlgF button', { hasText: '적용' }).click();
+    await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getSelected().getId())).toBe(first);
+  }
+  await page.click('#previewBtn');
+  const fr = page.frameLocator('#pvFrame');
+  await fr.locator('.rt-page:not([hidden]) .nav a[href="#about"]').first().click();
+  await expect(fr.locator('.rt-page[data-page="about"] .loc')).toBeVisible();
+  expect(errors).toEqual([]);
+});

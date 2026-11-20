@@ -146,7 +146,7 @@
       const v = await dialog(t.name, '<p>이 레이아웃을 어떻게 쓸까요?</p><p class="hint"><b>섹션으로 추가</b>: 지금 페이지에 이어 붙입니다 (선택한 섹션 아래, 없으면 바닥글 위). 상단 메뉴 · 바닥글은 빼고 넣습니다.<br><b>현재 페이지에 적용</b>: 지금 페이지 내용이 바뀝니다. 모두 Ctrl+Z로 되돌릴 수 있습니다.</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur'], ['섹션으로 추가', 'sec', 'pri']]);
       if (v === 'sec') { addSection(KZ.sectionHtml(id)); toast('섹션을 추가했습니다'); }
       if (v === 'cur') { editor.setComponents(t.html()); toast('현재 페이지에 적용했습니다'); }
-      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), SLUG[id]); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
+      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), t.slug || SLUG[id]); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
     }
 
     // ---------- 섹션 (페이지 바로 아래 요소) ----------

@@ -5,7 +5,7 @@
    KZ.set({
      id, name, desc, siteName,
      style: { theme: 'white'|'dark'|'paper'|'concrete', font: 'serif'|'sans'|'gowun'|'nanum'|'inter', transition, speed },
-     pages: [[주소, 페이지 이름, 레이아웃 id, (선택) 레이아웃 데이터], ...],   // 첫 줄이 첫 페이지
+     pages: [[주소, 페이지 이름, 레이아웃 id, (선택) 레이아웃 데이터, (선택) { parent, menu, add: [섹션 레이아웃 id, ...] }], ...],   // 첫 줄이 첫 페이지
      words: [[찾을 문구 또는 정규식, 바꿀 문구], ...]                         // 모든 페이지에 순서대로 적용
    });
    자리표시 문구는 [대괄호]로만 씁니다. 가짜 후기 · 수치 · 실제 상호는 넣지 않습니다. */
@@ -25,10 +25,18 @@ window.KZ = window.KZ || {};
     });
     return html;
   };
+  // 페이지 다섯째 값 { parent, menu, add } — add: 이 페이지 바닥글 위에 이어 붙일 섹션 [레이아웃 id 또는 [id, 데이터], ...]
   KZ.setPageHtml = function (set, page) {
     var L = KZ.layouts[page[2]];
     if (!L) throw new Error('레이아웃 없음: ' + page[2]);
-    return KZ.applyWords(L.html(page[3] == null ? undefined : page[3]), set.words);
+    var html = L.html(page[3] == null ? undefined : page[3]);
+    var add = (page[4] && page[4].add) || [];
+    if (add.length) {
+      var extra = add.map(function (a) { return Array.isArray(a) ? KZ.sectionHtml(a[0], a[1]) : KZ.sectionHtml(a); }).join('');
+      var at = html.lastIndexOf('<footer class="foot"');
+      html = at < 0 ? html + extra : html.slice(0, at) + extra + html.slice(at);
+    }
+    return KZ.applyWords(html, set.words);
   };
   // 여러 세트에서 쓰는 문구 묶음
   KZ.W = {
