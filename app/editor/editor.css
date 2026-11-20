@@ -293,3 +293,5 @@ body.kz-out > .drawer,body.kz-out > .side{position:static!important;display:flex
 @media (max-width:1000px){.site-name{display:none}.pagesel select{max-width:130px}.top .sep{margin:0 1px}}
 .stage-head .narrow-note{color:#f2c94c}
 .status.bad{color:#f2c94c;display:inline!important}
+.opts button.fx-off{opacity:.4;text-decoration:line-through}
+.fx-fixnote{color:#f2c94c!important}

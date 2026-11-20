@@ -1,7 +1,7 @@
 /* 패널을 브라우저 창 밖으로 — 항상 위 작은 창(Document Picture-in-Picture, Chrome · Edge PC),
    안 되는 브라우저는 별도 팝업 창. 패널 요소를 그대로 옮기므로 기능 · 이벤트가 유지됩니다.
-   창을 닫으면 제자리로 돌아옵니다. 두 패널을 함께 꺼낼 수 있습니다 — PiP 창은 탭마다 1개라
-   먼저 꺼낸 패널이 PiP 를 쓰고 있으면 두 번째 패널은 일반 팝업 창으로 엽니다. */
+   창을 닫으면 제자리로 돌아옵니다. 한 번에 한 패널만 — 다른 패널을 꺼내면 앞 패널은 먼저 편집기로 돌아옵니다
+   (두 번째 창은 일반 팝업이라 창 머리가 달라 보여서, 0.13.0에서 다시 하나로). */
 window.KZ = window.KZ || {};
 (function (KZ) {
   'use strict';
@@ -69,6 +69,8 @@ window.KZ = window.KZ || {};
     toggle: function (name) {
       var c = outs[name];
       if (c) { back(name); try { c.win.close(); } catch (e) { /* 무시 */ } return Promise.resolve(null); }
+      // 다른 패널이 밖에 있으면 먼저 제자리로 (그 창만 되돌리므로 새 창이 비지 않음)
+      Object.keys(outs).forEach(function (k) { var o = outs[k]; back(k); try { o.win.close(); } catch (e) { /* 무시 */ } });
       return out(name);
     },
     back: back,

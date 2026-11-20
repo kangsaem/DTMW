@@ -21,6 +21,22 @@
 [data-hover="lift"]:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,0,0,.14)}
 [data-scroll="sticky"]{position:sticky;top:0}
 [data-scroll="parallax"]{will-change:transform}
+/* 배경 고정: 섹션을 잘라내기 틀로, 안쪽 사진 · 영상은 화면에 고정 → 위아래 내용이 그 위로 지나감 (proto/v3 방식, iOS 동작).
+   주의: 이 요소에 transform · clip-path 를 쓰는 효과(등장 · 떠오름 등)를 함께 걸면 고정이 풀림 — 편집기가 막음 */
+[data-scroll="bgfix"]{position:relative;clip-path:inset(0);overflow:hidden}
+[data-scroll="bgfix"] > :is(.bgfix-media,.hero-photo,.hero-video,.hero-bg,.band-img){position:fixed!important;inset:0!important;width:100%;height:100vh;height:100lvh}
+.bgfix-media{background-size:cover;background-position:center;pointer-events:none}
+.bgfix-media img,.bgfix-media video{width:100%;height:100%;object-fit:cover;display:block;max-width:none}
+.bgfix{height:100vh;height:100svh;background:#33444f;color:#fff}
+.bgfix[data-h="70"]{height:70vh;height:70svh}
+.bgfix[data-h="50"]{height:50vh;height:50svh}
+.bgfix::after{content:'';position:absolute;inset:0;pointer-events:none;background:rgba(0,0,0,.18);z-index:1}
+.bgfix[data-dim="0"]::after{background:none}
+.bgfix[data-dim="35"]::after{background:rgba(0,0,0,.35)}
+.bgfix[data-dim="55"]::after{background:rgba(0,0,0,.55)}
+.bgfix-cap{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 5vw;gap:12px}
+.bgfix-eb{margin:0;font-size:12px;letter-spacing:.35em;opacity:.85}
+.bgfix-t{margin:0;font-family:var(--fh);font-weight:400;font-size:clamp(26px,4vw,48px);line-height:1.2}
 #rt-cursor{position:fixed;left:0;top:0;width:220px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:60}
 #rt-cursor.on{opacity:1}
 #rt-curtain{position:fixed;inset:0;background:var(--ink);z-index:90;transform:translateY(100%);pointer-events:none}

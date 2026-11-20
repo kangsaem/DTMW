@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.12.0
+- 편집기 버전: 0.13.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -38,33 +38,12 @@
 - [x] 0.10.0: ZIP 내보내기(index.html + media/), 내보내기 창(25MB · 연결 안 된 버튼 경고), GitHub 안내 페이지 /guide/, 링크 빠른 입력, 히어로 안내 문구 숨김, 영문 파일 이름. 자동 점검 32개
 - [x] 0.11.0: 패널을 브라우저 창 밖으로(PiP · 팝업), 블록 누르기로 넣기. 자동 점검 35개
 - [x] 0.12.0: 점검에서 찾은 문제 수정 — 작업 손실 방지(읽기 실패 백업 · 세트 적용 경고 · 두 탭 · 닫기 전 저장), 편집 중 Tab, 상단 줄 반응형, 좁은 편집 화면 알림, 언어 버튼 숨김, PC 사용 안내, 창 밖 패널 두 개 · 빈 창 버그, 로고 · 파비콘. 자동 점검 47개
+- [x] 0.13.0: 배경 고정 효과(섹션 레이아웃 '배경 고정 창' · 효과 탭 '배경 고정' · 효과 충돌 처리 · 영상 보일 때만 재생), 창 밖 패널 다시 한 번에 하나, 짧은 로고. 자동 점검 50개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
 
 ## 다음 할 일
-
-### 창 밖 패널 — 한 번에 하나로 되돌리기 (메모, 2026-11-20 결정 · 아직 착수 안 함)
-
-- 0.12.0에서 두 패널을 함께 꺼낼 수 있게 했으나, 두 번째 창은 일반 팝업이라 창 머리(제목줄 · 주소창 `about:blank`)가 PiP 창과 달라 보임 → **A안: 다시 한 번에 하나만**.
-- 동작: 이미 하나가 밖에 있으면 그 패널을 편집기로 되돌린 뒤 새 패널을 꺼냄. 0.12.0의 빈 창 버그 수정(`back(name, win)` — 닫힌 창의 패널만 되돌림)은 유지.
-- 할 일: `popout.js` toggle 에서 다른 패널이 밖에 있으면 먼저 닫기, 자동 점검 '두 패널을 차례로…' 를 '두 번째를 꺼내면 첫 번째는 돌아오고 새 창은 비어 있지 않다'로 바꾸기, 안내 문구 정리. 0.12.1.
-- 참고: 사용자 화면에서 PiP 왼쪽 창 스크롤이 한 번 안 됐다가 다시 됨 (재현 안 됨 — 다시 생기면 순서 확인).
-
-### 배경 고정 효과 (메모, 2026-11-20 합의 · 아직 착수 안 함)
-
-스크롤해도 뒤의 사진 · 영상이 제자리에 남고 글 · 다음 섹션이 그 위로 지나가는 효과. 참고: kangyonz.com/proto/v3 (`KANGYONZ/proto/v3.html` 의 `.win` · `.fix` · `.sheet`).
-- 방식: 섹션을 잘라내기 틀로(`clip-path:inset(0); overflow:hidden`), 안쪽 사진 · 영상은 `position:fixed; inset:0; height:100lvh` + `object-fit:cover`. iOS 포함 동작, 영상 가능, 스크립트 없이. (`background-attachment:fixed` 는 iOS 안 됨 · 영상 불가라 쓰지 않음)
-- 넣는 방법 2가지: ① 섹션 레이아웃 **'배경 고정 창'** ② 효과 탭 스크롤 효과에 **'배경 고정'** (내 섹션 · 배경 사진 · 영상에 걸기)
-- 창 높이: 화면 100% · 70% · 50% 중 고르기
-- 창 안 글: 기본은 가운데 작은 글 있음, 지울 수 있음
-- 어둡게 덮기: 기본 켬(18%), 끄기 · 진하게 조절
-- 영상: proto 방식 — 보일 때만 재생(IntersectionObserver), 늦게 불러오기, `prefers-reduced-motion` 이면 재생 안 함. 고정 영상이 페이지에 여럿이면 1~2개 권장 안내
-- **효과 충돌 처리** (섹션 자체에 등장 효과 등 transform 이 걸리면 고정이 풀림):
-  - '배경 고정'을 건 요소에서는 등장 · 마우스 · 패럴랙스 등 transform 을 쓰는 효과를 **고를 수 없게(흐리게) + 이유 안내**
-  - 반대로 다른 효과가 걸린 요소에 '배경 고정'을 고르거나, 배경 고정 요소에 다른 효과를 고르려 하면 **"○○ 효과를 걸면 배경 고정이 풀립니다. 바꿀까요?" 확인** 후 한쪽만 남김
-  - 안쪽 글 · 버튼에 거는 효과는 그대로 가능
-- 한계: 페이지 전환 애니메이션 중 잠깐 흔들릴 수 있음. 자석 스크롤(scroll-snap)은 범위 밖 (필요하면 따로)
 
 ### C. 언어 · 내보내기 (메모만 — 2026-11-20 합의, 아직 착수 안 함)
 
@@ -80,11 +59,13 @@
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
 
+배경 고정 메모 (0.13.0): CSS `site/motion.css` `[data-scroll="bgfix"]` (clip-path:inset(0)) + 바로 아래 고정 층 `.bgfix-media · .hero-photo · .hero-video · .hero-bg · .band-img` 을 position:fixed. 레이아웃 `layouts/25-bgfix.js` (`.bgfix`, data-h 100/70/50, data-dim 0/18/35/55). 편집기 `main.js` applyBgfix · FIX_BAD_ANIM(페이드 외 등장 효과) · FIX_BAD_HOVER(떠오름). 영상 재생은 `runtime.js` IntersectionObserver. 한계: 페이지 전환 애니메이션 중 잠깐 흔들림, 바깥 요소(조상)에 transform 이 남는 효과가 있으면 고정이 풀림.
+
 저장 메모 (0.12.0): `main.js` save/writeNow — 0.9초 모아 저장, beforeunload · 탭 숨김 때 바로 저장. 두 탭은 BroadcastChannel `wmw-editor` (claim 을 받은 탭은 passive = 저장 안 함). 저장본 읽기 실패 시 IndexedDB `backup-날짜` 에 보관. `setStatus(글, true)` 는 좁은 화면에서도 보이는 경고. 로고 · 파비콘은 `app/img/` (logo.svg 원본색, logo-light.svg 어두운 바탕용, favicon.svg = 가운데 자른 C안).
 
 글꼴 메모 (0.9.0): 출처는 `C.FONT_SRC` (g: Google Fonts, css: 주소, local: app/fonts). `KZ.fontHead(text, {all, embed, base})` — 편집 화면은 all, 내보내기는 쓴 글꼴만 + local 글꼴은 data URI. 새 글꼴은 FONT_SRC 와 FONTS 두 곳에 추가.
 
-창 밖 패널 메모 (0.11.0 · 0.12.0): `editor/popout.js`. 패널별 상태 `outs[name]` — 두 패널 동시에 가능, PiP 가 쓰이고 있으면 두 번째는 팝업. 닫힘 처리는 `back(name, win)` 으로 그 창만. 패널 요소를 바깥 창 document 로 옮기고(이벤트 유지), 편집기 CSS 를 복사. `KZ.ui.docs` 에 바깥 document 를 등록해 `$ · $$` 가 함께 찾음 — 새 코드도 `document.querySelector` 대신 `$` 를 쓸 것. 시험은 `KZ.forcePopup = true` 로 팝업 경로. 한계: 고급 탭 색 고르기 창 등 GrapesJS 가 띄우는 작은 창은 편집기 쪽에 뜰 수 있음, 창 사이 끌어다 놓기는 보장 안 함.
+창 밖 패널 메모 (0.11.0 · 0.13.0): `editor/popout.js`. 패널별 상태 `outs[name]` 이지만 **한 번에 하나만** (toggle 이 다른 패널을 먼저 되돌림 — 두 번째 창은 일반 팝업이라 창 머리가 달라서, 2026-11-20 결정). 닫힘 처리는 `back(name, win)` 으로 그 창만 (늦게 온 닫힘 신호가 새 패널을 되돌리던 빈 창 버그 방지). 패널 요소를 바깥 창 document 로 옮기고(이벤트 유지), 편집기 CSS 를 복사. `KZ.ui.docs` 에 바깥 document 를 등록해 `$ · $$` 가 함께 찾음 — 새 코드도 `document.querySelector` 대신 `$` 를 쓸 것. 시험은 `KZ.forcePopup = true` 로 팝업 경로. 한계: 고급 탭 색 고르기 창 등 GrapesJS 가 띄우는 작은 창은 편집기 쪽에 뜰 수 있음, 창 사이 끌어다 놓기는 보장 안 함.
 
 화면 구조 메모 (0.8.0): 섹션 = 페이지 바로 아래 요소. 레이아웃 `section(d)` 가 있으면 그것, 없으면 `KZ.stripChrome(html)` 로 메뉴 · 바닥글을 뺀 본문. 세트 페이지 다섯째 값 `{ add: [...] }` 로 섹션을 바닥글 위에 이어 붙임.
 
