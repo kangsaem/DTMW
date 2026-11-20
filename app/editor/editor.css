@@ -30,7 +30,7 @@ button{cursor:pointer}
 .app{display:grid;grid-template-rows:52px minmax(0,1fr);height:100vh}
 /* 상단 바 */
 .top{display:flex;align-items:center;gap:6px;padding:0 10px;background:var(--ui-app);border-bottom:1px solid var(--ui-line);min-width:0}
-.logo{font-weight:700;letter-spacing:.02em;margin-right:4px;white-space:nowrap}
+.logo{font-weight:800;letter-spacing:.12em;font-size:15px;margin-right:4px;white-space:nowrap}
 .site-name{border:1px solid transparent;padding:6px 8px;width:120px;background:transparent;color:var(--ui-ink)}
 .site-name:hover,.site-name:focus{border-color:var(--ui-line2);background:var(--ui-deep);outline:none}
 .pagesel{display:flex;align-items:center;gap:6px;height:34px;padding:0 4px 0 10px;background:var(--ui-deep);border:1px solid var(--ui-line2)}
