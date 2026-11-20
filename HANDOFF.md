@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.8.0 (PR 합치기 전이면 main은 0.6.3)
+- 편집기 버전: 0.9.0 (PR 합치기 전이면 main은 0.8.0)
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -31,11 +31,18 @@
 - [x] 0.6.1~0.6.3: 이름 WMW, 패널 떼어낼 때 편집 화면/디자인 패널이 사라지던 문제 수정(떠 있는 창은 `.main > .floating{grid-column:auto}`), 파일 주소 `?v=버전`으로 캐시 문제 방지. 자동 점검 16개
 - [x] 0.7.0: 섹션으로 추가 · 섹션 위로/아래로, 누르면 → 페이지 이동(`data-click="go" data-go`), 효과 표시(노란 점선, 편집 화면만), 작업 파일 미저장 표시
 - [x] 0.8.0: 섹션 레이아웃 10종(요금 · 메뉴판 · FAQ · 팀 · 숫자 띠 · 일정 · 위치 · 연락처 · 후기 칸 · 배너), 세트 섹션 이어 붙이기, 세트 보강, 새 세트 3종(숙소 · 비영리 · 동네 가게). 자동 점검 24개
+- [x] 0.9.0: 색 테마 12종(명암 대비 점검), 글꼴 10종(헬베티카풍 WMW Heros = TeX Gyre Heros 파생본, Pretendard 등), 내보낼 때 쓴 글꼴만. 자동 점검 26개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
 
 ## 다음 할 일
+
+### E. 패널을 브라우저 창 밖으로 (제안 — 사용자 결정 대기)
+
+- 추천: Document Picture-in-Picture(항상 위 작은 창, Chrome · Edge PC)를 기본, 안 되는 브라우저는 window.open 팝업 창으로 대체. 패널 머리에 ↗ 버튼
+- 할 일: `KZ.ui.$` 등이 main document 만 찾음 → 바깥 창 document 도 찾게, 편집기 CSS 복사, 창 닫히면 제자리로
+- 순서 제안: E(0.10.0) → C(1.0.0)
 
 ### C. 언어 · 내보내기 (메모만 — 2026-11-20 합의, 아직 착수 안 함)
 
@@ -50,6 +57,8 @@
    - 할 일: 내보내기 창에 'ZIP' 추가, data URI → media/파일명, 영상 있으면 ZIP 추천. ZIP은 외부 라이브러리 없이 무압축(store)
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
+
+글꼴 메모 (0.9.0): 출처는 `C.FONT_SRC` (g: Google Fonts, css: 주소, local: app/fonts). `KZ.fontHead(text, {all, embed, base})` — 편집 화면은 all, 내보내기는 쓴 글꼴만 + local 글꼴은 data URI. 새 글꼴은 FONT_SRC 와 FONTS 두 곳에 추가.
 
 화면 구조 메모 (0.8.0): 섹션 = 페이지 바로 아래 요소. 레이아웃 `section(d)` 가 있으면 그것, 없으면 `KZ.stripChrome(html)` 로 메뉴 · 바닥글을 뺀 본문. 세트 페이지 다섯째 값 `{ add: [...] }` 로 섹션을 바닥글 위에 이어 붙임.
 
