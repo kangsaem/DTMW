@@ -84,6 +84,10 @@ window.KZ = window.KZ || {};
   C.ISSUES_URL = 'https://github.com/kangsaem/SITE/issues/new';
   KZ.C = C;
 
+  // 편집기 조각 등록: editor/*.js 가 KZ.part(function (X) {...}) 로 자기를 등록하고, main.js 가 순서대로 실행
+  KZ.parts = [];
+  KZ.part = function (fn) { KZ.parts.push(fn); };
+
   // 글꼴 불러오기 HTML: text 안에 이름이 나온 글꼴만 (all=true 면 모두). embed=true 면 local 글꼴을 data URI 로 넣음
   KZ.fontHead = function (text, o) {
     o = o || {};

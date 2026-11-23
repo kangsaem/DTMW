@@ -121,6 +121,6 @@ window.KZ = window.KZ || {};
     var r = walk(t.content, false).replace(/(<br>\s*){3,}/g, '<br><br>').replace(/^(\s|<br>)+|(\s|<br>)+$/g, '');
     return r || esc(text || '').replace(/\r?\n/g, '<br>');
   };
-  KZ.ui = { docs: docs, $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, toHex: toHex, num: num,
+  KZ.ui = { docs: docs, $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, num: num,
     setStatus: function (s, bad) { var e = $('#status'); e.textContent = s; e.classList.toggle('bad', !!bad); } };
 })(window.KZ);

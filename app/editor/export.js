@@ -105,15 +105,12 @@ window.KZ = window.KZ || {};
   };
   KZ.GH_LIMIT = 25 * 1024 * 1024; // GitHub 웹 업로드 · 파일 하나 한도 (25 MiB)
 
-  // 파일 받기: Claude 아티팩트 안이면 downloads 기능, 일반 웹이면 바로 내려받기, 막히면 복사 창
-  var DL = null;
-  (function () { try { if (window.claude && window.claude.use) window.claude.use('downloads').then(function (d) { DL = d; }, function () { DL = null; }); } catch (e) { DL = null; } })();
+  // 파일 받기: 바로 내려받기, 막히면(다른 사이트 안에 끼워 넣은 경우 등) 복사 창
   function directDownload(name, data, mime) {
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: mime })); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
   }
   KZ.offerFile = function (name, data, mime) {
-    if (DL) { return DL.save({ filename: name, data: data }).then(function () { ui.toast('파일 저장을 요청했습니다'); }, function () { fallback(); }); }
     var inFrame = window.top !== window.self;
     if (!inFrame) { try { directDownload(name, data, mime); ui.toast(name + ' 을(를) 내려받았습니다'); return Promise.resolve(); } catch (e) { /* 아래 창으로 */ } }
     return fallback();

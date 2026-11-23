@@ -614,12 +614,13 @@ test('PC 화면인데 편집 화면이 좁으면 알림이 뜨고, 넓으면 없
   await expect(page.locator('#narrowNote')).toBeHidden();
 });
 
-test('모양만 있는 언어 버튼(KR · EN · JP)은 내보낸 사이트에서 보이지 않는다', async ({ page }) => {
+test('언어 버튼(KR · EN · JP)은 사이트에 들어가지 않는다', async ({ page }) => {
   await open(page);
   await page.click('#previewBtn');
   const fr = page.frameLocator('#pvFrame');
   await expect(fr.locator('.rt-page:not([hidden]) .nav').first()).toBeVisible();
-  await expect(fr.locator('.rt-page:not([hidden]) .nav .lang').first()).toBeHidden();
+  expect(await fr.locator('.nav .lang').count()).toBe(0); // 0.17.1 부터 넣지 않음
+  expect(await fr.locator('body').evaluate(b => b.textContent.includes('KR') && b.textContent.includes('JP'))).toBe(false);
 });
 
 test('좁은 화면에서 처음 열면 PC 사용 안내가 한 번 뜬다', async ({ page }) => {
