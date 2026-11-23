@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-23
-- 편집기 버전: 0.17.1
+- 편집기 버전: 0.17.2
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -53,11 +53,25 @@
 - [x] 0.16.5: 없는 페이지로 가는 링크 표시(deadSel · 빨간 점선 · 내보내기 경고), 페이지 트리 되돌리기(treeRec — S.tree JSON 을 담은 Backbone 모델을 UndoManager 에 등록, 같은 동기 호출의 변경과 한 단계), 템플릿 적용 뒤 메뉴 동기화 · [사이트 이름] 채우기(fillSiteName). 자동 점검 76개
 - [x] 0.16.6: 영상 찾기(vids — **GrapesJS find('video') 는 영상 컴포넌트를 못 찾으니 쓰지 말 것**), 세트별 로고 자리표시(brandPlaceholders — 로고 · 바닥글 안에서만 바꿈), 메뉴를 품은 섹션 이동 막기(hasNav), 메뉴 · 바닥글 블록 뒤 동기화(afterBlock). 자동 점검 79개
 - [x] 0.16.7: 링크 넣으면 누르면 효과 풀기(dropClick) · 둘 다 걸린 버튼 내보내기 경고(BOTH_SEL), 파일 종류 확장자로(kindOfFile). 자동 점검 81개
-- [ ] 보류(상의 필요): 구조 정리 — 같은 정보의 중복 저장이 버그 반복 원인. ① 사이트 이름을 글에 복사하지 말고 자리 요소로 두고 내보낼 때 채우기 ② 상단 메뉴를 내보낼 때 만들기 ③ 링크와 '누르면' 효과를 설정 하나로. 기존 저장본 변환 필요
-- [ ] 보류(작음): 한글 페이지 이름 → 주소 new-page-N (로마자 자동?), 카페 세트 첫 화면 큰 제목 '[가게 이름]' 은 사이트 이름 바꿔도 그대로(로고 · 바닥글만 바꾸는 규칙)
+- [x] 0.17.0 ~ 0.17.2 **구조 정리** (아래 '코드 구조' 참고): ① 사이트 이름 · 상단 메뉴 · 누르면 설정을 한 곳에서 관리, 작업 파일 형식 2 ② main.js 를 조각 13개로 나누고 불필요한 코드 삭제 ③ 화면 조작 시나리오 점검. 자동 점검 86개
+- [ ] 보류(작음): 한글 페이지 이름 → 주소 new-page-N (로마자 자동?), (첫 화면 큰 제목은 0.17.0 에서 이름 자리로 해결)
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
+
+## 코드 구조 (0.17.x — 새 대화에서 먼저 읽을 것)
+
+- `app/editor/main.js` 는 시작만: GrapesJS 만들기 → 공통 도구(walk · attr · hasCls · up · vids · topOf · setStyle · val …)를 `X` 에 담기 → 조각 실행 → 저장본 불러오기
+- 조각은 `KZ.part(function (X) {...})` 로 등록 (index.html 의 script 순서대로 실행). 다른 조각의 함수는 `X.함수()` 로 부르고, 내보낼 함수만 조각 끝 `Object.assign(X, {...})` 에 넣음
+  - `canvas`(편집 화면 CSS · 표시 · 블록) · `save`(저장 · 두 탭 · 예전 형식 변환 upgradeProject) · `templates`(세트 · 레이아웃 · 섹션) · `chrome`(사이트 이름 · 메뉴) · `pages`(페이지 목록 · 트리) · `assets`(업로드) · `design`(디자인 탭) · `exhibit`(전시 배치) · `action`(누르면) · `fx`(효과 탭 · 배경 고정) · `site`(사이트 탭 · 왼쪽 탭) · `topbar`(되돌리기 · 기기 · 파일 메뉴) · `output`(내보내기 창 · 미리보기)
+- **한 곳에서만 관리하는 것 (복사해서 따로 고치지 말 것)**
+  - 사이트 이름 = `S.siteName`. 페이지 안의 `data-site-name` 요소(로고 · 바닥글 · 첫 화면 제목)가 그 이름을 보여 줌. 바꿀 때는 `X.setSiteName()`. 화면에서 로고를 고치면 이름이 바뀌고, 다른 이름 자리를 다른 글로 고치면 표시를 떼어 연동을 풂 (chrome.js nameEdited)
+  - 상단 메뉴 = 페이지 목록(`S.tree`)에서 `syncChrome()` 이 만듦. 요소 추가 · 되돌리기 · 트리 변경 때 자동 실행, 되돌리기 기록에는 넣지 않음(`UndoManager.skip`). 새 코드에서 따로 부를 필요 없음
+  - 누르면 = `getAction / setAction` (action.js). 링크(a)의 이동은 href, 그 밖의 요소는 data-click="go" + data-go, 팝업류는 data-click (a 의 href 는 '#'). 속성을 직접 쓰지 말 것
+  - 사이트 설정 `S` 는 객체 하나를 계속 씀 — 통째로 바꿀 때는 `setS(obj)` (S = … 로 바꾸지 말 것)
+- 작업 파일 형식 2 (storage.js FORMAT). 요소를 고치는 변환은 불러온 뒤 `upgradeProject(from)`. 예전 브라우저 저장본은 IndexedDB `backup-format1` 에 보관
+- 점검: `tests/smoke.spec.js`(기능별) + `tests/scenario.spec.js`(화면 조작만으로 처음부터 끝까지). 새 기능은 시나리오 쪽에 화면 조작으로 추가하는 것을 우선
+- GrapesJS 에서 주의: `find('video')` 는 영상을 못 찾음(→ `vids`), 편집 화면 CSS 는 `canvas:frame:load:body` 때 넣어야 남음, 같은 동기 호출 안의 변경은 되돌리기 한 단계, 한글 입력 시험은 실제 IME 와 다름(시험 도구는 글자를 바로 넣음)
 
 ## 다음 할 일
 
@@ -102,13 +116,13 @@
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
 
-전시 섹션 메모 (0.14.0 · 0.14.1): 섹션별 위치는 섹션 style 변수 — PC `--h --at --ah --ax --aw(.exh-pos) --ct --cr --cg --cw --tt --ts --tl --tls --tc --st --ss --op --ft --bz --bx --by --cvx --cvt --cvs --cvl --cve --lx --lt --ls --ld --lnt --lns --lnl --lnc`, 모바일 `--mh --mt --mx --mcg --mcr --mct --mtt --mts --mtl --mst --mss --mft --mbz --mbx --mby --mcgp --mcw --mix --miy --miw --mih(.exh-mpos) --mcvt --mlt --mlnt --mlns --mlnl`. 모바일 --u = 100vw/375. 변수가 없으면 기본값. 0.15.0 부터 디자인 탭 '전시 배치' 칸(main.js exhPanel · exhSet — 변수는 미디어 없는 #id 규칙에 저장, 모바일 변수 이름은 m 으로 시작). 글자 크기: 전시 섹션은 calc(var(--u) * N), PC 에서 바꾸면 모바일 규칙을 자동(autoMobileFont, 모바일에서 직접 정하면 --fsm 표시로 유지). 일반 섹션 32px 넘는 글자는 min(Npx, N×0.1464vw). 강이조 사이트 빌드 스크립트는 kangsaem/IZO 의 tools/ 에.
+전시 섹션 메모 (0.14.0 · 0.14.1): 섹션별 위치는 섹션 style 변수 — PC `--h --at --ah --ax --aw(.exh-pos) --ct --cr --cg --cw --tt --ts --tl --tls --tc --st --ss --op --ft --bz --bx --by --cvx --cvt --cvs --cvl --cve --lx --lt --ls --ld --lnt --lns --lnl --lnc`, 모바일 `--mh --mt --mx --mcg --mcr --mct --mtt --mts --mtl --mst --mss --mft --mbz --mbx --mby --mcgp --mcw --mix --miy --miw --mih(.exh-mpos) --mcvt --mlt --mlnt --mlns --mlnl`. 모바일 --u = 100vw/375. 변수가 없으면 기본값. 0.15.0 부터 디자인 탭 '전시 배치' 칸(exhibit.js exhPanel · exhSet — 변수는 미디어 없는 #id 규칙에 저장, 모바일 변수 이름은 m 으로 시작). 글자 크기: 전시 섹션은 calc(var(--u) * N), PC 에서 바꾸면 모바일 규칙을 자동(autoMobileFont, 모바일에서 직접 정하면 --fsm 표시로 유지). 일반 섹션 32px 넘는 글자는 min(Npx, N×0.1464vw). 강이조 사이트 빌드 스크립트는 kangsaem/IZO 의 tools/ 에.
 
 전시 섹션 메모 (0.14.0): `layouts/26-exhibit.js` (exh-cover · exh-work · exh-row · exh-space · exh-photo · exh-cv · exh-links), CSS `site/base.css` `.exh` — `--u = min(1px, 100vw/1366)` 로 Canva 1366 × 768 판을 그대로, 모바일 640px 이하는 px 로 따로. 세트 `sets/exhibit.js` (theme/font 'exhibit', 새 변수 `--fx` = 부제 글꼴). Canva 측정값: 표지 제목 50.6px 위 355 · 부제 10.7px 위 628, 작품 463 × 522 위 123, 캡션 오른쪽 끝 가운데+460 위 667(이름 14 · 제목 16.7 · 정보 9.7), 크게(주황) 높이 714 · 캡션 위 520, 작은 작품 117px · 간격 150 · 위 60, 캡션 줄 위 592, 약력 왼쪽 가운데−260.5 위 118 · 17.1px · 줄 23.8, 모바일 글자 ×0.79. Canva 글꼴은 내부 코드라 이름을 알 수 없어 모양 비교로 고름(제목 = Figtree 800 이 가장 가까우나 같지 않음).
 
-배경 고정 메모 (0.13.0): CSS `site/motion.css` `[data-scroll="bgfix"]` (clip-path:inset(0)) + 바로 아래 고정 층 `.bgfix-media · .hero-photo · .hero-video · .hero-bg · .band-img` 을 position:fixed. 레이아웃 `layouts/25-bgfix.js` (`.bgfix`, data-h 100/70/50, data-dim 0/18/35/55). 편집기 `main.js` applyBgfix · FIX_BAD_ANIM(페이드 외 등장 효과) · FIX_BAD_HOVER(떠오름). 영상 재생은 `runtime.js` IntersectionObserver. 한계: 페이지 전환 애니메이션 중 잠깐 흔들림, 바깥 요소(조상)에 transform 이 남는 효과가 있으면 고정이 풀림.
+배경 고정 메모 (0.13.0): CSS `site/motion.css` `[data-scroll="bgfix"]` (clip-path:inset(0)) + 바로 아래 고정 층 `.bgfix-media · .hero-photo · .hero-video · .hero-bg · .band-img` 을 position:fixed. 레이아웃 `layouts/25-bgfix.js` (`.bgfix`, data-h 100/70/50, data-dim 0/18/35/55). 편집기 `fx.js` applyBgfix · FIX_BAD_ANIM(페이드 외 등장 효과) · FIX_BAD_HOVER(떠오름). 영상 재생은 `runtime.js` IntersectionObserver. 한계: 페이지 전환 애니메이션 중 잠깐 흔들림, 바깥 요소(조상)에 transform 이 남는 효과가 있으면 고정이 풀림.
 
-저장 메모 (0.12.0): `main.js` save/writeNow — 0.9초 모아 저장, beforeunload · 탭 숨김 때 바로 저장. 두 탭은 BroadcastChannel `wmw-editor` (claim 을 받은 탭은 passive = 저장 안 함). 저장본 읽기 실패 시 IndexedDB `backup-날짜` 에 보관. `setStatus(글, true)` 는 좁은 화면에서도 보이는 경고. 로고 · 파비콘은 `app/img/` (logo.svg 원본색, logo-light.svg 어두운 바탕용, favicon.svg = 가운데 자른 C안).
+저장 메모 (0.12.0): `save.js` save/writeNow — 0.9초 모아 저장, beforeunload · 탭 숨김 때 바로 저장. 두 탭은 BroadcastChannel `wmw-editor` (claim 을 받은 탭은 passive = 저장 안 함). 저장본 읽기 실패 시 IndexedDB `backup-날짜` 에 보관. `setStatus(글, true)` 는 좁은 화면에서도 보이는 경고. 로고 · 파비콘은 `app/img/` (logo.svg 원본색, logo-light.svg 어두운 바탕용, favicon.svg = 가운데 자른 C안).
 
 글꼴 메모 (0.9.0): 출처는 `C.FONT_SRC` (g: Google Fonts, css: 주소, local: app/fonts). `KZ.fontHead(text, {all, embed, base})` — 편집 화면은 all, 내보내기는 쓴 글꼴만 + local 글꼴은 data URI. 새 글꼴은 FONT_SRC 와 FONTS 두 곳에 추가.
 
@@ -118,11 +132,11 @@
 
 페이지 트리 되돌리기 메모 (0.16.5): `S.tree` 를 바꾸는 코드는 끝에 `afterTree()` (안에서 `recordTree()`) 를 불러야 되돌리기에 들어감. 같은 동기 호출 안의 변경은 GrapesJS 가 한 단계로 묶으므로 await 뒤에 나눠 바꾸지 말 것. 되돌릴 때는 `treeRec` change:t 에서 S.tree 를 통째로 바꿈. `stepUndo` 의 비교값(snap)에 트리도 포함.
 
-화면 구조 메모 (0.6.0): 페이지 트리는 `S.tree[id] = {parent, order, menu}` (작업 파일에 저장). 자동 메뉴는 `syncMenus()` 가 `nav.links` 를 다시 씀 — 직접 고친 메뉴를 유지하려면 사이트 탭에서 자동 메뉴를 끔. 패널 상태는 localStorage `kz-ui-v1`.
+화면 구조 메모 (0.6.0): 페이지 트리는 `S.tree[id] = {parent, order, menu}` (작업 파일에 저장). 자동 메뉴는 chrome.js `syncChrome()` 이 `nav.links` 를 다시 씀 — 직접 고친 메뉴를 유지하려면 사이트 탭에서 자동 메뉴를 끔. 패널 상태는 localStorage `kz-ui-v1`.
 
 ## 작업 방식
 
-- 큰 변경은 브랜치 → PR(자동 점검) → 로컬에서 화면 확인 → main 합치기 (main에 합치면 바로 배포됨).
+- 구조는 위 '코드 구조' 를 따름. 큰 변경은 브랜치 → PR(자동 점검) → 로컬에서 화면 확인 → main 합치기 (main에 합치면 바로 배포됨).
 - 올리기 전 `npx playwright test` 통과 확인. Actions가 같은 점검을 실행.
 - 버전을 올리면 `app/version.js`, `package.json`, `CHANGELOG.md`, 그리고 `app/index.html` 의 `?v=` (브라우저 캐시 무효화) 함께 수정. 자동 점검이 `?v=` 와 버전이 같은지 확인함.
 - 사용자 선호: 한국어, 간결 · 객관적, 근거와 한계를 함께. 구체 작업 전에는 선택지와 추천을 먼저 보여주고 "ㄱㄱ"면 진행. 화면은 단순하게.
@@ -131,7 +145,7 @@
 
 - 브라우저 저장만 있어 데이터 삭제 시 작업이 사라짐 → 작업 파일 저장 안내 강화 필요.
 - 사진이 index.html 안에 들어가 파일이 커짐 → 내보내기 B에서 해결.
-- 언어 버튼(KR · EN · JP)은 0.12.0부터 `base.css` 에서 숨김(`.nav .lang{display:none}`) → C-1에서 다시 보이게.
+- 언어 버튼(KR · EN · JP)은 0.17.1 에서 뺌 (예전 작업에 남은 것은 CSS 로 숨김) → 다국어(C-1)를 하게 되면 새로 넣기.
 - 세트 적용은 되돌리기(Ctrl+Z)가 안 됨 (적용 창에서 작업 파일 받기로 대신).
 - 휴대폰 편집은 지원하지 않음 (안내만).
 - 섹션 레이아웃의 FAQ는 `<details>` 라 편집 화면에서 질문을 누르면 펼쳐지고 접힘 (글 고치기는 두 번 누르기).
