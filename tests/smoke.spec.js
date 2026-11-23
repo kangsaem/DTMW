@@ -891,3 +891,45 @@ test('표지 그림 확대 · 위치: PC · 모바일 따로 변수로 저장되
   const m = await q.evaluate(() => { const s = document.querySelector('.exh-cover').getBoundingClientRect(), r = document.querySelector('.exh-bg').getBoundingClientRect(); return [r.width / s.width, Math.round(r.right - s.right)]; });
   expect(Math.round(m[0] * 100) / 100).toBe(1.2); expect(m[1]).toBe(0); // 가로 위치 100% → 오른쪽 끝 맞춤
 });
+
+// ---------- 0.16.0 전시 섹션 변형 ----------
+test('전시 섹션 변형 6종: 템플릿으로 넣으면 위치 변수가 유지되고 전시 배치 칸에 보인다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const ids = ['exh-cover-fit', 'exh-work-tall', 'exh-work-over', 'exh-work-wide', 'exh-row-one', 'exh-photo-fit'];
+    const e = window.__kzEditor;
+    return ids.map(id => {
+      if (!KZ.layouts[id] || KZ.layouts[id].cat !== '섹션') return id + ':없음';
+      const c = e.getWrapper().append(KZ.sectionHtml(id))[0];
+      const css = e.getCss();
+      return id + ':' + (new RegExp('#' + c.getId() + '\\{[^}]*--mh?[a-z]*:').test(css) ? 'ok' : 'no-var');
+    });
+  });
+  expect(r.every(x => x.endsWith(':ok'))).toBe(true);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.exh-row .exh-art')[0]); });
+  await page.click('#side [data-tab="design"]');
+  const seg = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '사진 방식' }) }).first();
+  await expect(seg.locator('button.on', { hasText: '사진 한 장' })).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test('작가 전시 세트(변형으로 구성): 1366 에서 강이조 사이트 값과 같은 위치', async ({ page, context }, info) => {
+  await open(page);
+  const html = await page.evaluate(() => {
+    const set = KZ.sets.exhibit, pages = set.pages.map(p => ({ id: p[0], name: p[1], html: KZ.setPageHtml(set, p) }));
+    return KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { theme: 'exhibit', colors: Object.assign({}, KZ.C.THEMES.exhibit), font: 'exhibit' }) });
+  });
+  const file = info.outputPath('v16.html'); require('fs').writeFileSync(file, html);
+  const q = await context.newPage(); await q.setViewportSize({ width: 1366, height: 768 });
+  await q.goto('file://' + file + '#show2'); await q.waitForTimeout(600);
+  const m = await q.evaluate(() => {
+    const pg = document.querySelector('.rt-page[data-page="show2"]');
+    const rel = (sel) => { const e = pg.querySelector(sel), s = e.closest('section'), r = e.getBoundingClientRect(), R = s.getBoundingClientRect(); return [r.left - R.left, r.top - R.top, r.width, r.height].map(Math.round); };
+    return { over: rel('.exh-work[data-bg="orange"] .exh-art'), row: rel('.exh-row .exh-art') };
+  });
+  expect(m.over).toEqual([Math.round(683 - 328.7), Math.round(-145.5), 658, 925]);
+  expect(m.row.slice(0, 3)).toEqual([Math.round(683 - 636.3), m.row[1], 1273]);
+  await q.goto('file://' + file + '#show1'); await q.waitForTimeout(600);
+  const c = await q.evaluate(() => { const s = document.querySelector('.rt-page[data-page="show1"] section'), b = s.querySelector('.exh-bg').getBoundingClientRect(), t = s.querySelector('.exh-title').getBoundingClientRect(); return [Math.round(b.width), Math.round(t.top - s.getBoundingClientRect().top)]; });
+  expect(c).toEqual([1366, 418]);
+});

@@ -11,7 +11,7 @@
       '<p class="exh-cap-t">' + (d.title || '[제목]') + '</p><p class="exh-cap-m">' + (d.meta || '[재료]<br>[크기]<br>[연도]') + '</p></div>';
   }
   var L = {
-    'exh-cover': { name: '전시 표지', sec: function (d) { d = d || {};
+    'exh-cover': { name: '꽉 찬 그림 표지', sec: function (d) { d = d || {};
       return '<section class="exh exh-cover"><img class="exh-bg" src="' + (d.src || S(d.img == null ? 3 : d.img, 1500, 1000)) + '" alt="">' +
         '<h1 class="exh-title">' + (d.title || '[큰 제목]<br>[둘째 줄]') + '</h1><p class="exh-sub">' + (d.sub || '[장소] , [연도]') + '</p></section>'; },
       thumb: function (r, C) { return r(0, 0, 120, 88, C.k) + r(36, 34, 48, 7, '#fff') + r(44, 44, 32, 7, '#fff') + r(48, 72, 24, 2, '#999'); } },
@@ -51,7 +51,46 @@
       return '<section class="exh exh-links" data-bg="' + (d.bg || 'gray') + '"><nav class="exh-ln">' + items.map(function (it) { return '<a href="' + it[0] + '">' + it[1] + '</a>'; }).join('') + '</nav></section>'; },
       thumb: function (r, C) { return r(0, 0, 120, 88, '#D9D9D9') + r(52, 26, 16, 2, C.d) + r(52, 34, 16, 2, C.d); } }
   };
-  Object.keys(L).forEach(function (id) {
+  // 변형: 기본 섹션에 위치 변수(style) · 클래스만 더한 것 — 값은 강이조 Canva 사이트 측정값. 넣은 뒤 '전시 배치' 칸에서 그대로 조절
+  function vars(o) { return Object.keys(o).map(function (k) { return '--' + k + ':' + o[k]; }).join(';'); }
+  function variant(base, o) {
+    return function (d) {
+      d = Object.assign({}, o.data || {}, d || {});
+      var t = document.createElement('template'); t.innerHTML = L[base].sec(d);
+      var sec = t.content.firstElementChild;
+      sec.setAttribute('style', vars(o.vars));
+      if (o.cls) Object.keys(o.cls).forEach(function (q) { var el = q === '' ? sec : sec.querySelector(q); if (el) o.cls[q].split(' ').forEach(function (c) { el.classList.add(c); }); });
+      if (o.fix) o.fix(sec, d);
+      return sec.outerHTML;
+    };
+  }
+  var V = {
+    'exh-cover-fit': { base: 'exh-cover', name: '그림 폭 맞춤 표지', data: { src: S(3, 1600, 618), title: '[큰 제목]' }, cls: { '.exh-bg': 'exh-fitw' },
+      vars: { tt: 418.4, ts: 123.2, tl: 123.2, tls: '-.0095em', tc: '#EBEBEB', st: 585.2, ss: 20, mh: 300, mtt: 105.7, mts: 31.1, mtl: 31.1, mst: 155.2, mss: 15.8 },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#EBEBEB') + r(0, 0, 120, 46, C.k) + r(26, 54, 68, 9, C.d) + r(44, 70, 32, 2, '#999'); } },
+    'exh-work-tall': { base: 'exh-work', name: '한 점 세로 크게 (벽 높이)', data: { bg: 'gray', src: S(7, 463, 680) },
+      vars: { at: 0, ah: 768.2, ct: 667.6, cr: 460.9, mt: 0, mx: 15, mcr: 15, mh: 609.8 },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#EBEBEB') + r(42, 0, 36, 88, C.g) + r(84, 74, 12, 2, C.d) + r(84, 78, 10, 1, C.d); } },
+    'exh-work-over': { base: 'exh-work', name: '한 점 넘치게 (강조 바탕)', data: { bg: 'orange', src: S(5, 711, 1000) }, cls: { '.exh-art': 'exh-pos' },
+      vars: { ax: -328.7, at: -145.5, aw: 657.8, ah: 925.3, ct: 519.9, cr: 444.3, mt: -76.4, mx: 15, mcg: 8.7, mcr: 15, mh: 495.1 },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#F85D10') + r(36, 0, 48, 80, C.g) + r(88, 62, 12, 2, '#1A1A1A') + r(88, 66, 10, 1, '#1A1A1A'); } },
+    'exh-work-wide': { base: 'exh-work', name: '가로 작품 크게 (강조 바탕)', data: { bg: 'orange', src: S(2, 1584, 1000) }, cls: { '.exh-art': 'exh-pos' },
+      vars: { ax: -639.6, at: 30.6, aw: 1086.7, ah: 686.2, ct: 666.3, cr: 585.1, mt: 24.2, mx: 15, mcr: 15, mh: 337.6 },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#F85D10') + r(6, 4, 94, 62, C.g) + r(104, 70, 12, 2, '#1A1A1A') + r(104, 74, 10, 1, '#1A1A1A'); } },
+    'exh-row-one': { base: 'exh-row', name: '작게 여러 점 · 사진 한 장', cls: {},
+      vars: { ax: -636.3, aw: 1273, ah: 292.3, ct: 618.1, cr: 480.5, cg: 12, cw: 80, mct: 178.9, mcr: 27.7 },
+      fix: function (sec) { var f = sec.querySelector('.exh-frames'); var img = document.createElement('img');
+        img.className = 'exh-art exh-pos'; img.src = S(8, 2178, 500); img.alt = '[그림 설명]'; f.replaceWith(img); },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#EBEBEB') + r(4, 10, 112, 26, C.g) + r(50, 64, 12, 2, C.d) + r(66, 64, 12, 2, C.d) + r(82, 64, 12, 2, C.d) + r(98, 64, 12, 2, C.d); } },
+    'exh-photo-fit': { base: 'exh-photo', name: '전경 사진 (폭 맞춤)', data: { src: S(11, 1600, 946) }, cls: { '.exh-bg': 'exh-fitw' },
+      fix: function (sec, d) { sec.setAttribute('data-bg', d.bg || 'gray'); },
+      vars: { ft: 13.8, mh: 203.9, mft: 13.2 },
+      thumb: function (r, C) { return r(0, 0, 120, 88, '#EBEBEB') + r(0, 4, 120, 70, C.g) + r(14, 22, 20, 30, C.d) + r(86, 22, 20, 30, C.d); } }
+  };
+  // 목록에서 기본 바로 뒤에 변형이 오도록 순서대로 등록
+  var ORDER = ['exh-cover', 'exh-cover-fit', 'exh-work', 'exh-work-tall', 'exh-work-over', 'exh-work-wide', 'exh-row', 'exh-row-one', 'exh-space', 'exh-photo', 'exh-photo-fit', 'exh-cv', 'exh-links'];
+  Object.keys(V).forEach(function (id) { var v = V[id]; L[id] = { name: v.name, thumb: v.thumb, sec: variant(v.base, v) }; });
+  ORDER.forEach(function (id) {
     var o = L[id];
     KZ.layout({ id: id, name: o.name, cat: '섹션', slug: id, thumb: o.thumb, section: o.sec, html: function (d) { return o.sec(d); } });
   });

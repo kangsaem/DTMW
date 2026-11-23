@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.15.1
+- 편집기 버전: 0.16.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -45,6 +45,7 @@
 - [x] 0.14.1: 내보낸 사이트 뒤로 가기, 전시 섹션 섹션별 위치 변수 — 강이조 사이트를 WMW 로 옮김(kangsaem/IZO). 자동 점검 57개
 - [x] 0.15.0: 전시 배치 칸(PC · 모바일 따로), 슬라이더 숫자 직접 입력, 글자 크기 반응형(휴대폰 넘침 수정), 약력 링크 글 편집, 표지 사진 선택, 빈 페이지 안내 자동 삭제. 화면만으로 옮기기 시험 48곳 중 45곳 3px 안. 자동 점검 60개
 - [x] 0.15.1: 작은 작품 줄 사진 방식(칸 여러 개 ↔ 사진 한 장, 새 그림 비율 맞춤 fitPosArt), 줄 캡션 간격 · 폭(--cg --cw / --mcgp --mcw), 표지 그림 확대 · 위치(--bz --bx --by / --mbz --mbx --mby). 화면만으로 옮기기 시험(2025) 63곳 모두 3px 안. 자동 점검 62개
+- [x] 0.16.0: 전시 섹션 변형 6종(layouts/26-exhibit.js V — 기본 섹션 + style 변수 · 클래스, 이름은 모양으로) · 작가 전시 세트를 변형으로 다시 구성. 자동 점검 64개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
