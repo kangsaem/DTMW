@@ -455,7 +455,7 @@
     function applyAsset(a) {
       const sel = editor.getSelected();
       if (a.type === 'image') {
-        if (sel && sel.is('image')) { sel.set('src', a.src); return toast('이미지를 바꿨습니다'); }
+        if (sel && sel.is('image')) { sel.set('src', a.src); fitPosArt(sel); return toast('이미지를 바꿨습니다'); }
         const fx = up(sel, c => !!attr(c, 'data-bgvideo')), fxm = fx && fx.find('.bgfix-media')[0];
         if (fxm && !fxm.find('img').length) { fxm.components(''); fxm.append({ type: 'image', src: a.src, attributes: { alt: '' } }); return toast('배경 사진을 넣었습니다'); }
         if (sel && attr(sel, 'data-hover') === 'cursor') { sel.addAttributes({ 'data-preview': a.src }); return toast('커서 미리보기 이미지를 바꿨습니다'); }
@@ -567,6 +567,32 @@
         editor.Css.setRule('#' + sel.getId(), st, mo);
       }, 60);
     }
+    // 작은 작품 줄: 칸 여러 개 ↔ 사진 한 장 (액자 여러 점을 한 장으로 찍은 사진 등)
+    function rowMode(top, mode) {
+      if (mode === 'one') {
+        const fr = top.find('.exh-frames')[0]; if (!fr) return;
+        const first = fr.find('img')[0], src = first ? first.get('src') : '';
+        fr.replaceWith({ type: 'image', tagName: 'img', classes: ['exh-art', 'exh-pos'], attributes: { src, alt: '[그림 설명]' } });
+        exhSet(top, { ah: 200, aw: 200, ax: -100 });
+        toast('사진 한 장 방식 — 그림을 누르고 업로드 탭에서 사진을 고르세요. 크기 · 위치는 전시 배치 칸에서');
+      } else {
+        const art = top.find('.exh-art')[0]; if (!art) return;
+        const t = document.createElement('template'); t.innerHTML = KZ.sectionHtml('exh-row');
+        art.replaceWith(t.content.querySelector('.exh-frames').outerHTML);
+        exhSet(top, { ah: '', aw: '', ax: '', at: '' });
+      }
+    }
+    // 위치를 정한 그림(.exh-pos)의 사진을 바꾸면 높이는 두고 폭을 새 사진 비율에 맞춤
+    function fitPosArt(img) {
+      if (!img || !img.getClasses().includes('exh-pos')) return;
+      const top = topOf(img); if (!top || !hasClass(top, 'exh')) return;
+      const im = new Image(); im.onload = () => {
+        const V = exhVars(top), ah = parseFloat(V['--ah']) || 200, ax = parseFloat(V['--ax']), aw0 = parseFloat(V['--aw']) || ah;
+        const aw = +(ah * im.naturalWidth / im.naturalHeight).toFixed(1), c = isNaN(ax) ? 0 : ax + aw0 / 2;
+        exhSet(top, { aw, ax: +(c - aw / 2).toFixed(1) });
+      };
+      im.src = img.get('src');
+    }
     function exhPanel(top, box, sec) {
       const isM = editor.getDevice() === 'mobile', el = top.getEl(); if (!el) return;
       const U = exhUnit(top), R = el.getBoundingClientRect(), V = exhVars(top);
@@ -612,6 +638,12 @@
           box.appendChild(S('캡션 오른쪽 여백', 'mcr', 0, 250, (R.right - cap.right) / U));
         }
       }
+      if (has('exh-row')) {
+        const one = !!top.find('.exh-art').length;
+        box.appendChild(seg('사진 방식', [['many', '칸 여러 개'], ['one', '사진 한 장']], one ? 'one' : 'many', v => { rowMode(top, v); setTimeout(() => renderSide(), 80); }));
+        if (!isM) { box.appendChild(S('캡션 간격', 'cg', 0, 120, 9)); box.appendChild(S('캡션 폭', 'cw', 30, 240, 80)); }
+        else { box.appendChild(S('캡션 간격', 'mcgp', 0, 80, 9)); box.appendChild(S('캡션 폭', 'mcw', 20, 160, 64)); }
+      }
       if (has('exh-cover')) {
         const t = rel('.exh-title'), sb = rel('.exh-sub');
         if (t) box.appendChild(S('제목 위', isM ? 'mtt' : 'tt', 0, 1200, (t.top - R.top) / U));
@@ -621,7 +653,12 @@
         const img = top.find('.exh-bg')[0], fitw = img && img.getClasses().includes('exh-fitw');
         box.appendChild(seg('그림 맞춤', [['cover', '채우기'], ['fitw', '폭에 맞춤 (위)']], fitw ? 'fitw' : 'cover', v => { if (!img) return; if (v === 'fitw') img.addClass('exh-fitw'); else img.removeClass('exh-fitw'); setTimeout(() => renderSide(), 50); }));
         if (fitw) box.appendChild(S('그림 위 여백', isM ? 'mft' : 'ft', -300, 400, (bg.getBoundingClientRect().top - R.top) / U));
-        else if (!isM) box.appendChild(slider('그림 세로 위치', 0, 100, 1, cur('op', 50), v => v + '%', v => exhSet(top, { op: v + '%' })));
+        else {
+          const z = isM ? 'm' : '';
+          box.appendChild(slider('그림 확대 (%)', 100, 300, 0.5, cur(z + 'bz', 100), v => v + '%', v => exhSet(top, { [z + 'bz']: v })));
+          box.appendChild(slider('그림 가로 위치 (%)', 0, 100, 0.5, cur(z + 'bx', 50), v => v + '%', v => exhSet(top, { [z + 'bx']: v })));
+          box.appendChild(slider('그림 세로 위치 (%)', 0, 100, 0.5, isM ? cur('mby', 50) : (V['--op'] ? parseFloat(V['--op']) : cur('by', 50)), v => v + '%', v => exhSet(top, isM ? { mby: v } : { by: v, op: '' })));
+        }
       }
       if (has('exh-cv')) {
         const ci = rel('.exh-cv-in'), li = rel('.exh-cv-links');
@@ -630,7 +667,7 @@
         if (li) box.appendChild(S('링크 위', isM ? 'mlt' : 'lt', 0, 1200, (li.top - R.top) / U));
       }
       if (has('exh-links')) { const ln = rel('.exh-ln'); if (ln) box.appendChild(S('목록 위', isM ? 'mlnt' : 'lnt', 0, 900, (ln.top - R.top) / U)); }
-      const keys = isM ? ['mh', 'mt', 'mx', 'mcg', 'mcr', 'mct', 'mtt', 'mst', 'mft', 'mcvt', 'mlt', 'mlnt'] : ['h', 'at', 'ah', 'ax', 'aw', 'ct', 'cr', 'tt', 'st', 'ft', 'op', 'cvt', 'cvx', 'lt', 'lnt'];
+      const keys = isM ? ['mh', 'mt', 'mx', 'mcg', 'mcr', 'mct', 'mtt', 'mst', 'mft', 'mcvt', 'mlt', 'mlnt', 'mcgp', 'mcw', 'mbz', 'mbx', 'mby'] : ['h', 'at', 'ah', 'ax', 'aw', 'ct', 'cr', 'tt', 'st', 'ft', 'op', 'cvt', 'cvx', 'lt', 'lnt', 'cg', 'cw', 'bz', 'bx', 'by'];
       const rb = h('button', { className: 'btn', textContent: (isM ? '모바일' : 'PC') + ' 배치 기본값으로' });
       rb.onclick = () => { exhSet(top, Object.fromEntries(keys.map(k => [k, '']))); setTimeout(() => renderSide(), 50); };
       box.appendChild(h('div', { className: 'row', style: 'margin-top:8px' }, [rb]));
@@ -688,7 +725,7 @@
         box.appendChild(slider('자간', -0.08, 0.4, 0.01, +(isNaN(ls) ? 0 : ls).toFixed(2), v => v.toFixed(2) + 'em', v => setStyle(sel, { 'letter-spacing': v + 'em' })));
         box.appendChild(swatches('글자 색', val(sel, 'color'), v => setStyle(sel, { color: v })));
         box.appendChild(seg('정렬', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']], val(sel, 'text-align') === 'start' ? 'left' : val(sel, 'text-align'), v => setStyle(sel, { 'text-align': v })));
-        box.appendChild(h('p', { className: 'hint', textContent: '글 내용은 화면에서 두 번 눌러 바로 고칩니다.' }));
+        box.appendChild(h('p', { className: 'hint', textContent: '글 내용은 화면에서 두 번 눌러 바로 고칩니다. 줄을 나누려면 Shift+Enter.' }));
       }
       if (kind === 'image' || kind === 'video') {
         sec(kind === 'image' ? '이미지' : '영상');
