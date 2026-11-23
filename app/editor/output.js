@@ -54,6 +54,8 @@ KZ.part(function (X) {
   $('#pvReload').onclick = () => { pvFrame.srcdoc = buildSite(pvStart); };
   $$('[data-pw]').forEach(b => b.onclick = () => { pvFrame.style.width = b.dataset.pw; $$('[data-pw]').forEach(x => x.classList.toggle('on', x === b)); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && pv.classList.contains('open')) $('#pvClose').click(); });
+  // 미리보기 안을 누른 뒤에는 키 입력이 미리보기 쪽으로 감 → 거기서도 Esc 로 닫기 (팝업이 열려 있으면 팝업만 닫힘)
+  pvFrame.addEventListener('load', () => { try { const w = pvFrame.contentWindow; w.addEventListener('keydown', e => { const ov = w.document.getElementById('rt-ov'); if (e.key === 'Escape' && pv.classList.contains('open') && (!ov || ov.hidden)) $('#pvClose').click(); }); } catch (e) { /* 무시 */ } });
 
   Object.assign(X, { exportDialog, openPreview });
 });

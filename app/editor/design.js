@@ -153,6 +153,15 @@ KZ.part(function (X) {
       box.appendChild(field('그림자 · 테두리', sh));
     }
   }
+  // 슬라이더를 한 번 끄는 동안 · 색 고르기 창을 여는 동안 생긴 변경을 되돌리기 한 단계로 묶음 (전에는 움직인 칸마다 한 단계)
+  let dragFrom = -1;
+  const isDrag = t => t && t.tagName === 'INPUT' && (t.type === 'range' || t.type === 'color');
+  $('#side').addEventListener('input', e => { if (isDrag(e.target) && dragFrom < 0) dragFrom = editor.UndoManager.getStack().length; }, true);
+  $('#side').addEventListener('change', e => {
+    if (!isDrag(e.target) || dragFrom < 0) return; const from = dragFrom; dragFrom = -1;
+    setTimeout(() => { const st = editor.UndoManager.getStack(), first = st.at(from), idx = first && first.get('magicFusionIndex'); if (idx != null) for (let i = from; i < st.length; i++) st.at(i).set('magicFusionIndex', idx); }, 100);
+  }, true);
+
   // ---------- 오른쪽 패널 이벤트 ----------
   editor.on('component:selected', renderSide);
   editor.on('component:deselected', () => setTimeout(renderSide, 0));

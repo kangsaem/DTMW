@@ -33,6 +33,8 @@ KZ.part(function (X) {
     if (VID_EXT[e]) return ['video', VID_EXT[e]];
     return [null, ''];
   }
+  let applyNext = false; // 다음에 올리는 사진을 고른 요소에 바로 적용 (그림을 두 번 눌러 파일을 고를 때)
+  function applyNextUpload() { applyNext = true; }
   async function handleFiles(files) {
     let n = 0; const skipped = [];
     for (const f0 of files) {
@@ -52,6 +54,9 @@ KZ.part(function (X) {
         else toast(f.name + ' 파일을 읽지 못했습니다 (열 수 없는 형식)');
       }
     }
+    // 그림을 두 번 눌러 고른 사진이면 그 그림에 바로 적용
+    const direct = applyNext; applyNext = false;
+    if (n && direct) { renderAssets(); X.save(); const a = S.assets.find(x => x.type === 'image'); if (a && editor.getSelected()) return applyAsset(a); }
     if (n) { renderAssets(); X.save(); toast(n + '개를 올렸습니다. 눌러서 적용하세요' + (skipped.length ? ' (' + skipped.length + '개는 사진 · 영상이 아니라 뺐습니다)' : '')); }
     else if (skipped.length) toast('사진 · 영상만 올릴 수 있습니다 — ' + skipped.slice(0, 3).join(', ') + (skipped.length > 3 ? ' 외 ' + (skipped.length - 3) + '개' : ''));
   }
@@ -144,5 +149,5 @@ KZ.part(function (X) {
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', e => handleFiles([...(e.dataTransfer.files || [])]));
 
-  Object.assign(X, { fileIn, insertNear, renderAssets });
+  Object.assign(X, { applyNextUpload, fileIn, insertNear, renderAssets });
 });

@@ -60,7 +60,8 @@ KZ.part(function (X) {
   // 그림을 두 번 누르면: GrapesJS 영어 'Select Image' 창 대신 업로드 탭 (올린 사진이 없으면 파일 고르기)
   ['core:open-assets', 'open-assets'].forEach(cmd => editor.Commands.add(cmd, { run() {
     const out = KZ.popout && KZ.popout.isOut('drawer'); if (!out) openPane('up');
-    if (!S.assets.some(a => a.type === 'image')) X.fileIn.click(); else toast('올린 사진을 누르면 고른 그림이 바뀝니다');
+    // 올린 사진이 없으면 파일을 고르게 하고, 고른 사진은 그 그림에 바로 넣음 (전에는 올린 뒤 한 번 더 눌러야 했음)
+    if (!S.assets.some(a => a.type === 'image')) { X.applyNextUpload(); X.fileIn.click(); } else toast('올린 사진을 누르면 고른 그림이 바뀝니다');
   } }));
   $$('.rail button').forEach(b => b.onclick = () => {
     const drawerOut = KZ.popout && KZ.popout.isOut('drawer');
