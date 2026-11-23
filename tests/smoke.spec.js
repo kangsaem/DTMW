@@ -1186,3 +1186,63 @@ test('템플릿 현재 페이지에 적용 · 새 페이지: 메뉴는 페이지
   expect(r).toEqual({ same: true, ph: false, brand: true });
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.16.6 ----------
+test('히어로 영상 다시 넣기 · 사진으로 바꾸기: 영상은 하나만, 사진으로 바꾸면 영상 지움', async ({ page }) => {
+  const errors = await open(page);
+  await page.setInputFiles('#fileIn', [{ name: 'a.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(2000, 1) }, { name: 'b.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(2000, 2) }]);
+  await page.waitForTimeout(500);
+  await page.click('.rail button[data-pane="up"]'); await page.waitForTimeout(200);
+  await page.evaluate(() => { const e = window.__kzEditor; e.Pages.select('home'); return 1; }); await page.waitForTimeout(300);
+  const selHero = () => page.evaluate(() => { const e = window.__kzEditor, h = e.getWrapper().find('[data-bgvideo]')[0]; e.select(h.find('h1')[0] || h); return 1; });
+  const count = () => page.evaluate(() => { const h = window.__kzEditor.getWrapper().find('[data-bgvideo]')[0]; return (h.toHTML().match(/<video/g) || []).length + '/' + h.find('.hero-photo').length; });
+  await selHero(); await page.locator('#assets .asset').nth(0).click(); await page.waitForTimeout(100);
+  await selHero(); await page.locator('#assets .asset').nth(1).click(); await page.waitForTimeout(100);
+  expect(await count()).toBe('1/0');
+  // 사진으로 바꾸면 영상 없어짐
+  const img = require('fs').readFileSync('app/demo/media/d-heros.webp');
+  await page.setInputFiles('#fileIn', [{ name: 'c.webp', mimeType: 'image/webp', buffer: img }]); await page.waitForTimeout(500);
+  await selHero(); await page.locator('#assets .asset').nth(0).click(); await page.waitForTimeout(100);
+  expect(await count()).toBe('0/1');
+  expect(errors).toEqual([]);
+});
+
+test('세트 자리표시([가게 이름])도 사이트 이름으로 — 로고 · 바닥글만', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => { document.querySelectorAll('#sets .set')[KZ.setOrder.indexOf('resume')].click(); return 1; });
+  await page.locator('#dlgF button', { hasText: /^적용$/ }).click(); await page.waitForTimeout(400);
+  const before = await page.evaluate(() => { let n = 0; window.__kzEditor.Pages.getAll().forEach(p => { n += (p.getMainComponent().toHTML().match(/\[이름\]/g) || []).length; }); return n; });
+  await page.fill('#siteName', '홍길동'); await page.locator('#siteName').blur(); await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor; let brandLeft = 0, footLeft = 0, body = 0;
+    e.Pages.getAll().forEach(p => {
+      const d = document.createElement('div'); d.innerHTML = p.getMainComponent().toHTML();
+      d.querySelectorAll('.brand').forEach(b => { if (b.textContent.includes('[이름]')) brandLeft++; });
+      d.querySelectorAll('.foot').forEach(b => { if (b.textContent.includes('[이름]')) footLeft++; });
+      d.querySelectorAll('.brand,.foot').forEach(b => b.remove()); body += (d.innerHTML.match(/\[이름\]/g) || []).length;
+    });
+    return { brandLeft, footLeft, body, brand: e.Canvas.getDocument().querySelector('.brand').textContent };
+  });
+  expect(r.brandLeft).toBe(0); expect(r.footLeft).toBe(0); expect(r.brand).toBe('홍길동');
+  expect(before).toBeGreaterThan(r.body); // 본문 [이름] 은 남음 (로고 · 바닥글만 바뀜)
+  expect(r.body).toBeGreaterThan(0); // 본문의 [이름] 은 그대로
+  expect(errors).toEqual([]);
+});
+
+test('섹션은 메뉴를 품은 히어로 위로 못 감 · 상단 메뉴 블록은 페이지 목록대로', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => { window.__kzEditor.Pages.select('home'); return 1; }); await page.waitForTimeout(300);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().components().at(1)); return 1; });
+  await page.click('#side [data-tab="design"]');
+  await page.locator('#tabDesign button', { hasText: '섹션 위로' }).click();
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().components().at(0).getClasses().includes('hero'))).toBe(true);
+  // 디자인 패널 위쪽 '위로'도 같은 규칙
+  await page.locator('#tabDesign .acts button[title="위로"]').click();
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().components().at(0).getClasses().includes('hero'))).toBe(true);
+  // 상단 메뉴 블록
+  await page.evaluate(() => { const e = window.__kzEditor; e.Pages.select('about'); return 1; }); await page.waitForTimeout(300);
+  await page.evaluate(() => { window.__kzEditor.select(null); document.querySelector('#blocks .gjs-block[data-bid="s-nav"]').click(); return 1; });
+  const navs = await page.evaluate(() => window.__kzEditor.getWrapper().find('nav.links').map(n => n.toHTML().replace(/ id="[^"]*"/g, '')));
+  expect(navs.length).toBe(2); expect(navs[1]).toBe(navs[0]);
+  expect(errors).toEqual([]);
+});
