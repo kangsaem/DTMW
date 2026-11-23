@@ -43,8 +43,8 @@
       };
       return '<section class="exh exh-cv" data-bg="black"><div class="exh-cv-in"><p class="exh-cv-name">' + (d.name || '[이름]') + '</p>' +
         '<div class="exh-cv-g">' + li(ko) + '</div><p class="exh-cv-name exh-cv-en">' + (d.nameEn || '[영문 이름]') + '</p><div class="exh-cv-g">' + li(en) + '</div></div>' +
-        '<div class="exh-cv-links"><a class="exh-cv-l" href="' + (d.sns || '#') + '"><span class="exh-ic s">' + ic('sns') + '</span>' + (d.snsName || '[SNS 계정]') + '</a>' +
-        '<a class="exh-cv-l" href="' + (d.mail || '#') + '"><span class="exh-ic m">' + ic('mail') + '</span>' + (d.mailName || '[이메일]') + '</a></div></section>'; },
+        '<div class="exh-cv-links"><a class="exh-cv-l" href="' + (d.sns || '#') + '"><span class="exh-ic s">' + ic('sns') + '</span><span class="exh-cv-t">' + (d.snsName || '[SNS 계정]') + '</span></a>' +
+        '<a class="exh-cv-l" href="' + (d.mail || '#') + '"><span class="exh-ic m">' + ic('mail') + '</span><span class="exh-cv-t">' + (d.mailName || '[이메일]') + '</span></a></div></section>'; },
       thumb: function (r) { return r(0, 0, 120, 88, '#000') + r(34, 12, 18, 3, '#fff') + r(34, 20, 46, 2, '#bbb') + r(34, 24, 40, 2, '#bbb') + r(34, 28, 44, 2, '#bbb') + r(34, 40, 18, 3, '#fff') + r(34, 48, 46, 2, '#bbb') + r(44, 70, 30, 2, '#ddd'); } },
     'exh-links': { name: '목록 링크 (가운데)', sec: function (d) { d = d || {};
       var items = d.items || [['#', '[링크 1]'], ['#', '[링크 2]']];

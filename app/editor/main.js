@@ -218,7 +218,10 @@
     const isFootTop = c => hasCls(c, 'foot');
     function topOf(c) { const w = editor.getWrapper(); while (c && c.parent() && c.parent() !== w) c = c.parent(); return c && c.parent() === w ? c : null; }
     function addSection(html) {
-      const w = editor.getWrapper(), comps = w.components();
+      const w = editor.getWrapper();
+      // 빈 페이지의 안내 섹션(고치지 않은 것)은 첫 섹션을 넣을 때 지움
+      w.components().filter(c => attr(c, 'data-blank') && /새 페이지/.test(c.toHTML())).forEach(c => { if (editor.getSelected() && topOf(editor.getSelected()) === c) editor.select(null); c.remove(); });
+      const comps = w.components();
       const top = topOf(editor.getSelected());
       let at;
       if (top && isFootTop(top)) at = top.index();
@@ -299,7 +302,7 @@
       let n = 1, out = id; while (editor.Pages.get(out)) out = id + '-' + (++n); return out;
     }
     function addPage(name, html, id, parent) {
-      const p = editor.Pages.add({ id: uniqueId(id || 'page'), name: name || '새 페이지', component: html || '<section class="wrap"><h1 class="title">새 페이지</h1><p class="body-p">요소 탭에서 섹션을 끌어 오세요.</p></section>' });
+      const p = editor.Pages.add({ id: uniqueId(id || 'page'), name: name || '새 페이지', component: html || '<section class="wrap" data-blank="1"><h1 class="title">새 페이지</h1><p class="body-p">템플릿 탭에서 섹션을 고르거나 요소 탭에서 끌어 오세요. 첫 섹션을 넣으면 이 안내는 사라집니다.</p></section>' });
       const T = treeEnsure(); if (parent && T[parent] && !T[parent].parent) { T[p.getId()].parent = parent; renumberAll(); }
       editor.Pages.select(p); afterTree(); return p;
     }
@@ -545,6 +548,93 @@
       );
       return box;
     }
+    // ---------- 전시 섹션 배치 (섹션 변수: site/base.css .exh 참고) ----------
+    function exhUnit(top) { const el = top.getEl(); const W = el ? el.getBoundingClientRect().width : 1366; return editor.getDevice() === 'mobile' ? W / 375 : Math.min(1, W / 1366); }
+    function exhVars(top) { const r = editor.Css.getRule('#' + top.getId()); return r ? r.getStyle() : {}; }
+    function exhSet(top, obj) {
+      const st = Object.assign({}, exhVars(top));
+      Object.entries(obj).forEach(([k, v]) => { if (v === '' || v == null) delete st['--' + k]; else st['--' + k] = String(v); });
+      editor.Css.setRule('#' + top.getId(), st);
+    }
+    function autoMobileFont(sel, top, v) {
+      const mo = { atRuleType: 'media', atRuleParams: '(max-width: 640px)' };
+      const mr = editor.Css.getRule('#' + sel.getId(), mo); if (mr && mr.getStyle()['--fsm']) return; // 모바일에서 직접 정한 크기는 그대로
+      const el = sel.getEl(); if (!el) return;
+      setTimeout(() => {
+        const U = exhUnit(top), wBoard = el.scrollWidth / U;   // PC 판 단위 글 폭
+        const m = +Math.min(v * 0.79, wBoard > 0 ? v * 340 / wBoard : v).toFixed(1);   // Canva 모바일 비율(0.79), 단 375 판의 340 안에 들어가게
+        const st = Object.assign({}, mr ? mr.getStyle() : {}, { 'font-size': 'calc(var(--u) * ' + m + ')' });
+        editor.Css.setRule('#' + sel.getId(), st, mo);
+      }, 60);
+    }
+    function exhPanel(top, box, sec) {
+      const isM = editor.getDevice() === 'mobile', el = top.getEl(); if (!el) return;
+      const U = exhUnit(top), R = el.getBoundingClientRect(), V = exhVars(top);
+      const rel = q => { const e = el.querySelector(q); return e ? e.getBoundingClientRect() : null; };
+      const cur = (name, measured) => V['--' + name] != null && V['--' + name] !== '' ? parseFloat(V['--' + name]) : +(measured || 0).toFixed(1);
+      const S = (label, name, min, max, measured, step) => slider(label, min, max, step || 0.5, Math.max(min, Math.min(max, cur(name, measured))), v => v, v => exhSet(top, { [name]: v }));
+      const cls = top.getClasses(), has = k => cls.includes(k);
+      sec('전시 배치 — ' + (isM ? '모바일 (375 판)' : 'PC (1366 판)'));
+      box.appendChild(h('p', { className: 'hint', textContent: '값은 판 단위입니다. PC 와 모바일은 따로 저장됩니다 — 위쪽 PC · 모바일 버튼으로 바꿔 가며 맞추세요.' }));
+      // 배경 빠른 선택 (두 화면 공통)
+      const bgSel = h('select', { className: 'inp' });
+      [['', '테마 배경'], ['white', '흰색'], ['gray', '연회색'], ['gray2', '회색'], ['orange', '주황'], ['black', '검정']].forEach(([v, t]) => bgSel.appendChild(h('option', { value: v, textContent: t })));
+      bgSel.value = attr(top, 'data-bg') || ''; bgSel.onchange = () => { if (bgSel.value) top.addAttributes({ 'data-bg': bgSel.value }); else top.removeAttributes('data-bg'); };
+      box.appendChild(field('배경', bgSel));
+      box.appendChild(S('섹션 높이', isM ? 'mh' : 'h', 50, 1400, R.height / U, 1));
+      const art = rel('.exh-art'), cap = rel('.exh-work .exh-cap, .exh-caps'), bg = el.querySelector('.exh-bg');
+      const cx = R.left + R.width / 2;
+      if (art) {
+        if (!isM) {
+          box.appendChild(S('작품 위', 'at', -500, 900, (art.top - R.top) / U));
+          box.appendChild(slider('작품 높이', 30, 1300, 0.5, +(art.height / U).toFixed(1), v => v, v => {
+            const img = top.find('.exh-art')[0]; const o = { ah: v };
+            if (img && img.getClasses().includes('exh-pos')) { const a = el.querySelector('.exh-art'); o.aw = +(v * a.naturalWidth / a.naturalHeight).toFixed(1); }
+            exhSet(top, o);
+          }));
+          box.appendChild(slider('작품 좌우 (가운데 기준)', -700, 700, 0.5, +(((art.left + art.width / 2) - cx) / U).toFixed(1), v => v, v => {
+            const img = top.find('.exh-art')[0], a = el.querySelector('.exh-art').getBoundingClientRect(), w = +(a.width / U).toFixed(1);
+            if (img && !img.getClasses().includes('exh-pos')) img.addClass('exh-pos');
+            exhSet(top, { aw: w, ax: +(v - w / 2).toFixed(1) });
+          }));
+        } else {
+          box.appendChild(S('작품 위', 'mt', -300, 500, (art.top - R.top) / U));
+          box.appendChild(S('양옆 여백', 'mx', 0, 120, (art.left - R.left) / U));
+        }
+      }
+      if (cap) {
+        if (!isM) {
+          box.appendChild(S('캡션 위', 'ct', 0, 1300, (cap.top - R.top) / U));
+          box.appendChild(S('캡션 오른쪽 끝 (가운데 기준)', 'cr', -683, 683, (cap.right - cx) / U));
+        } else {
+          if (has('exh-work')) box.appendChild(S('캡션 간격 (사진 아래)', 'mcg', 0, 80, art ? (cap.top - art.bottom) / U : 15));
+          if (has('exh-row')) box.appendChild(S('캡션 위', 'mct', 0, 600, (cap.top - R.top) / U));
+          box.appendChild(S('캡션 오른쪽 여백', 'mcr', 0, 250, (R.right - cap.right) / U));
+        }
+      }
+      if (has('exh-cover')) {
+        const t = rel('.exh-title'), sb = rel('.exh-sub');
+        if (t) box.appendChild(S('제목 위', isM ? 'mtt' : 'tt', 0, 1200, (t.top - R.top) / U));
+        if (sb) box.appendChild(S('부제 위', isM ? 'mst' : 'st', 0, 1200, (sb.top - R.top) / U));
+      }
+      if (bg) {
+        const img = top.find('.exh-bg')[0], fitw = img && img.getClasses().includes('exh-fitw');
+        box.appendChild(seg('그림 맞춤', [['cover', '채우기'], ['fitw', '폭에 맞춤 (위)']], fitw ? 'fitw' : 'cover', v => { if (!img) return; if (v === 'fitw') img.addClass('exh-fitw'); else img.removeClass('exh-fitw'); setTimeout(() => renderSide(), 50); }));
+        if (fitw) box.appendChild(S('그림 위 여백', isM ? 'mft' : 'ft', -300, 400, (bg.getBoundingClientRect().top - R.top) / U));
+        else if (!isM) box.appendChild(slider('그림 세로 위치', 0, 100, 1, cur('op', 50), v => v + '%', v => exhSet(top, { op: v + '%' })));
+      }
+      if (has('exh-cv')) {
+        const ci = rel('.exh-cv-in'), li = rel('.exh-cv-links');
+        if (ci) box.appendChild(S('약력 위', isM ? 'mcvt' : 'cvt', 0, 900, (ci.top - R.top) / U));
+        if (ci && !isM) box.appendChild(S('약력 왼쪽 (가운데에서 왼쪽으로)', 'cvx', 0, 683, (cx - ci.left) / U));
+        if (li) box.appendChild(S('링크 위', isM ? 'mlt' : 'lt', 0, 1200, (li.top - R.top) / U));
+      }
+      if (has('exh-links')) { const ln = rel('.exh-ln'); if (ln) box.appendChild(S('목록 위', isM ? 'mlnt' : 'lnt', 0, 900, (ln.top - R.top) / U)); }
+      const keys = isM ? ['mh', 'mt', 'mx', 'mcg', 'mcr', 'mct', 'mtt', 'mst', 'mft', 'mcvt', 'mlt', 'mlnt'] : ['h', 'at', 'ah', 'ax', 'aw', 'ct', 'cr', 'tt', 'st', 'ft', 'op', 'cvt', 'cvx', 'lt', 'lnt'];
+      const rb = h('button', { className: 'btn', textContent: (isM ? '모바일' : 'PC') + ' 배치 기본값으로' });
+      rb.onclick = () => { exhSet(top, Object.fromEntries(keys.map(k => [k, '']))); setTimeout(() => renderSide(), 50); };
+      box.appendChild(h('div', { className: 'row', style: 'margin-top:8px' }, [rb]));
+    }
     function renderDesign(sel) {
       const box = $('#tabDesign'); box.innerHTML = '';
       const kind = kindOf(sel);
@@ -561,6 +651,7 @@
           sb('↓ 섹션 아래로', () => { if (!moveSection(top, 1)) toast('더 내릴 수 없습니다'); }),
           top !== sel ? sb('섹션 선택', () => editor.select(top)) : null
         ]));
+        if (hasClass(top, 'exh')) exhPanel(top, box, sec);
       }
 
       if (kind === 'text') {
@@ -569,7 +660,23 @@
         [['', '테마 기본'], ['var(--fh)', '제목 글꼴 (테마)'], ['var(--fb)', '본문 글꼴 (테마)'], ...Object.values(FONTS).map(f => [f.h, f.name.split(' (')[0].split(' +')[0]])].forEach(([v, t]) => fsel.appendChild(h('option', { value: v, textContent: t })));
         fsel.value = ruleStyle(sel)['font-family'] || ''; fsel.onchange = () => setStyle(sel, { 'font-family': fsel.value });
         box.appendChild(field('글꼴', fsel));
-        box.appendChild(slider('크기', 10, 160, 1, Math.round(num(val(sel, 'font-size'), 16)), v => v + 'px', v => setStyle(sel, { 'font-size': v + 'px' })));
+        const exhTop = top && hasClass(top, 'exh') ? top : null;
+        if (exhTop) {
+          // 전시 섹션: 판 단위로 저장 → 화면 크기에 비례. PC 에서 바꾸면 모바일은 화면에 맞게 자동 (모바일 보기에서 따로 바꾸면 그 값 유지)
+          const U = exhUnit(exhTop), isM = editor.getDevice() === 'mobile';
+          const cur = +(num(cs(sel) ? cs(sel).fontSize : '', 16) / U).toFixed(1);
+          box.appendChild(slider('크기 (판 단위)', 4, 200, 0.5, cur, v => v + (isM ? ' · 375판' : ' · 1366판'), v => {
+            setStyle(sel, Object.assign({ 'font-size': 'calc(var(--u) * ' + v + ')' }, isM ? { '--fsm': '1' } : {}));
+            if (!isM) autoMobileFont(sel, exhTop, v);
+          }));
+          box.appendChild(h('p', { className: 'hint', textContent: isM ? '모바일에서 바꾼 크기는 이 화면에만 적용됩니다.' : 'PC 크기를 바꾸면 모바일은 화면 폭에 맞게 자동으로 줄어듭니다 (모바일 보기에서 따로 바꿀 수 있음).' }));
+        } else {
+          box.appendChild(slider('크기', 10, 160, 1, Math.round(num(val(sel, 'font-size'), 16)), v => v + 'px', v => {
+            // 큰 글자는 작은 화면에서 비례해서 줄어들게 (PC 보기에서만) — 휴대폰에서 글이 화면 밖으로 나가지 않도록
+            const big = editor.getDevice() === 'desktop' && v > 32;
+            setStyle(sel, { 'font-size': big ? 'min(' + v + 'px, ' + (v * 0.1464).toFixed(2) + 'vw)' : v + 'px' });
+          }));
+        }
         const w = h('select', { className: 'inp' });
         [['300', '가늘게'], ['400', '보통'], ['500', '중간'], ['600', '약간 굵게'], ['700', '굵게']].forEach(([v, t]) => w.appendChild(h('option', { value: v, textContent: t })));
         w.value = String(Math.round(num(val(sel, 'font-weight'), 400) / 100) * 100); w.onchange = () => setStyle(sel, { 'font-weight': w.value });
