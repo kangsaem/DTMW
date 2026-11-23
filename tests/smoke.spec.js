@@ -1246,3 +1246,37 @@ test('섹션은 메뉴를 품은 히어로 위로 못 감 · 상단 메뉴 블�
   expect(navs.length).toBe(2); expect(navs[1]).toBe(navs[0]);
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.16.7 ----------
+test('팝업 버튼에 링크를 넣으면 팝업 효과를 풀고, 남아 있으면 내보내기에서 경고', async ({ page }) => {
+  const errors = await open(page);
+  // 팝업 버튼 하나 만들고 링크 넣기
+  await page.evaluate(() => { const e = window.__kzEditor; const a = e.getWrapper().append('<a class="btn" href="#" data-click="modal" data-title="문의" data-text="전화">예약</a>')[0]; e.select(a); return 1; });
+  await page.click('#side [data-tab="design"]');
+  const url = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '또는 직접 주소' }) }).locator('input');
+  await url.fill('https://booking.naver.com/x'); await url.press('Enter');
+  const at = await page.evaluate(() => window.__kzEditor.getSelected().getAttributes());
+  expect(at.href).toBe('https://booking.naver.com/x'); expect(at['data-click']).toBeUndefined(); expect(at['data-title']).toBeUndefined();
+  await expect(page.locator('#toast')).toContainText('풀었습니다');
+  // 예전 작업 파일처럼 둘 다 걸린 것 → 내보내기 경고
+  await page.evaluate(() => { window.__kzEditor.getWrapper().append('<a class="btn" href="https://a.com" data-click="modal">x</a>'); return 1; });
+  await page.click('#publishBtn');
+  await expect(page.locator('#dlgB')).toContainText('함께 걸린 버튼');
+  expect(errors).toEqual([]);
+});
+
+test('종류가 빈 사진 파일은 확장자로 올리고, 사진 · 영상이 아니면 알림', async ({ page }) => {
+  const errors = await open(page);
+  const img = require('fs').readFileSync('app/demo/media/d-heros.webp').toString('base64');
+  await page.evaluate(async b64 => {
+    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0)), dt = new DataTransfer();
+    dt.items.add(new File([bin], 'photo.webp', { type: '' })); dt.items.add(new File([bin], 'clip.mp4', { type: '' })); dt.items.add(new File(['%PDF'], 'menu.pdf', { type: 'application/pdf' }));
+    const inp = document.getElementById('fileIn'); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+  }, img);
+  await expect.poll(() => page.evaluate(() => window.__kz.S.assets.length)).toBe(2);
+  expect(await page.evaluate(() => window.__kz.S.assets.map(a => a.type + ':' + a.src.split(';')[0]).sort())).toEqual(['image:data:image/webp', 'video:data:video/mp4']);
+  await expect(page.locator('#toast')).toContainText('1개는 사진 · 영상이 아니라');
+  await page.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File(['x'], 'a.pdf', { type: 'application/pdf' })); const inp = document.getElementById('fileIn'); inp.files = dt.files; inp.dispatchEvent(new Event('change')); });
+  await expect(page.locator('#toast')).toContainText('사진 · 영상만 올릴 수 있습니다');
+  expect(errors).toEqual([]);
+});

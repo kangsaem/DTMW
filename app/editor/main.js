@@ -47,6 +47,13 @@
       });
       return out;
     }
+    // 링크(주소)와 '누르면' 효과가 함께 걸린 것: 효과가 먼저라 링크로 가지 않음
+    const BOTH_SEL = 'a[data-click]:not([data-click=""])[href]:not([href="#"]):not([href=""])';
+    function bothReport() {
+      const out = [];
+      orderedPages().forEach(p => { const t = document.createElement('template'); t.innerHTML = p.getMainComponent().getInnerHTML(); const n = t.content.querySelectorAll(BOTH_SEL).length; if (n) out.push(esc(pname(p)) + ' ' + n); });
+      return out;
+    }
     function linkCss() { let d = ''; try { d = ',' + deadSel(); } catch (e) { /* 페이지 준비 전 */ } return UNLINKED_SEL + d + '{outline:1px dashed #e5484d!important;outline-offset:3px}'; }
     function refreshLinkCss() { const c = linkCss(); docs.forEach(d => { try { const u = d.getElementById('kz-unlinked'); if (u && u.textContent !== c) u.textContent = c; } catch (e) { docs.delete(d); } }); }
 
@@ -562,13 +569,27 @@
         img.src = url;
       });
     }
+    // 파일 종류: 브라우저가 알려 주는 종류(type)가 비어 있는 경우가 있어(윈도우의 webp · heic · avif 등) 확장자로도 판단 (0.16.7)
+    const IMG_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', svg: 'image/svg+xml', bmp: 'image/bmp', heic: 'image/heic', heif: 'image/heif' };
+    const VID_EXT = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', ogv: 'video/ogg' };
+    function kindOfFile(f) {
+      const ext = (f.name.match(/\.([a-z0-9]+)$/i) || [])[1]; const e = ext ? ext.toLowerCase() : '';
+      if (f.type.startsWith('image/')) return ['image', f.type];
+      if (f.type.startsWith('video/')) return ['video', f.type];
+      if (IMG_EXT[e]) return ['image', IMG_EXT[e]];
+      if (VID_EXT[e]) return ['video', VID_EXT[e]];
+      return [null, ''];
+    }
     async function handleFiles(files) {
-      let n = 0;
-      for (const f of files) {
+      let n = 0; const skipped = [];
+      for (const f0 of files) {
+        const [kind, mime] = kindOfFile(f0);
+        const f = f0.type ? f0 : new File([f0], f0.name, { type: mime }); // 종류가 빈 파일은 확장자의 종류로
         const heic = /\.(heic|heif)$/i.test(f.name) || /heic|heif/i.test(f.type);
+        if (!kind) { skipped.push(f.name); continue; }
         try {
-          if (f.type.startsWith('image/') || heic) { S.assets.unshift({ id: 'a' + Date.now() + n, type: 'image', name: f.name, src: await resizeImage(f) }); n++; }
-          else if (f.type.startsWith('video/')) {
+          if (kind === 'image') { S.assets.unshift({ id: 'a' + Date.now() + n, type: 'image', name: f.name, src: await resizeImage(f) }); n++; }
+          else {
             if (f.size > 40e6) { toast(f.name + ': 40MB가 넘어 올리지 않았습니다. 20MB 이하로 줄여 주세요.'); continue; }
             if (f.size > 20e6) toast('20MB가 넘는 영상은 사이트가 느려질 수 있습니다.');
             S.assets.unshift({ id: 'a' + Date.now() + n, type: 'video', name: f.name, src: await readDataURL(f) }); n++;
@@ -578,7 +599,8 @@
           else toast(f.name + ' 파일을 읽지 못했습니다 (열 수 없는 형식)');
         }
       }
-      if (n) { renderAssets(); save(); toast(n + '개를 올렸습니다. 눌러서 적용하세요'); }
+      if (n) { renderAssets(); save(); toast(n + '개를 올렸습니다. 눌러서 적용하세요' + (skipped.length ? ' (' + skipped.length + '개는 사진 · 영상이 아니라 뺐습니다)' : '')); }
+      else if (skipped.length) toast('사진 · 영상만 올릴 수 있습니다 — ' + skipped.slice(0, 3).join(', ') + (skipped.length > 3 ? ' 외 ' + (skipped.length - 3) + '개' : ''));
     }
     function renderAssets() {
       const box = $('#assets'); box.innerHTML = '';
@@ -947,9 +969,9 @@
         ls.appendChild(h('option', { value: '', textContent: '— 페이지 선택 —' }));
         realPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (p.get('name') || p.getId()) + '  (#' + p.getId() + ')' })));
         const href = attr(sel, 'href'); ls.value = realPages().some(p => '#' + p.getId() === href) ? href : '';
-        ls.onchange = () => { if (ls.value) { sel.addAttributes({ href: ls.value }); url.value = ls.value; } };
+        ls.onchange = () => { if (ls.value) { sel.addAttributes({ href: ls.value }); url.value = ls.value; dropClick(sel); } };
         const url = h('input', { className: 'inp', value: href, placeholder: 'https://… 또는 #주소' });
-        url.onchange = () => { const u = url.value.trim(); sel.addAttributes({ href: u }); if (/^https?:/i.test(u)) sel.addAttributes({ target: '_blank', rel: 'noopener' }); else sel.removeAttributes(['target', 'rel']); };
+        url.onchange = () => { const u = url.value.trim(); sel.addAttributes({ href: u }); if (/^https?:/i.test(u)) sel.addAttributes({ target: '_blank', rel: 'noopener' }); else sel.removeAttributes(['target', 'rel']); dropClick(sel); };
         box.appendChild(field('이동할 페이지', ls)); box.appendChild(field('또는 직접 주소', url)); box.appendChild(presetField(url));
       }
       sec(kind === 'wrapper' ? '페이지 배경' : '상자');
@@ -964,6 +986,14 @@
         sh.value = ruleStyle(sel)['box-shadow'] || ''; sh.onchange = () => setStyle(sel, { 'box-shadow': sh.value });
         box.appendChild(field('그림자 · 테두리', sh));
       }
+    }
+    // 링크를 넣으면 '누르면' 효과(팝업 · 페이지 이동 등)를 풂 — 내보낸 사이트에서는 효과가 먼저라 링크로 가지 않았음 (0.16.7)
+    function dropClick(sel) {
+      const h = attr(sel, 'href'), c = attr(sel, 'data-click');
+      if (!c || !h || h === '#') return;
+      sel.removeAttributes(['data-click', 'data-go', 'data-title', 'data-text', 'data-src']);
+      toast('링크로 가도록 \'누르면\' 효과(' + label2(CLICKS, c) + ')를 풀었습니다');
+      setTimeout(() => renderFx(sel), 0);
     }
     // 링크 빠른 입력: 앞부분만 채우고 뒤는 사용자가 이어서 씀
     const PRESETS = [['', '빠른 입력 …'], ['tel:', '전화 (tel:번호)'], ['mailto:', '이메일 (mailto:주소)'], ['https://pf.kakao.com/', '카카오톡 채널'], ['https://booking.naver.com/', '네이버 예약'], ['https://forms.gle/', '구글 폼'], ['https://instagram.com/', '인스타그램']];
@@ -1237,6 +1267,8 @@
       if (!media.length && htmlBig) warn.push('<b>index.html이 25MB를 넘습니다</b> (' + mb(html.length) + ') — GitHub 웹 업로드 한도를 넘습니다.');
       const uN = ul.filter(x => x.n), uD = ul.filter(x => x.d);
       if (uN.length) warn.push('<b>연결 안 된 버튼 ' + uN.reduce((s, x) => s + x.n, 0) + '개</b> (편집 화면의 빨간 점선): ' + uN.map(x => esc(x.name) + ' ' + x.n).join(' · ') + ' — 눌러도 아무 일도 없습니다. 디자인 탭 → 링크에서 연결하세요.');
+      const both = bothReport();
+      if (both.length) warn.push('<b>링크와 \'누르면\' 효과가 함께 걸린 버튼</b>: ' + both.join(' · ') + ' — 누르면 효과(팝업 등)가 먼저 실행돼 링크로 가지 않습니다. 링크를 다시 넣거나 효과 탭 → 누르면 → 없음.');
       if (uD.length) warn.push('<b>없는 페이지로 가는 링크 ' + uD.reduce((s, x) => s + x.d, 0) + '개</b> (지운 페이지 등, 빨간 점선): ' + uD.map(x => esc(x.name) + ' ' + x.d).join(' · ') + ' — 누르면 첫 페이지로 갑니다. 디자인 탭 → 링크에서 다른 페이지로 바꾸세요.');
       const what = media.length
         ? '<p>올린 사진 · 영상이 <b>' + media.length + '개</b> 있어 <b>ZIP</b>(index.html + media 폴더)으로 받기를 권합니다.</p><p class="hint">받은 ZIP을 압축 풀고, 폴더 <b>안의 것을 전부</b> 선택해 GitHub에 끌어다 놓으세요.</p>'
