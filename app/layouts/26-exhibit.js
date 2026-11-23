@@ -65,7 +65,7 @@
     };
   }
   var V = {
-    'exh-cover-fit': { base: 'exh-cover', name: '그림 폭 맞춤 표지', data: { src: S(3, 1600, 618), title: '[큰 제목]' }, cls: { '.exh-bg': 'exh-fitw' },
+    'exh-cover-fit': { base: 'exh-cover', name: '그림 폭 맞춤 표지', data: { src: S(7, 1600, 618), title: '[큰 제목]' }, cls: { '.exh-bg': 'exh-fitw' },
       vars: { tt: 418.4, ts: 123.2, tl: 123.2, tls: '-.0095em', tc: '#EBEBEB', st: 585.2, ss: 20, mh: 300, mtt: 105.7, mts: 31.1, mtl: 31.1, mst: 155.2, mss: 15.8 },
       thumb: function (r, C) { return r(0, 0, 120, 88, '#EBEBEB') + r(0, 0, 120, 46, C.k) + r(26, 54, 68, 9, C.d) + r(44, 70, 32, 2, '#999'); } },
     'exh-work-tall': { base: 'exh-work', name: '한 점 세로 크게 (벽 높이)', data: { bg: 'gray', src: S(7, 463, 680) },

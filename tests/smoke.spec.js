@@ -390,7 +390,7 @@ test('내보낸 사이트에는 실제로 쓴 글꼴만 들어가고, 헬베티�
 test('페이지를 복제해도 요소별 스타일(히어로 배경 그림)이 남는다', async ({ page }) => {
   const errors = await open(page);
   await page.click('.rail button[data-pane="pg"]');
-  await page.locator('.pg', { has: page.locator('code', { hasText: '#home' }) }).locator('button[aria-label="복제"]').click();
+  await page.locator('.pg', { has: page.locator('.pg-id', { hasText: '#home' }) }).locator('button[aria-label="복제"]').click();
   const r = await page.evaluate(() => {
     const e = window.__kzEditor;
     const info = c => { const m = c.getInnerHTML().match(/class="hero-photo" id="([^"]+)"/); if (!m) return null; const r = e.Css.getRule('#' + m[1]); return { id: m[1], bg: !!(r && r.getStyle()['background-image']) }; };
@@ -845,7 +845,7 @@ test('글자 크기: 전시 섹션은 판 단위(모바일 자동), 일반 섹�
   await page.click('#side [data-tab="design"]');
   const g = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^크기$/ }) }).first();
   await g.locator('output').click(); await page.keyboard.press('Control+a'); await page.keyboard.type('120'); await page.keyboard.press('Enter');
-  expect(await page.evaluate(() => { const e = window.__kzEditor, t = e.getSelected(); return e.Css.getRule('#' + t.getId()).getStyle()['font-size']; })).toBe('min(120px, 17.57vw)');
+  expect(await page.evaluate(() => { const e = window.__kzEditor, t = e.getSelected(); return e.Css.getRule('#' + t.getId()).getStyle()['font-size']; })).toBe('min(120px, calc(60px + 8.78vw))');
 });
 
 test('빈 페이지에 첫 섹션을 넣으면 안내 섹션이 사라지고, 약력 링크 글은 따로 고칠 수 있다', async ({ page }) => {
@@ -1057,5 +1057,29 @@ test('사이트 이름 바꾸기 · 공유 정보 · 페이지별 탭 제목 · 
   await page.evaluate(() => { const e = window.__kzEditor, c = e.getWrapper().find('h1')[0]; e.Css.setRule('#' + c.getId(), { 'font-size': 'min(48px, 7.03vw)' }); e.select(c); });
   await page.click('#side [data-tab="design"]');
   await expect(page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^크기$/ }) }).first().locator('output')).toHaveText('48px');
+  expect(errors).toEqual([]);
+});
+
+// ---------- 0.16.3 사용자 점검 작은 것 ----------
+test('페이지 주소 자동 · 주소 바꾸기(링크도) · 첫 페이지 지우기 막기 · 첫 페이지로', async ({ page }) => {
+  const errors = await open(page);
+  await page.click('.rail button[data-pane="pg"]');
+  await page.click('#addPage'); await page.locator('#npName').fill('About Me');
+  await expect(page.locator('#npId')).toHaveValue('about-me');
+  await page.locator('#dlgF button', { hasText: '취소' }).click();
+  await page.evaluate(() => { window.__kzEditor.Pages.select('gallery'); return 1; }); await page.waitForTimeout(400);
+  await page.locator('.pg.on .pg-id').click(); await page.locator('#npNewId').fill('works'); await page.locator('#dlgF button', { hasText: '바꾸기' }).click();
+  await expect.poll(() => page.evaluate(() => !!window.__kzEditor.Pages.get('works') && !window.__kzEditor.Pages.get('gallery'))).toBe(true);
+  await page.evaluate(() => { window.__kzEditor.Pages.select('home'); return 1; }); await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.__kzEditor.Canvas.getDocument().querySelectorAll('a[href="#gallery"]').length)).toBe(0);
+  await page.locator('.pg.on .pg-acts button[aria-label="삭제"]').click();
+  await expect(page.locator('#toast')).toContainText('첫 페이지');
+  expect(await page.evaluate(() => !!window.__kzEditor.Pages.get('home'))).toBe(true);
+  await page.evaluate(() => { window.__kzEditor.Pages.select('news'); return 1; }); await page.waitForTimeout(400);
+  await page.locator('.pg.on .pg-acts button[aria-label^="첫 페이지로"]').click();
+  await expect(page.locator('.pg').first().locator('.pg-id')).toHaveText('#news');
+  // 레이어 이름 한국어
+  await page.click('.rail button[data-pane="ly"]');
+  await expect(page.locator('#layers .gjs-layer-name').first()).toHaveText('페이지');
   expect(errors).toEqual([]);
 });

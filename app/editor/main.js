@@ -111,6 +111,15 @@
       toast(b.get('label') + ' 을(를) 넣었습니다');
     });
 
+    // 레이어 이름 · 글 도구줄 설명을 한국어로 (GrapesJS 기본은 영어)
+    try {
+      const N = { box: '영역', div: '영역', br: '줄바꿈', section: '섹션', header: '머리', footer: '바닥글', nav: '메뉴', wrapper: '페이지', text: '글', textnode: '글', image: '그림', video: '영상', link: '링크', figure: '그림 묶음', figcaption: '캡션', span: '글 조각', ul: '목록', ol: '목록', li: '목록 항목', button: '버튼', svg: '아이콘', form: '양식', input: '입력', label: '라벨', iframe: '삽입', map: '지도', table: '표', row: '행', cell: '칸', comment: '주석', article: '글 묶음', aside: '곁', main: '본문', p: '문단', h1: '큰 제목', h2: '제목', h3: '소제목', blockquote: '인용' };
+      editor.I18n.addMessages({ ko: { domComponents: { names: N } } }); editor.I18n.setLocale('ko');
+      const RT = { bold: '굵게', italic: '기울임', underline: '밑줄', strikethrough: '취소선', link: '링크 (주소는 오른쪽 디자인 탭에서)', wrap: '묶기' };
+      const rtKo = () => editor.RichTextEditor.getAll().forEach(a => { if (!RT[a.name]) return; if (a.attributes) a.attributes.title = RT[a.name]; if (a.btn) a.btn.title = RT[a.name]; });
+      rtKo(); editor.on('rte:enable', rtKo);
+    } catch (e) { /* 이름 번역 실패해도 편집에는 문제 없음 */ }
+
     // ---------- 저장 (IndexedDB) ----------
     let booted = false, saveT, armed = false;
     // 작업 파일(.json) 미저장 표시: 받은 뒤 고친 내용이 있으면 상단에 노란 글씨. 상태는 이 브라우저에 기억
@@ -233,7 +242,7 @@
       const v = await dialog(t.name, '<p>이 레이아웃을 어떻게 쓸까요?</p><p class="hint"><b>섹션으로 추가</b>: 지금 페이지에 이어 붙입니다 (선택한 섹션 아래, 없으면 바닥글 위). 상단 메뉴 · 바닥글은 빼고 넣습니다.<br><b>현재 페이지에 적용</b>: 지금 페이지 내용이 바뀝니다. 모두 Ctrl+Z로 되돌릴 수 있습니다.</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur'], ['섹션으로 추가', 'sec', 'pri']]);
       if (v === 'sec') { addSection(KZ.sectionHtml(id)); toast('섹션을 추가했습니다'); }
       if (v === 'cur') { editor.setComponents(t.html()); toast('현재 페이지에 적용했습니다'); }
-      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), t.slug || SLUG[id]); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
+      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
     }
 
     // ---------- 섹션 (페이지 바로 아래 요소) ----------
@@ -320,6 +329,7 @@
       }));
     }
 
+    function dupNameWarn(n) { if (realPages().filter(p => pname(p) === n).length > 1) toast('같은 이름의 페이지가 있어 메뉴에 \'' + n + '\' 이(가) 두 번 보입니다'); }
     function uniqueId(base) {
       let id = (base || 'page').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
       let n = 1, out = id; while (editor.Pages.get(out)) out = id + '-' + (++n); return out;
@@ -343,8 +353,29 @@
       const T = treeEnsure(); if (parent && T[parent] && !T[parent].parent) { T[p.getId()].parent = parent; renumberAll(); }
       editor.Pages.select(p); afterTree(); return p;
     }
+    // 페이지 주소 바꾸기: 모든 페이지의 #옛주소 링크 · 트리도 함께
+    async function renamePageId(p) {
+      const old = p.getId(), f = document.createElement('div');
+      f.innerHTML = '<div class="field"><label for="npNewId">새 주소 (영문 · 숫자 · -)</label><input class="inp" id="npNewId"></div><p class="hint">이 페이지로 가는 링크(#' + esc(old) + ')도 모두 새 주소로 바뀝니다. 이미 공유한 주소는 바뀌니 주의하세요.</p>';
+      f.querySelector('#npNewId').value = old;
+      const v = await dialog('페이지 주소 바꾸기', f, [['취소', null], ['바꾸기', d => d(f.querySelector('#npNewId').value), 'pri']]);
+      if (!v) return;
+      const want = v.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!want || want === old) return;
+      const nid = uniqueId(want), T = treeEnsure(), t = T[old];
+      p.set('id', nid); delete T[old]; T[nid] = t;
+      Object.values(T).forEach(x => { if (x.parent === old) x.parent = nid; });
+      let n = 0;
+      editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
+        const at = c.getAttributes(); const ch = {};
+        ['href', 'data-go'].forEach(k => { if (at[k] === '#' + old) ch[k] = '#' + nid; });
+        if (Object.keys(ch).length) { c.addAttributes(ch); n++; }
+      }));
+      afterTree(); renderPages(); toast('주소를 #' + nid + ' (으)로 바꿨습니다' + (n ? ' — 링크 ' + n + '곳도' : ''));
+    }
     async function deletePage(p) {
       if (realPages().length < 2) return toast('마지막 페이지는 지울 수 없습니다');
+      if (orderedPages()[0] === p) return toast('첫 페이지(사이트를 열면 보이는 페이지)는 지울 수 없습니다 — 다른 페이지를 \'첫 페이지로\' 지정한 뒤 지우세요');
       const ks = kids(p.getId());
       if (!await confirmDlg('페이지 삭제', '<b>' + esc(pname(p)) + '</b> 페이지를 삭제할까요?' + (ks.length ? '<br>하위 페이지 ' + ks.length + '개는 위 단계로 올라갑니다.' : ''), '삭제')) return;
       const T = treeEnsure(); ks.forEach(c => { T[c.getId()].parent = null; T[c.getId()].order = T[p.getId()].order + 0.5; });
@@ -364,15 +395,17 @@
         car.setAttribute('aria-label', '하위 페이지 접기 · 펼치기'); car.tabIndex = ks.length ? 0 : -1;
         car.onclick = e => { e.stopPropagation(); if (!ks.length) return; collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); renderPages(); };
         const inp = h('input', { value: pname(p) }); inp.setAttribute('aria-label', '페이지 이름');
-        inp.onchange = () => { p.set('name', inp.value || id); afterTree(); };
+        inp.onchange = () => { p.set('name', inp.value || id); afterTree(); dupNameWarn(pname(p)); };
         inp.onfocus = () => { if (editor.Pages.getSelected() !== p) editor.Pages.select(p); };
-        const code = h('code', { textContent: '#' + id });
+        const code = h('button', { className: 'pg-id', textContent: '#' + id, title: '눌러서 주소 바꾸기' });
+        code.onclick = e => { e.stopPropagation(); renamePageId(p); };
         const acts = h('span', { className: 'pg-acts' }, [
           iconBtn(t.menu === false ? '메뉴에 표시' : '메뉴에서 숨기기', t.menu === false ? '◌' : '●', () => { t.menu = t.menu === false; afterTree(); }),
           iconBtn('위로', '↑', () => step(id, -1)), iconBtn('아래로', '↓', () => step(id, 1)),
           depth ? iconBtn('위 단계로', '⇤', () => outdent(id)) : iconBtn('위 페이지의 하위로', '⇥', () => indent(id)),
           iconBtn('하위 페이지 추가', '+', () => addPage('새 하위 페이지', null, id + '-sub', depth ? t.parent : id)),
           iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().components().map(c => c.clone()), id + '-copy', t.parent)), // clone: 요소별 스타일도 새 id로 복사
+          (!depth && orderedPages()[0] !== p) ? iconBtn('첫 페이지로 (사이트를 열면 보이는 페이지)', '⌂', () => { const first = orderedPages()[0]; if (first) { movePage(id, first.getId(), 'before'); toast(pname(p) + ' 이(가) 첫 페이지가 되었습니다'); } }) : null,
           iconBtn('삭제', '✕', () => deletePage(p))
         ]);
         r.append(car, inp, code, acts);
@@ -390,8 +423,11 @@
     $('#addPage').onclick = async () => {
       const f = document.createElement('div');
       f.innerHTML = '<div class="field"><label for="npName">페이지 이름</label><input class="inp" id="npName" value="새 페이지"></div><div class="field"><label for="npId">주소 (영문 · 숫자 · -)</label><input class="inp" id="npId" value="new-page"></div>';
+      const nm = f.querySelector('#npName'), ad = f.querySelector('#npId'); let adTouched = false;
+      ad.oninput = () => { adTouched = true; };
+      nm.oninput = () => { if (adTouched) return; const sl = nm.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); ad.value = /[a-z]/.test(sl) ? sl : 'new-page'; };
       const v = await dialog('빈 페이지 추가', f, [['취소', null], ['추가', d => d({ n: $('#npName').value, i: $('#npId').value }), 'pri']]);
-      if (v) addPage(v.n, null, v.i);
+      if (v) { addPage(v.n, null, v.i); dupNameWarn(v.n); }
     };
 
     // 상단 페이지 선택 · 작업대 머리글 · 아래 페이지 띠
@@ -785,7 +821,7 @@
           box.appendChild(slider('크기', 10, 160, 1, Math.round(num(val(sel, 'font-size'), 16)), v => v + 'px', v => {
             // 큰 글자는 작은 화면에서 비례해서 줄어들게 (PC 보기에서만) — 휴대폰에서 글이 화면 밖으로 나가지 않도록
             const big = editor.getDevice() === 'desktop' && v > 32;
-            setStyle(sel, { 'font-size': big ? 'min(' + v + 'px, ' + (v * 0.1464).toFixed(2) + 'vw)' : v + 'px' });
+            setStyle(sel, { 'font-size': big ? 'min(' + v + 'px, calc(' + (v / 2) + 'px + ' + (v * 0.0732).toFixed(2) + 'vw))' : v + 'px' }); // 683px 에서 원래 크기, 휴대폰(375)에서 약 0.77배
           }));
         }
         const w = h('select', { className: 'inp' });
