@@ -7,7 +7,7 @@ KZ.part(function (X) {
 
   // ---------- 편집 화면(캔버스): 사이트 CSS · 표시 · 블록 ----------
   // 연결 안 된 버튼: 버튼 · 카드 모양 링크인데 href 가 비었거나 '#' 이고 팝업 등도 없는 것, 또는 '페이지 이동'인데 주소가 없는 것
-  const UNLINKED_SEL = ['a.btn', 'a.btn-line', 'a.ct-i', 'a.hero-now', 'a.more'].map(c => c + '[href="#"]:not([data-click]),' + c + '[href=""]:not([data-click])').join(',') + ',[data-click="go"]:not([data-go])';
+  const UNLINKED_SEL = ['a.btn', 'a.btn-line', 'a.ct-i', 'a.hero-now', 'a.more'].map(c => c + '[href="#"]:not([data-click]),' + c + '[href=""]:not([data-click])').join(',') + ',[data-click="go"]:not([data-go]),a[href=""]:not([data-click])';
   // 없는 페이지로 가는 링크: #주소 인데 그런 페이지가 없음 (지운 페이지 등) — 내보낸 사이트에서 누르면 첫 페이지로 가 버림
   function deadSel() {
     const ids = realPages().map(p => String(p.getId()).replace(/["\\]/g, ''));
@@ -68,6 +68,8 @@ KZ.part(function (X) {
         if (html) doc.execCommand('insertHTML', false, html);
       }, true);
       doc.addEventListener('keydown', X.saveKey, true);
+      // 글 고치는 중 Esc → 고치기 끝
+      doc.addEventListener('keydown', e => { if (e.key !== 'Escape') return; const m = editor.getEditing(), v = m && (m.view || m); if (v && v.disableEditing) { e.preventDefault(); v.disableEditing(); } }, true);
     }
     doc.getElementById('kz-theme').textContent = KZ.themeCss(S);
     doc.documentElement.classList.toggle('kz-fx', fxMark);
@@ -87,6 +89,15 @@ KZ.part(function (X) {
   // 블록
   KZ.BLOCKS.forEach(([id, label, category, media, content]) => {
     editor.Blocks.add(id, { label, category, media, content: typeof content === 'function' ? content() : content, attributes: { 'data-bid': id } });
+  });
+  // 끌어다 놓은 블록은 바로 고름 (어디 들어갔는지 보이게)
+let dropAdds = null; // 끄는 동안 새로 들어온 요소들 (block:drag:stop 이 넣은 요소를 알려 주지 않아 직접 모음)
+  editor.on('block:drag:start', () => { dropAdds = []; });
+  editor.on('component:add', c => { if (dropAdds) dropAdds.push(c); });
+  editor.on('block:drag:stop', () => {
+    const list = dropAdds || []; dropAdds = null;
+    const x = list.find(c => c.parent() && !list.includes(c.parent())); // 새로 들어온 것 중 맨 바깥 요소
+    if (x) setTimeout(() => { editor.select(x); try { x.getEl().scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* 무시 */ } }, 50);
   });
   // 블록을 누르기만 해도 넣기 (선택한 요소 아래) — 패널을 창 밖으로 꺼냈을 때 끌어다 놓기 대신
   $('#blocks').addEventListener('click', e => {

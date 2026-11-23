@@ -135,6 +135,7 @@
       return;
     }
     if (t && !ov.contains(t)) { e.preventDefault(); open(t.getAttribute('data-click'), t); return; }
+    var blank = e.target.closest && e.target.closest('a[href=""]'); if (blank) { e.preventDefault(); return; } // 주소를 안 넣은 링크: 눌러도 새로고침하지 않음
     var a = e.target.closest && e.target.closest('a[href^="#"]');
     if (a) { var id = a.getAttribute('href').slice(1); e.preventDefault(); if (!id) return; if (!ov.hidden) { close(); setTimeout(function () { go(id, true); }, D * 0.5); } else go(id, true); }
   });

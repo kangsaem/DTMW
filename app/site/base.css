@@ -312,3 +312,5 @@ a{color:inherit}
   .exh-links{--mh:211}
   .exh-ln{top:calc(var(--u) * var(--mlnt,116));font-size:calc(var(--u) * var(--mlns,11));line-height:calc(var(--u) * var(--mlnl,29))}
 }
+/* 자유 배치: PC · 태블릿에서 옮긴 위치(transform)는 휴대폰에서 적용하지 않음 — 좁은 화면 밖으로 나가던 문제. 휴대폰 보기에서 따로 옮긴 것(data-free="m")은 그대로 */
+@media (max-width:640px){[data-free="1"]{transform:none!important}}

@@ -2,7 +2,7 @@
    편집기 조각 — main.js 가 순서대로 실행합니다. X: 조각끼리 함께 쓰는 것(editor · S · 공통 도구 · 다른 조각의 함수) */
 KZ.part(function (X) {
   'use strict';
-  const { editor, setS } = X;
+  const { editor, setS, attr, ruleStyle } = X;
   const { $, $$, esc, toast, dialog, confirmDlg } = KZ.ui;
   const C = KZ.C;
 
@@ -35,11 +35,19 @@ KZ.part(function (X) {
     // 화면 크기가 바뀌는 동안 읽은 값(글자 크기 · 좁음 알림)이 틀릴 수 있어 바뀐 뒤 한 번 더
     setTimeout(() => { X.renderSide(); X.narrowCheck(); }, 500);
   });
+  // 자유 배치로 옮긴 요소에 표시: 휴대폰 보기에서 옮겼으면 "m"(그 위치 유지), 아니면 "1"(휴대폰에서는 원래 자리 — site/base.css)
+  editor.on('component:drag:end', o => {
+    const c = o && o.target; if (!c || !c.getStyle) return;
+    const moved = /translate/.test(String(ruleStyle(c).transform || c.getStyle().transform || '')); if (!moved) return;
+    const m = editor.getDevice() === 'mobile'; if (attr(c, 'data-free') === 'm' && !m) return;
+    c.addAttributes({ 'data-free': m ? 'm' : '1' });
+  });
   $('#modeFlow').onclick = () => { editor.setDragMode(''); $('#modeFlow').classList.add('on'); $('#modeFree').classList.remove('on'); toast('정렬 배치 — 요소가 위아래로 정렬됩니다'); };
   $('#modeFree').onclick = () => { editor.setDragMode('translate'); $('#modeFree').classList.add('on'); $('#modeFlow').classList.remove('on'); toast('자유 배치 — 끌어서 원하는 위치에 놓습니다. 모바일 화면도 꼭 확인하세요'); };
   const fileMenu = $('#fileMenu');
   $('#fileBtn').onclick = e => { e.stopPropagation(); fileMenu.classList.toggle('open'); };
   document.addEventListener('click', () => fileMenu.classList.remove('open'));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fileMenu.classList.remove('open'); });
   fileMenu.onclick = async e => {
     const b = e.target.closest('button'); if (!b) return; fileMenu.classList.remove('open');
     const act = b.dataset.act;

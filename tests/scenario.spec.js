@@ -195,3 +195,84 @@ test('시나리오 — 페이지 관리: 추가 · 하위로 · 숨기기 · 삭
   expect(await P.locator('.rt-page:not([hidden]) nav.links').first().innerText()).not.toContain('효과 샘플');
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.17.3 화면 점검에서 찾은 것 ----------
+test('화면 — 고른 페이지 줄: 이름이 보이고 버튼이 패널 안에 있다', async ({ page }) => {
+  const errors = await openEditor(page);
+  await page.click('.rail button[data-pane="pg"]');
+  await page.locator('#pages .pg').nth(6).locator('input').click(); await page.waitForTimeout(400);
+  const r = await page.evaluate(() => { const row = document.querySelector('#pages .pg.on'), inp = row.querySelector('input'), d = document.getElementById('drawer').getBoundingClientRect(); return { fits: inp.scrollWidth <= inp.clientWidth + 1, inside: [...row.querySelectorAll('.pg-acts button')].every(b => { const q = b.getBoundingClientRect(); return q.width > 0 && q.right <= d.right; }) }; });
+  expect(r).toEqual({ fits: true, inside: true });
+  expect(errors).toEqual([]);
+});
+
+test('화면 — 그림을 두 번 눌러 고른 사진은 그 그림에 바로 들어간다', async ({ page }) => {
+  const errors = await openEditor(page);
+  const F = page.frameLocator('.gjs-frame');
+  await page.locator('#pageStrip .ps', { hasText: '갤러리' }).click(); await page.waitForTimeout(500);
+  const img = F.locator('img').first(); await img.scrollIntoViewIfNeeded();
+  const [ch] = await Promise.all([page.waitForEvent('filechooser'), img.dblclick()]);
+  await ch.setFiles({ name: 'a.webp', mimeType: 'image/webp', buffer: fs.readFileSync('app/demo/media/d-heros.webp') });
+  await expect.poll(() => img.getAttribute('src')).toMatch(/^data:image\/webp/);
+  expect(errors).toEqual([]);
+});
+
+test('화면 — 슬라이더를 한 번 끈 것은 되돌리기 한 번, Esc 로 미리보기 · 파일 메뉴 · 글 고치기 닫기', async ({ page }) => {
+  const errors = await openEditor(page);
+  const F = page.frameLocator('.gjs-frame');
+  const h2 = F.locator('h2').first(); await h2.scrollIntoViewIfNeeded(); await h2.click(); await page.click('#side [data-tab="design"]');
+  const fs0 = await h2.evaluate(e => getComputedStyle(e).fontSize);
+  const sl = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^크기$/ }) }).locator('input[type=range]'); const b = await sl.boundingBox();
+  await page.mouse.move(b.x + b.width * 0.1, b.y + b.height / 2); await page.mouse.down(); await page.mouse.move(b.x + b.width * 0.5, b.y + b.height / 2, { steps: 10 }); await page.mouse.up(); await page.waitForTimeout(400);
+  expect(await h2.evaluate(e => getComputedStyle(e).fontSize)).not.toBe(fs0);
+  await page.click('#undo'); await page.waitForTimeout(300);
+  expect(await h2.evaluate(e => getComputedStyle(e).fontSize)).toBe(fs0);
+  // 글 고치는 중 Esc
+  await h2.dblclick(); await page.keyboard.type('x'); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  expect(await page.evaluate(() => !!window.__kzEditor.getEditing())).toBe(false);
+  // 파일 메뉴 Esc
+  await page.click('#fileBtn'); await page.keyboard.press('Escape');
+  await expect(page.locator('#fileMenu')).not.toHaveClass(/open/);
+  // 미리보기 안을 누른 뒤 Esc: 팝업이 열려 있으면 팝업만, 아니면 미리보기 닫기
+  await page.click('#previewBtn'); const P = page.frameLocator('#pvFrame');
+  await P.locator('body').click({ position: { x: 200, y: 300 } }); await page.keyboard.press('Escape');
+  await expect(page.locator('#pv')).not.toHaveClass(/open/);
+  expect(errors).toEqual([]);
+});
+
+test('화면 — 자유 배치로 옮긴 요소는 휴대폰에서 화면 안에 있고, 끌어다 놓은 블록은 골라진다', async ({ page }) => {
+  const errors = await openEditor(page);
+  const F = page.frameLocator('.gjs-frame');
+  await page.locator('#pageStrip .ps', { hasText: '소개' }).click(); await page.waitForTimeout(500);
+  await page.click('#modeFree');
+  const el = F.locator('.btn').first(); await el.scrollIntoViewIfNeeded(); await el.click(); const b0 = await el.boundingBox();
+  await page.mouse.move(b0.x + b0.width / 2, b0.y + b0.height / 2); await page.mouse.down(); await page.mouse.move(b0.x - 250, b0.y + 60, { steps: 10 }); await page.mouse.up(); await page.waitForTimeout(400);
+  expect(Math.abs((await el.boundingBox()).x - b0.x)).toBeGreaterThan(100); // PC 에서는 옮겨짐
+  await page.click('#modeFlow');
+  await page.click('#previewBtn'); await page.locator('[data-pw]').last().click(); await page.waitForTimeout(600);
+  const P = page.frameLocator('#pvFrame');
+  const pos = await P.locator('.rt-page:not([hidden]) .btn').first().evaluate(e => { const q = e.getBoundingClientRect(); return { left: q.left >= 0, right: q.right <= innerWidth + 1, sw: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+  expect(pos).toEqual({ left: true, right: true, sw: true });
+  await page.click('#pvClose');
+  // 블록 끌어다 놓기
+  await page.click('.rail button[data-pane="el"]');
+  const blk = page.locator('#blocks .gjs-block', { hasText: '본문' }).first(); const bb = await blk.boundingBox(); const fb = await page.locator('.gjs-frame').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await page.mouse.down(); await page.mouse.move(fb.x + 300, fb.y + 300, { steps: 12 }); await page.mouse.move(fb.x + 320, fb.y + 380, { steps: 6 }); await page.waitForTimeout(200); await page.mouse.up(); // 사람처럼 잠깐 멈췄다 놓기
+  await expect.poll(() => page.evaluate(() => { const s = window.__kzEditor.getSelected(); return s ? s.getClasses().join(' ') : ''; })).toBe('body-p');
+  expect(errors).toEqual([]);
+});
+
+test('화면 — 글 도구줄로 만든 주소 없는 링크는 빨간 점선, 내보낸 사이트에서 눌러도 새로고침하지 않는다', async ({ page }) => {
+  const errors = await openEditor(page);
+  const F = page.frameLocator('.gjs-frame');
+  await page.locator('#pageStrip .ps', { hasText: '소개' }).click(); await page.waitForTimeout(500);
+  const p = F.locator('p.body-p').first(); await p.scrollIntoViewIfNeeded(); await p.dblclick(); await page.keyboard.press('Control+a');
+  await page.locator('.gjs-rte-action').nth(4).click(); await page.waitForTimeout(300);
+  await F.locator('.foot').first().click({ force: true }); await page.waitForTimeout(300);
+  const a = F.locator('p.body-p a').first();
+  expect(await a.evaluate(e => getComputedStyle(e).outlineStyle)).toBe('dashed');
+  await page.click('#previewBtn'); const P = page.frameLocator('#pvFrame');
+  await P.locator('.rt-page:not([hidden]) p.body-p a').first().evaluate(e => { window.__mark = 1; e.click(); }); await page.waitForTimeout(500);
+  expect(await P.locator('body').evaluate(() => window.__mark)).toBe(1); // 새로고침되지 않음
+  expect(errors).toEqual([]);
+});
