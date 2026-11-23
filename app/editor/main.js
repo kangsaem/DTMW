@@ -116,7 +116,7 @@
     $('#blocks').addEventListener('click', e => {
       const el = e.target.closest && e.target.closest('.gjs-block'); if (!el) return;
       const b = editor.Blocks.get(el.getAttribute('data-bid')); if (!b) return;
-      const c = b.get('content'); insertNear(editor.getSelected(), typeof c === 'string' ? c : JSON.parse(JSON.stringify(c)));
+      const c = b.get('content'); afterBlock(insertNear(editor.getSelected(), typeof c === 'string' ? c : JSON.parse(JSON.stringify(c))));
       toast(b.get('label') + ' 을(를) 넣었습니다');
     });
 
@@ -128,6 +128,13 @@
       const rtKo = () => editor.RichTextEditor.getAll().forEach(a => { if (!RT[a.name]) return; if (a.attributes) a.attributes.title = RT[a.name]; if (a.btn) a.btn.title = RT[a.name]; });
       rtKo(); editor.on('rte:enable', rtKo);
     } catch (e) { /* 이름 번역 실패해도 편집에는 문제 없음 */ }
+
+    // 블록을 넣은 뒤: 상단 메뉴 · 바닥글 블록이면 메뉴를 페이지 목록대로, 사이트 이름 자리표시를 맞춤 (끌어다 놓기 · 누르기 모두)
+    function afterBlock(c) {
+      if (!c || !booted) return;
+      if (hasNav(c) || isFootTop(c) || c.find('.foot').length) { syncMenus(); fillSiteName(c); }
+    }
+    editor.on('block:drag:stop', c => { try { afterBlock(Array.isArray(c) ? c[0] : c); } catch (e) { /* 무시 */ } });
 
     // ---------- 저장 (IndexedDB) ----------
     let booted = false, saveT, armed = false;
@@ -253,19 +260,37 @@
       if (v === 'cur') { editor.setComponents(t.html()); fillSiteName(editor.getWrapper()); syncMenus(); renderNav(); toast('현재 페이지에 적용했습니다'); }
       if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) { fillSiteName(p.getMainComponent()); toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); } }
     }
-    // 템플릿으로 넣은 내용의 [사이트 이름]: 다른 페이지에 자리표시가 하나도 없으면(이미 이름을 정했으면) 지금 사이트 이름으로
+    // 사이트 이름 자리표시: 기본은 [사이트 이름], 세트마다 로고가 [가게 이름] · [행사 이름] 등 (0.16.6)
+    const NAME_PH = '[사이트 이름]';
+    const textOnly = c => c.components().length && c.components().every(x => x.is('textnode'));
+    const inBrandOrFoot = c => { for (let x = c; x; x = x.parent()) if (hasCls(x, 'brand') || hasCls(x, 'foot')) return true; return false; };
+    // 로고(.brand) 글이 [ … ] 인 것 = 아직 이름을 안 정한 자리표시. skip 안의 로고는 세지 않음
+    function brandPlaceholders(skip) {
+      const out = new Set();
+      realPages().forEach(pg => walk(pg.getMainComponent(), c => {
+        if (!hasCls(c, 'brand') || (skip && inside(c, skip))) return;
+        const t = (c.getEl() ? c.getEl().textContent : c.components().map(x => x.get('content') || '').join('')).trim();
+        if (/^\[[^\]]+\]$/.test(t)) out.add(t);
+      }));
+      return out;
+    }
+    function inside(c, root) { for (let x = c; x; x = x.parent()) if (x === root) return true; return false; }
+    // 템플릿 · 블록으로 넣은 내용의 [사이트 이름]: 사이트가 아직 자리표시를 쓰면 그 자리표시로(세트의 [가게 이름] 등), 이름을 정했으면 그 이름으로
     function fillSiteName(root) {
-      const PH = '[사이트 이름]', ph = esc(PH);
-      const textOnly = c => c.components().length && c.components().every(x => x.is('textnode'));
+      const ph = esc(NAME_PH), others = brandPlaceholders(root);
       const count = r => { let n = 0; walk(r, c => { if (textOnly(c) && c.getInnerHTML().includes(ph)) n++; }); return n; };
-      const all = realPages().reduce((n, pg) => n + count(pg.getMainComponent()), 0);
-      if (all > count(root) || !S.siteName || S.siteName === PH) return; // 다른 곳에 자리표시가 남아 있으면 그대로 (아직 이름을 안 정한 사이트)
-      walk(root, c => { if (!textOnly(c)) return; const h = c.getInnerHTML(); if (h.includes(ph)) c.components(h.split(ph).join(esc(S.siteName))); });
+      const leftDefault = realPages().reduce((n, pg) => n + count(pg.getMainComponent()), 0) > count(root);
+      let to = null;
+      if (others.size) { const o = [...others][0]; if (o !== NAME_PH) to = o; } // 아직 이름 안 정함 → 다른 페이지와 같은 자리표시
+      else if (!leftDefault && S.siteName && S.siteName !== NAME_PH) to = S.siteName;
+      if (!to) return;
+      walk(root, c => { if (!textOnly(c)) return; const h = c.getInnerHTML(); if (h.includes(ph)) c.components(h.split(ph).join(esc(to))); });
     }
 
     // ---------- 섹션 (페이지 바로 아래 요소) ----------
     const isNavTop = c => (c.get('tagName') || '').toLowerCase() === 'header' && hasCls(c, 'nav');
     const isFootTop = c => hasCls(c, 'foot');
+    const hasNav = c => isNavTop(c) || c.find('header.nav').length > 0; // 첫 페이지 히어로처럼 메뉴를 품은 섹션
     function topOf(c) { const w = editor.getWrapper(); while (c && c.parent() && c.parent() !== w) c = c.parent(); return c && c.parent() === w ? c : null; }
     function addSection(html) {
       const w = editor.getWrapper();
@@ -281,10 +306,10 @@
       if (added[0]) { editor.select(added[0]); try { added[0].getEl().scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* 무시 */ } }
       return added;
     }
-    // 섹션 옮기기: 상단 메뉴 위 · 바닥글 아래로는 가지 않음
+    // 섹션 옮기기: 상단 메뉴(메뉴를 품은 섹션 포함) 위 · 바닥글 아래로는 가지 않고, 메뉴 · 바닥글 자체도 움직이지 않음
     function moveSection(sec, d) {
       const w = editor.getWrapper(), list = w.components().models, i = list.indexOf(sec), j = i + d;
-      if (i < 0 || j < 0 || j >= list.length || isNavTop(list[j]) || isFootTop(list[j])) return false;
+      if (i < 0 || j < 0 || j >= list.length || hasNav(sec) || isFootTop(sec) || hasNav(list[j]) || isFootTop(list[j])) return false;
       sec.move(w, { at: d > 0 ? j + 1 : j }); editor.select(sec); return true;
     }
 
@@ -576,6 +601,8 @@
         box.appendChild(w);
       });
     }
+    // 영상 요소 찾기: GrapesJS 는 find('video') 로 영상 컴포넌트를 못 찾음 → 종류(type)로 (0.16.6)
+    const vids = c => { const o = []; if (c) walk(c, x => { if (x !== c && x.get('type') === 'video') o.push(x); }); return o; };
     const up = (c, pred) => { while (c) { if (pred(c)) return c; c = c.parent(); } return null; };
     const attr = (c, k) => (c && c.getAttributes()[k]) || '';
     function insertNear(sel, def) {
@@ -607,7 +634,7 @@
           let ph = hero.find('.hero-photo')[0];
           if (!ph) ph = hero.append({ tagName: 'div', classes: ['hero-photo'] }, { at: 1 })[0];
           ph.addStyle({ 'background-image': 'url("' + a.src + '")' });
-          hero.find('video').forEach(v => v.remove());
+          vids(hero).forEach(v => v.remove());
           const note = hero.find('.hero-note')[0]; if (note) note.remove();
           return toast('배경 사진을 바꿨습니다');
         }
@@ -628,13 +655,13 @@
         return;
       }
       if (hero) {
-        const ex = hero.find('video')[0];
+        const ex = vids(hero)[0];
         if (ex) ex.set(vprops); else hero.append(Object.assign({ type: 'video', classes: ['hero-video'] }, vprops), { at: 1 });
         const note = hero.find('.hero-note')[0]; if (note) note.remove();
       const photo = hero.find('.hero-photo')[0]; if (photo) photo.remove();
         return toast('배경 영상을 넣었습니다');
       }
-      const iv = sel && sel.find('video')[0];
+      const iv = sel && vids(sel)[0];
       if (iv) { iv.set(vprops); return toast('영상을 바꿨습니다'); }
       insertNear(sel, Object.assign({ type: 'video', style: { width: '100%', 'aspect-ratio': '16/9' } }, vprops));
       toast('영상을 넣었습니다');
@@ -688,7 +715,7 @@
       const P = 'fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"';
       const box = h('div', { className: 'acts' });
       const parent = sel.parent();
-      const move = d => { if (!parent) return; const i = sel.index(), n = i + d; if (n < 0 || n >= parent.components().length) return; if (sel.move) sel.move(parent, { at: d > 0 ? n + 1 : n }); editor.select(sel); };
+      const move = d => { if (!parent) return; if (parent === editor.getWrapper()) { if (!moveSection(sel, d)) toast(d < 0 ? '더 올릴 수 없습니다 (상단 메뉴 위로는 못 감)' : '더 내릴 수 없습니다 (바닥글 아래로는 못 감)'); return; } const i = sel.index(), n = i + d; if (n < 0 || n >= parent.components().length) return; if (sel.move) sel.move(parent, { at: d > 0 ? n + 1 : n }); editor.select(sel); };
       box.append(
         mk('복제', '<svg ' + P + '><rect x="8" y="8" width="12" height="12"/><path d="M4 16V4h12"/></svg>', () => { if (!parent) return; const cl = sel.clone(); parent.append(cl, { at: sel.index() + 1 }); editor.select(cl); }),
         mk('위로', '<svg ' + P + '><path d="M12 19V5M6 11l6-6 6 6"/></svg>', () => move(-1)),
@@ -952,7 +979,7 @@
     const FIX_MEDIA = '.bgfix-media,.hero-photo,.hero-video,.hero-bg,.band-img';
     const hasClass = (c, k) => c.getClasses().includes(k);
     function fixMedia(sel) { return sel.components().filter(c => c.getEl && c.getEl() && c.getEl().matches && c.getEl().matches(FIX_MEDIA)); }
-    function bgfixVideos() { const w = editor.getWrapper(); return w.find('[data-scroll="bgfix"]').filter(c => c.find('video').length).length; }
+    function bgfixVideos() { const w = editor.getWrapper(); return w.find('[data-scroll="bgfix"]').filter(c => vids(c).length).length; }
     async function applyBgfix(sel) {
       const el = sel.getEl();
       if (!fixMedia(sel).length) {
@@ -1104,12 +1131,15 @@
     // [사이트 이름] 자리표시는 글 중간에 있어도 바꾸고, 이전 이름은 글 전체가 그 이름일 때만 바꿈 ('카페' → '카페 루나' 가 '카페 메뉴' 까지 바꾸던 문제)
     $('#siteName').onchange = e => {
       const prev = S.siteName, next = e.target.value.trim() || '내 사이트'; S.siteName = next;
-      const PH = '[사이트 이름]', whole = prev && prev !== next && prev !== '내 사이트' && prev !== PH ? esc(prev) : null;
+      const PH = NAME_PH, whole = prev && prev !== next && prev !== '내 사이트' && prev !== PH ? esc(prev) : null;
+      // 세트별 자리표시([가게 이름] 등)는 로고 · 바닥글 안에서만 바꿈 ([이름] 처럼 본문의 다른 자리표시와 같은 글자일 수 있어서)
+      const setPH = [...brandPlaceholders()].filter(t => t !== PH && t !== next).map(esc);
       let n = 0;
       editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
-        if (!c.components().length || !c.components().every(x => x.is('textnode'))) return;
+        if (!textOnly(c)) return;
         const html = c.getInnerHTML(); let out = html;
         if (next !== PH) out = out.split(esc(PH)).join(esc(next));
+        if (setPH.length && inBrandOrFoot(c)) setPH.forEach(t => { out = out.split(t).join(esc(next)); });
         if (whole && out.trim() === whole) out = esc(next);
         if (out !== html) { c.components(out); n++; }
       }));
