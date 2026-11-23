@@ -47,13 +47,6 @@
       });
       return out;
     }
-    // 링크(주소)와 '누르면' 효과가 함께 걸린 것: 효과가 먼저라 링크로 가지 않음
-    const BOTH_SEL = 'a[data-click]:not([data-click=""])[href]:not([href="#"]):not([href=""])';
-    function bothReport() {
-      const out = [];
-      orderedPages().forEach(p => { const t = document.createElement('template'); t.innerHTML = p.getMainComponent().getInnerHTML(); const n = t.content.querySelectorAll(BOTH_SEL).length; if (n) out.push(esc(pname(p)) + ' ' + n); });
-      return out;
-    }
     function linkCss() { let d = ''; try { d = ',' + deadSel(); } catch (e) { /* 페이지 준비 전 */ } return UNLINKED_SEL + d + '{outline:1px dashed #e5484d!important;outline-offset:3px}'; }
     function refreshLinkCss() { const c = linkCss(); docs.forEach(d => { try { const u = d.getElementById('kz-unlinked'); if (u && u.textContent !== c) u.textContent = c; } catch (e) { docs.delete(d); } }); }
 
@@ -123,7 +116,7 @@
     $('#blocks').addEventListener('click', e => {
       const el = e.target.closest && e.target.closest('.gjs-block'); if (!el) return;
       const b = editor.Blocks.get(el.getAttribute('data-bid')); if (!b) return;
-      const c = b.get('content'); afterBlock(insertNear(editor.getSelected(), typeof c === 'string' ? c : JSON.parse(JSON.stringify(c))));
+      const c = b.get('content'); insertNear(editor.getSelected(), typeof c === 'string' ? c : JSON.parse(JSON.stringify(c)));
       toast(b.get('label') + ' 을(를) 넣었습니다');
     });
 
@@ -135,13 +128,6 @@
       const rtKo = () => editor.RichTextEditor.getAll().forEach(a => { if (!RT[a.name]) return; if (a.attributes) a.attributes.title = RT[a.name]; if (a.btn) a.btn.title = RT[a.name]; });
       rtKo(); editor.on('rte:enable', rtKo);
     } catch (e) { /* 이름 번역 실패해도 편집에는 문제 없음 */ }
-
-    // 블록을 넣은 뒤: 상단 메뉴 · 바닥글 블록이면 메뉴를 페이지 목록대로, 사이트 이름 자리표시를 맞춤 (끌어다 놓기 · 누르기 모두)
-    function afterBlock(c) {
-      if (!c || !booted) return;
-      if (hasNav(c) || isFootTop(c) || c.find('.foot').length) { syncMenus(); fillSiteName(c); }
-    }
-    editor.on('block:drag:stop', c => { try { afterBlock(Array.isArray(c) ? c[0] : c); } catch (e) { /* 무시 */ } });
 
     // ---------- 저장 (IndexedDB) ----------
     let booted = false, saveT, armed = false;
@@ -227,7 +213,7 @@
         if (st.speed) S.speed = st.speed;
         refreshTheme(); if (booted) renderSite();
       }
-      syncMenus(); recordTree();
+      syncChrome(); recordTree();
       editor.UndoManager.clear();
       renderNav(); save();
     }
@@ -263,36 +249,42 @@
     async function useTemplate(id) {
       const t = KZ.layouts[id];
       const v = await dialog(t.name, '<p>이 레이아웃을 어떻게 쓸까요?</p><p class="hint"><b>섹션으로 추가</b>: 지금 페이지에 이어 붙입니다 (선택한 섹션 아래, 없으면 바닥글 위). 상단 메뉴 · 바닥글은 빼고 넣습니다.<br><b>현재 페이지에 적용</b>: 지금 페이지 내용이 바뀝니다. 모두 Ctrl+Z로 되돌릴 수 있습니다.</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur'], ['섹션으로 추가', 'sec', 'pri']]);
-      if (v === 'sec') { addSection(KZ.sectionHtml(id)).forEach(fillSiteName); toast('섹션을 추가했습니다'); }
-      if (v === 'cur') { editor.setComponents(t.html()); fillSiteName(editor.getWrapper()); syncMenus(); renderNav(); toast('현재 페이지에 적용했습니다'); }
-      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) { fillSiteName(p.getMainComponent()); toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); } }
+      if (v === 'sec') { addSection(KZ.sectionHtml(id)); toast('섹션을 추가했습니다'); }
+      if (v === 'cur') { editor.setComponents(t.html()); toast('현재 페이지에 적용했습니다'); }
+      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
     }
-    // 사이트 이름 자리표시: 기본은 [사이트 이름], 세트마다 로고가 [가게 이름] · [행사 이름] 등 (0.16.6)
-    const NAME_PH = '[사이트 이름]';
-    const textOnly = c => c.components().length && c.components().every(x => x.is('textnode'));
-    const inBrandOrFoot = c => { for (let x = c; x; x = x.parent()) if (hasCls(x, 'brand') || hasCls(x, 'foot')) return true; return false; };
-    // 로고(.brand) 글이 [ … ] 인 것 = 아직 이름을 안 정한 자리표시. skip 안의 로고는 세지 않음
-    function brandPlaceholders(skip) {
-      const out = new Set();
-      realPages().forEach(pg => walk(pg.getMainComponent(), c => {
-        if (!hasCls(c, 'brand') || (skip && inside(c, skip))) return;
-        const t = (c.getEl() ? c.getEl().textContent : c.components().map(x => x.get('content') || '').join('')).trim();
-        if (/^\[[^\]]+\]$/.test(t)) out.add(t);
-      }));
-      return out;
+    // ---------- 사이트 이름 · 상단 메뉴: 한 곳(syncChrome)에서만 맞춤 (0.17.0) ----------
+    // 사이트 이름은 S.siteName 하나. 페이지 안에서는 data-site-name 표시가 붙은 요소(로고 · 바닥글 · 첫 화면 제목)가 그 이름을 보여 줌.
+    // 상단 메뉴는 페이지 목록(S.tree)에서 만듦. 둘 다 되돌리기 기록에는 넣지 않음 — 원본(이름 · 페이지 목록)이 바뀌면 다시 만들면 되므로.
+    const NAME_ATTR = 'data-site-name';
+    let syncing = false, chromeT, rteModel = null; // rteModel: 지금 글을 고치는 중(또는 막 고친) 요소 — 그 안의 이름 자리는 덮어쓰지 않음
+    const within = (c, root) => { for (let x = c; x; x = x.parent()) if (x === root) return true; return false; };
+    function syncNames() {
+      const want = esc(S.siteName || '');
+      realPages().forEach(p => walk(p.getMainComponent(), c => { if (attr(c, NAME_ATTR) && c.getInnerHTML() !== want && !(rteModel && within(c, rteModel))) c.components(want); }));
     }
-    function inside(c, root) { for (let x = c; x; x = x.parent()) if (x === root) return true; return false; }
-    // 템플릿 · 블록으로 넣은 내용의 [사이트 이름]: 사이트가 아직 자리표시를 쓰면 그 자리표시로(세트의 [가게 이름] 등), 이름을 정했으면 그 이름으로
-    function fillSiteName(root) {
-      const ph = esc(NAME_PH), others = brandPlaceholders(root);
-      const count = r => { let n = 0; walk(r, c => { if (textOnly(c) && c.getInnerHTML().includes(ph)) n++; }); return n; };
-      const leftDefault = realPages().reduce((n, pg) => n + count(pg.getMainComponent()), 0) > count(root);
-      let to = null;
-      if (others.size) { const o = [...others][0]; if (o !== NAME_PH) to = o; } // 아직 이름 안 정함 → 다른 페이지와 같은 자리표시
-      else if (!leftDefault && S.siteName && S.siteName !== NAME_PH) to = S.siteName;
-      if (!to) return;
-      walk(root, c => { if (!textOnly(c)) return; const h = c.getInnerHTML(); if (h.includes(ph)) c.components(h.split(ph).join(esc(to))); });
+    function syncChrome() {
+      if (syncing) return; syncing = true;
+      try { editor.UndoManager.skip(() => { syncNames(); syncMenus(); }); } finally { syncing = false; }
     }
+    // 요소가 들어오거나(템플릿 · 블록 · 새 페이지) 되돌리기를 하면 곧바로 다시 맞춤
+    function chromeSoon() { if (!booted || syncing) return; clearTimeout(chromeT); chromeT = setTimeout(() => { syncChrome(); renderNav(); }, 0); }
+    editor.on('component:add undo redo', chromeSoon);
+    function setSiteName(name) {
+      S.siteName = String(name || '').trim() || '내 사이트'; $('#siteName').value = S.siteName;
+      syncChrome(); save();
+    }
+    // 화면에서 글을 고친 뒤: 로고를 고쳤으면 사이트 이름을 바꾸고(모든 페이지에 적용), 그 밖의 이름 자리(첫 화면 제목 · 바닥글)를 다른 글로 고쳤으면 연동을 풂
+    function nameEdited(root) {
+      const text = c => { const el = c.getEl(); if (el) return el.textContent; const t = document.createElement('div'); t.innerHTML = c.getInnerHTML(); return t.textContent; }; // 화면의 글이 기준
+      let brand = null;
+      walk(root, c => { if (!attr(c, NAME_ATTR) || text(c) === (S.siteName || '')) return; if (hasCls(c, 'brand')) brand = c; else c.removeAttributes(NAME_ATTR); });
+      rteModel = null;
+      const name = brand ? text(brand).trim() : '';
+      if (name) { setSiteName(name); toast('사이트 이름을 \'' + name + '\' (으)로 바꿨습니다 — 모든 페이지의 로고에 적용'); } else chromeSoon();
+    }
+    editor.on('rte:enable', view => { rteModel = (view && view.model) || null; });
+    editor.on('rte:disable', view => setTimeout(() => { if (view && view.model) nameEdited(view.model); else rteModel = null; }, 0));
 
     // ---------- 섹션 (페이지 바로 아래 요소) ----------
     const isNavTop = c => (c.get('tagName') || '').toLowerCase() === 'header' && hasCls(c, 'nav');
@@ -362,9 +354,9 @@
     treeRec.on('change:t', () => {
       const j = treeRec.get('t'); if (j === JSON.stringify(S.tree || {})) return; // 직접 기록한 것 (되돌리기 아님)
       try { S.tree = JSON.parse(j); } catch (e) { return; }
-      if (booted) setTimeout(() => { renderNav(); save(); }, 0);
+      if (booted) setTimeout(() => { syncChrome(); renderNav(); save(); }, 0);
     });
-    function afterTree() { recordTree(); syncMenus(); renderNav(); save(); }
+    function afterTree() { recordTree(); syncChrome(); renderNav(); save(); }
 
     // 자동 메뉴: 모든 페이지의 nav.links · .th-menu 를 트리로 다시 만듭니다
     function walk(c, fn) { fn(c); c.components().forEach(x => walk(x, fn)); }
@@ -385,9 +377,9 @@
       const th = items.map(i => '<a href="#' + i.id + '" data-anim="fade-up">' + esc(i.name) + '</a>').join('');
       realPages().forEach(p => walk(p.getMainComponent(), c => {
         const tag = (c.get('tagName') || '').toLowerCase();
-        if (tag === 'nav' && hasCls(c, 'links')) c.components(nav);
-        else if (hasCls(c, 'th-menu')) c.components(th);
-        else if (tag === 'a' && hasCls(c, 'brand')) c.addAttributes({ href: '#' + first });
+        if (tag === 'nav' && hasCls(c, 'links')) { if (c.getInnerHTML() !== nav) c.components(nav); }
+        else if (hasCls(c, 'th-menu')) { if (c.getInnerHTML() !== th) c.components(th); }
+        else if (tag === 'a' && hasCls(c, 'brand') && attr(c, 'href') !== '#' + first) c.addAttributes({ href: '#' + first });
       }));
     }
 
@@ -963,17 +955,7 @@
           });
         }
       }
-      if (kind === 'text' && ((sel.get('tagName') || '') === 'a' || sel.is('link'))) {
-        sec('링크');
-        const ls = h('select', { className: 'inp' });
-        ls.appendChild(h('option', { value: '', textContent: '— 페이지 선택 —' }));
-        realPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (p.get('name') || p.getId()) + '  (#' + p.getId() + ')' })));
-        const href = attr(sel, 'href'); ls.value = realPages().some(p => '#' + p.getId() === href) ? href : '';
-        ls.onchange = () => { if (ls.value) { sel.addAttributes({ href: ls.value }); url.value = ls.value; dropClick(sel); } };
-        const url = h('input', { className: 'inp', value: href, placeholder: 'https://… 또는 #주소' });
-        url.onchange = () => { const u = url.value.trim(); sel.addAttributes({ href: u }); if (/^https?:/i.test(u)) sel.addAttributes({ target: '_blank', rel: 'noopener' }); else sel.removeAttributes(['target', 'rel']); dropClick(sel); };
-        box.appendChild(field('이동할 페이지', ls)); box.appendChild(field('또는 직접 주소', url)); box.appendChild(presetField(url));
-      }
+      if (isLinkEl(sel)) { sec('누르면 (링크)'); box.appendChild(actionBox(sel)); }
       sec(kind === 'wrapper' ? '페이지 배경' : '상자');
       box.appendChild(swatches('배경 색', val(sel, 'background-color'), v => setStyle(sel, { 'background-color': v }), true));
       if (kind !== 'wrapper') {
@@ -987,13 +969,70 @@
         box.appendChild(field('그림자 · 테두리', sh));
       }
     }
-    // 링크를 넣으면 '누르면' 효과(팝업 · 페이지 이동 등)를 풂 — 내보낸 사이트에서는 효과가 먼저라 링크로 가지 않았음 (0.16.7)
-    function dropClick(sel) {
-      const h = attr(sel, 'href'), c = attr(sel, 'data-click');
-      if (!c || !h || h === '#') return;
-      sel.removeAttributes(['data-click', 'data-go', 'data-title', 'data-text', 'data-src']);
-      toast('링크로 가도록 \'누르면\' 효과(' + label2(CLICKS, c) + ')를 풀었습니다');
-      setTimeout(() => renderFx(sel), 0);
+    // ---------- 누르면 무엇을 할지: 설정 하나 (0.17.0 — 전에는 링크 주소와 '누르면' 효과가 따로라 서로 충돌) ----------
+    // 저장: 링크(a)의 페이지 · 주소 이동은 href, 그 밖의 요소는 data-click="go" + data-go, 팝업류는 data-click (이때 a 의 href 는 '#'). 둘이 함께 걸리지 않음
+    const isLinkEl = c => (c.get('tagName') || '').toLowerCase() === 'a' || c.is('link');
+    function getAction(c) {
+      const k = attr(c, 'data-click'), a = isLinkEl(c);
+      if (k && k !== 'go') return { kind: k, to: '' };
+      const to = k === 'go' ? attr(c, 'data-go') : (a ? attr(c, 'href') : '');
+      return (k === 'go' || (to && to !== '#')) ? { kind: 'go', to: to === '#' ? '' : to } : { kind: '', to: '' };
+    }
+    function setAction(c, kind, to) {
+      const a = isLinkEl(c); to = String(to || '').trim();
+      c.removeAttributes(['data-click', 'data-go', 'target', 'rel'].concat(kind === 'go' || !kind ? ['data-title', 'data-text', 'data-src'] : []));
+      if (kind === 'go') {
+        if (a) { c.addAttributes(Object.assign({ href: to || '#' }, /^https?:/i.test(to) ? { target: '_blank', rel: 'noopener' } : {})); }
+        else c.addAttributes(Object.assign({ 'data-click': 'go' }, to ? { 'data-go': to } : {}));
+      } else { if (a) c.addAttributes({ href: '#' }); if (kind) c.addAttributes({ 'data-click': kind }); }
+    }
+    // 디자인 탭(링크 · 버튼)과 효과 탭에 같은 칸을 보여 줌 — 어느 쪽에서 바꿔도 같은 설정
+    function actionBox(sel) {
+      const wrap = h('div'), detail = h('div'), a = isLinkEl(sel);
+      const again = () => setTimeout(() => { if (editor.getSelected() === sel) renderSide(); }, 0);
+      wrap.append(opts(CLICKS, getAction(sel).kind, v => { setAction(sel, v, v === 'go' ? getAction(sel).to : ''); again(); }), detail);
+      const act = getAction(sel), v = act.kind;
+      if (v === 'go' || (!v && a)) { // 링크 · 버튼은 고르지 않아도 주소 칸이 바로 보임
+        const isPage = u => realPages().some(p => '#' + p.getId() === u);
+        const ls = h('select', { className: 'inp' });
+        ls.appendChild(h('option', { value: '', textContent: '— 페이지 선택 —' }));
+        orderedPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (treeEnsure()[p.getId()].parent ? '└ ' : '') + pname(p) + '  (#' + p.getId() + ')' })));
+        ls.value = isPage(act.to) ? act.to : '';
+        const url = h('input', { className: 'inp', value: act.to, placeholder: 'https://… (새 창으로 열림) 또는 #주소' });
+        ls.onchange = () => { if (ls.value) { setAction(sel, 'go', ls.value); again(); } };
+        url.onchange = () => { const u = url.value.trim(); setAction(sel, u || !a ? 'go' : '', u); again(); };
+        detail.append(h('div', { style: 'height:10px' }), field('이동할 페이지', ls), field('또는 직접 주소', url), presetField(url),
+          h('p', { className: 'hint', textContent: '편집 화면에서는 Alt+클릭으로 따라갑니다.' }));
+      } else if (['panel', 'sheet', 'modal'].includes(v)) {
+        const t = h('input', { className: 'inp', value: attr(sel, 'data-title') }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
+        const x = h('textarea', { className: 'inp', value: attr(sel, 'data-text') }); x.onchange = () => sel.addAttributes({ 'data-text': x.value });
+        detail.append(h('div', { style: 'height:10px' }), field('팝업 제목', t), field('팝업 내용 (줄바꿈 가능)', x));
+      } else if (v === 'lightbox') {
+        const t = h('input', { className: 'inp', value: attr(sel, 'data-title'), placeholder: '[항목 이름], 2026' }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
+        detail.append(h('div', { style: 'height:10px' }), field('캡션', t), h('p', { className: 'hint', textContent: '같은 페이지의 라이트박스끼리 화살표로 넘겨 봅니다.' }));
+      } else if (v === 'menu') detail.append(h('p', { className: 'hint', textContent: '모든 페이지 목록이 전체 화면으로 펼쳐집니다.', style: 'margin-top:8px' }));
+      return wrap;
+    }
+    // 예전 형식(1)의 작업을 지금 형식으로: 이름 자리에 표시를 달고, 링크와 팝업이 함께 걸린 버튼은 실제 동작(팝업)대로 정리
+    function upgradeProject(from) {
+      if (from >= 2) return;
+      const name = esc(S.siteName || ''), isPh = t => /^\[[^\]]+\]$/.test(t.trim());
+      const textOnly = c => c.components().length && c.components().every(x => x.is('textnode'));
+      const span = '<span ' + NAME_ATTR + '="1">' + name + '</span>';
+      let ph = ''; // 세트의 로고 자리표시 ([가게 이름] 등)
+      realPages().forEach(p => walk(p.getMainComponent(), c => { if (!ph && hasCls(c, 'brand') && textOnly(c) && isPh(c.getInnerHTML())) ph = c.getInnerHTML().trim(); }));
+      const names = [name, esc('[사이트 이름]'), ph].filter(Boolean);
+      realPages().forEach(p => walk(p.getMainComponent(), c => {
+        const at = c.getAttributes();
+        if ((c.get('tagName') || '').toLowerCase() === 'a' && at['data-click']) {
+          if (at['data-click'] === 'go') setAction(c, 'go', at['data-go'] || '');
+          else if (at.href && at.href !== '#') c.addAttributes({ href: '#' });
+        }
+        if (!textOnly(c) || at[NAME_ATTR]) return;
+        const html = c.getInnerHTML(), whole = names.includes(html.trim());
+        if ((hasCls(c, 'brand') || hasCls(c, 'hero-name') || hasCls(c, 'th-name')) && whole) c.addAttributes({ [NAME_ATTR]: '1' });
+        else if (up(c, x => hasCls(x, 'foot'))) { const hit = names.find(n => html.includes(n)); if (hit) c.components(html.split(hit).join(span)); }
+      }));
     }
     // 링크 빠른 입력: 앞부분만 채우고 뒤는 사용자가 이어서 씀
     const PRESETS = [['', '빠른 입력 …'], ['tel:', '전화 (tel:번호)'], ['mailto:', '이메일 (mailto:주소)'], ['https://pf.kakao.com/', '카카오톡 채널'], ['https://booking.naver.com/', '네이버 예약'], ['https://forms.gle/', '구글 폼'], ['https://instagram.com/', '인스타그램']];
@@ -1078,33 +1117,7 @@
       }
       if (isFix) box.appendChild(h('p', { className: 'hint', textContent: '사진 · 영상은 업로드 탭에서 이 영역을 선택한 채 누르면 바뀝니다. 정확한 모양은 미리보기에서 확인하세요.', style: 'margin-top:8px' }));
       sec('누르면');
-      const clickBox = h('div');
-      box.appendChild(opts(CLICKS, attr(sel, 'data-click'), v => { setA('data-click', v); if (v !== 'go') sel.removeAttributes('data-go'); drawClick(v); }));
-      box.appendChild(clickBox);
-      function drawClick(v) {
-        clickBox.innerHTML = '';
-        if (['panel', 'sheet', 'modal'].includes(v)) {
-          const t = h('input', { className: 'inp', value: attr(sel, 'data-title') }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
-          const x = h('textarea', { className: 'inp', value: attr(sel, 'data-text') }); x.onchange = () => sel.addAttributes({ 'data-text': x.value });
-          clickBox.append(h('div', { style: 'height:10px' }), field('팝업 제목', t), field('팝업 내용 (줄바꿈 가능)', x));
-        } else if (v === 'lightbox') {
-          const t = h('input', { className: 'inp', value: attr(sel, 'data-title'), placeholder: '[항목 이름], 2026' }); t.onchange = () => sel.addAttributes({ 'data-title': t.value });
-          clickBox.append(h('div', { style: 'height:10px' }), field('캡션', t), h('p', { className: 'hint', textContent: '같은 페이지의 라이트박스끼리 화살표로 넘겨 봅니다.' }));
-        } else if (v === 'menu') clickBox.append(h('p', { className: 'hint', textContent: '모든 페이지 목록이 전체 화면으로 펼쳐집니다.', style: 'margin-top:8px' }));
-        else if (v === 'go') {
-          const cur = attr(sel, 'data-go');
-          const ls = h('select', { className: 'inp' });
-          ls.appendChild(h('option', { value: '', textContent: '— 페이지 선택 —' }));
-          orderedPages().forEach(p => ls.appendChild(h('option', { value: '#' + p.getId(), textContent: (treeEnsure()[p.getId()].parent ? '└ ' : '') + pname(p) + '  (#' + p.getId() + ')' })));
-          ls.value = realPages().some(p => '#' + p.getId() === cur) ? cur : '';
-          const url = h('input', { className: 'inp', value: cur, placeholder: 'https://… (새 창으로 열림)' });
-          ls.onchange = () => { if (ls.value) { sel.addAttributes({ 'data-go': ls.value }); url.value = ls.value; } };
-          url.onchange = () => { const u = url.value.trim(); if (u) sel.addAttributes({ 'data-go': u }); else sel.removeAttributes('data-go'); ls.value = realPages().some(p => '#' + p.getId() === u) ? u : ''; };
-          clickBox.append(h('div', { style: 'height:10px' }), field('이동할 페이지', ls), field('또는 바깥 주소', url), presetField(url),
-            h('p', { className: 'hint', textContent: '편집 화면에서는 Alt+클릭으로 따라갑니다.' }));
-        }
-      }
-      drawClick(attr(sel, 'data-click'));
+      box.appendChild(actionBox(sel));
       const pv = h('button', { className: 'btn pri full', textContent: '미리보기에서 확인', style: 'margin-top:18px' }); pv.onclick = () => openPreview(); box.appendChild(pv);
     }
     function replay(sel) {
@@ -1138,7 +1151,7 @@
       Object.entries(FONTS).forEach(([k, f]) => fs.appendChild(h('option', { value: k, textContent: f.name })));
       fs.value = S.font; fs.onchange = () => { S.font = fs.value; refreshTheme(); save(); };
       const to = $('#transOpts'); to.innerHTML = ''; to.appendChild(opts(TRANS, S.transition, v => { S.transition = v; save(); }));
-      const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; if (am.checked) syncMenus(); save(); toast(am.checked ? '상단 메뉴를 페이지 목록대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
+      const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; syncChrome(); save(); toast(am.checked ? '상단 메뉴를 페이지 목록대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
       $$('#speedSeg button').forEach(b => { b.classList.toggle('on', b.dataset.v === S.speed); b.onclick = () => { S.speed = b.dataset.v; $$('#speedSeg button').forEach(x => x.classList.toggle('on', x === b)); refreshTheme(); save(); }; });
     }
     // 공유 · 검색: 설명, 사이트 주소, 공유 이미지, 파비콘 (내보낸 사이트의 <head>)
@@ -1157,24 +1170,7 @@
       );
     }
     $('#pvTrans').onclick = () => openPreview();
-    // 사이트 이름: 페이지 안의 [사이트 이름] · 이전 이름도 함께 바꿈 (직접 다른 글로 고친 곳은 그대로)
-    // [사이트 이름] 자리표시는 글 중간에 있어도 바꾸고, 이전 이름은 글 전체가 그 이름일 때만 바꿈 ('카페' → '카페 루나' 가 '카페 메뉴' 까지 바꾸던 문제)
-    $('#siteName').onchange = e => {
-      const prev = S.siteName, next = e.target.value.trim() || '내 사이트'; S.siteName = next;
-      const PH = NAME_PH, whole = prev && prev !== next && prev !== '내 사이트' && prev !== PH ? esc(prev) : null;
-      // 세트별 자리표시([가게 이름] 등)는 로고 · 바닥글 안에서만 바꿈 ([이름] 처럼 본문의 다른 자리표시와 같은 글자일 수 있어서)
-      const setPH = [...brandPlaceholders()].filter(t => t !== PH && t !== next).map(esc);
-      let n = 0;
-      editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
-        if (!textOnly(c)) return;
-        const html = c.getInnerHTML(); let out = html;
-        if (next !== PH) out = out.split(esc(PH)).join(esc(next));
-        if (setPH.length && inBrandOrFoot(c)) setPH.forEach(t => { out = out.split(t).join(esc(next)); });
-        if (whole && out.trim() === whole) out = esc(next);
-        if (out !== html) { c.components(out); n++; }
-      }));
-      save(); if (n) toast('페이지 안의 사이트 이름 ' + n + '곳도 바꿨습니다');
-    };
+    $('#siteName').onchange = e => setSiteName(e.target.value);
 
     // ---------- 왼쪽 탭 ----------
     function openPane(id) {
@@ -1251,7 +1247,7 @@
       try {
         const d = KZ.store.migrate(JSON.parse(await f.text()));
         S = Object.assign(DEFAULT_S(), d.S || {}); editor.loadProjectData(d.gjs);
-        treeEnsure(); syncMenus(); recordTree(); editor.UndoManager.clear(); // 불러오기 전 되돌리기 기록은 버림 (남아 있으면 Ctrl+Z 가 불러온 내용을 어긋나게 바꿈)
+        treeEnsure(); upgradeProject(d.from); syncChrome(); recordTree(); editor.UndoManager.clear(); // 불러오기 전 되돌리기 기록은 버림 (남아 있으면 Ctrl+Z 가 불러온 내용을 어긋나게 바꿈)
         syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
@@ -1267,8 +1263,6 @@
       if (!media.length && htmlBig) warn.push('<b>index.html이 25MB를 넘습니다</b> (' + mb(html.length) + ') — GitHub 웹 업로드 한도를 넘습니다.');
       const uN = ul.filter(x => x.n), uD = ul.filter(x => x.d);
       if (uN.length) warn.push('<b>연결 안 된 버튼 ' + uN.reduce((s, x) => s + x.n, 0) + '개</b> (편집 화면의 빨간 점선): ' + uN.map(x => esc(x.name) + ' ' + x.n).join(' · ') + ' — 눌러도 아무 일도 없습니다. 디자인 탭 → 링크에서 연결하세요.');
-      const both = bothReport();
-      if (both.length) warn.push('<b>링크와 \'누르면\' 효과가 함께 걸린 버튼</b>: ' + both.join(' · ') + ' — 누르면 효과(팝업 등)가 먼저 실행돼 링크로 가지 않습니다. 링크를 다시 넣거나 효과 탭 → 누르면 → 없음.');
       if (uD.length) warn.push('<b>없는 페이지로 가는 링크 ' + uD.reduce((s, x) => s + x.d, 0) + '개</b> (지운 페이지 등, 빨간 점선): ' + uD.map(x => esc(x.name) + ' ' + x.d).join(' · ') + ' — 누르면 첫 페이지로 갑니다. 디자인 탭 → 링크에서 다른 페이지로 바꾸세요.');
       const what = media.length
         ? '<p>올린 사진 · 영상이 <b>' + media.length + '개</b> 있어 <b>ZIP</b>(index.html + media 폴더)으로 받기를 권합니다.</p><p class="hint">받은 ZIP을 압축 풀고, 폴더 <b>안의 것을 전부</b> 선택해 GitHub에 끌어다 놓으세요.</p>'
@@ -1315,7 +1309,12 @@
       // 다른 탭에 알림: 이제 이 탭이 저장합니다 (먼저 알려야 다른 탭이 저장을 멈춤)
       if (bc) bc.postMessage({ t: 'claim', id: TAB_ID });
       let saved = null, raw = null, loadErr = null;
-      try { raw = await KZ.store.DB.get('project'); if (raw) saved = KZ.store.migrate(raw); } catch (e) { saved = null; loadErr = e; }
+      try {
+        raw = await KZ.store.DB.get('project');
+        // 예전 형식이면 바꾸기 전 저장본을 따로 보관 (변환이 잘못됐을 때 되찾을 수 있게)
+        if (raw && raw.gjs && (raw.v || 1) < KZ.store.FORMAT) { try { await KZ.store.DB.set('backup-format' + (raw.v || 1), JSON.parse(JSON.stringify(raw))); } catch (e) { /* 보관 실패해도 계속 */ } }
+        if (raw) saved = KZ.store.migrate(raw);
+      } catch (e) { saved = null; loadErr = e; }
       try {
         if (saved && saved.gjs) { S = Object.assign(DEFAULT_S(), saved.S || {}); editor.loadProjectData(saved.gjs); if (!realPages().length) applySet(C.DEFAULT_SET); }
         else applySet(C.DEFAULT_SET);
@@ -1327,7 +1326,7 @@
         dialog('저장된 작업을 열지 못했습니다', '<p>이 브라우저에 저장된 작업을 열 수 없어 기본 세트로 시작합니다.</p><p class="hint">이유: ' + esc(loadErr.message || String(loadErr)) + '<br>원래 저장본은 지우지 않고 보관했습니다. 아래 버튼으로 파일로 받아 두고, 편집기를 새로고침한 뒤 <b>파일 → 작업 파일 불러오기</b>로 열어 보세요.</p>',
           [['닫기', null], ['원래 저장본 받기', d => { d(null); offerFile('wmw-backup-project.json', JSON.stringify(raw), 'application/json'); }, 'pri']]);
       }
-      treeEnsure(); syncMenus(); recordTree();
+      treeEnsure(); if (saved) upgradeProject(saved.from); syncChrome(); recordTree();
       editor.UndoManager.clear();
       booted = true;
       renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);
@@ -1345,7 +1344,7 @@
       let wasDirty = false; try { wasDirty = localStorage.getItem(FILE_KEY) === '1'; } catch (e) { /* 무시 */ }
       fileDirty(wasDirty);
       setTimeout(() => { armed = true; }, 1000); // 시작할 때 생기는 변경은 세지 않음
-      window.__kz = { orderedPages, movePage, syncMenus, treeEnsure, get S() { return S; } };
+      window.__kz = { orderedPages, movePage, syncChrome, treeEnsure, get S() { return S; } };
       try { injectDoc(editor.Canvas.getDocument()); } catch (e) { /* 프레임 대기 */ }
       setStatus(saved ? '저장됨 · 이 브라우저' : '새 작업');
     });

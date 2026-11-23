@@ -76,7 +76,7 @@ test('작업 파일 형식이 읽히고 옛 형식도 변환된다', async ({ pa
     let refused = false; try { KZ.store.migrate({ kind: 'other', gjs: {} }); } catch (x) { refused = true; }
     return [a.v, old.kind, refused];
   });
-  expect(r).toEqual([1, 'kz-editor', true]);
+  expect(r).toEqual([2, 'kz-editor', true]);
 });
 
 test('기본 문구에 특정 업종 단어가 남아 있지 않다', async ({ page }) => {
@@ -558,8 +558,8 @@ test('다른 탭에서 편집기를 열면 먼저 연 탭은 저장을 멈추고
   await expect.poll(() => page.evaluate(() => KZ.tabState().passive)).toBe(true);
   expect(await p2.evaluate(() => KZ.tabState().passive)).toBe(false);
   await expect(page.locator('#dlgT')).toHaveText('다른 탭에서 편집기를 열었습니다');
-  await page.evaluate(() => { window.__kzEditor.getWrapper().find('h1')[0].components('OLD-TAB'); });
-  await p2.evaluate(() => { window.__kzEditor.getWrapper().find('h1')[0].components('NEW-TAB'); });
+  await page.evaluate(() => { window.__kzEditor.getWrapper().find('h2')[0].components('OLD-TAB'); });
+  await p2.evaluate(() => { window.__kzEditor.getWrapper().find('h2')[0].components('NEW-TAB'); });
   await p2.waitForTimeout(1500);
   const saved = await p2.evaluate(async () => JSON.stringify((await KZ.store.DB.get('project')).gjs));
   expect(saved).toContain('NEW-TAB'); expect(saved).not.toContain('OLD-TAB');
@@ -569,11 +569,11 @@ test('고친 직후 바로 새로고침해도 마지막 수정이 남는다', as
   await open(page);
   let asked = false; page.on('dialog', d => { asked = d.type() === 'beforeunload'; d.accept(); }); // 확인 창을 바로 눌러도 남아야 함 (저장은 즉시 확정)
   await page.click('#stageTitle'); // 사용자 조작(브라우저가 닫기 확인을 띄우는 조건)
-  await page.evaluate(() => { window.__kzEditor.getWrapper().find('h1')[0].components('QUICK-1'); });
+  await page.evaluate(() => { window.__kzEditor.getWrapper().find('h2')[0].components('QUICK-1'); });
   expect(await page.evaluate(() => KZ.tabState().pending)).toBe(true);
   await page.reload();
   await page.waitForFunction(() => window.__kzEditor && document.getElementById('status').textContent !== '불러오는 중…');
-  expect(await page.evaluate(() => window.__kzEditor.getWrapper().find('h1')[0].toHTML())).toContain('QUICK-1');
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().find('h2')[0].toHTML())).toContain('QUICK-1');
   expect(asked).toBe(true);
 });
 
@@ -1031,7 +1031,7 @@ test('빈 페이지에 상단 메뉴 · 바닥글, 글 고친 뒤 되돌리기 �
   const h1 = fr.locator('h1').first(); await h1.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('XYZ');
   await fr.locator('body').click({ position: { x: 5, y: 500 } }); await page.waitForTimeout(300);
   await page.click('#undo'); await page.waitForTimeout(300);
-  expect(await h1.textContent()).toBe('[사이트 이름]');
+  expect(await h1.textContent()).toBe('내 사이트');
   // 자유 배치: 끈 만큼만 움직임 (예전엔 부모 기준이 틀려 화면 밖으로)
   await page.click('#modeFree'); await h1.click(); const b0 = await h1.boundingBox();
   await page.mouse.move(b0.x + 30, b0.y + 20); await page.mouse.down(); await page.mouse.move(b0.x + 130, b0.y - 80, { steps: 10 }); await page.mouse.up(); await page.waitForTimeout(300);
@@ -1101,7 +1101,7 @@ test('첫 페이지의 하위 페이지도 메뉴에 · 사이트 이름은 글 
     const w = e.Pages.get('news').getMainComponent();
     return [w.find('#pp1')[0].getInnerHTML(), w.find('#pp2')[0].getInnerHTML(), e.Canvas.getDocument().querySelector('.brand').textContent];
   });
-  expect(nm).toEqual(['카페 메뉴를 소개합니다', '카페 루나', '카페 루나']);
+  expect(nm).toEqual(['카페 메뉴를 소개합니다', '카페', '카페 루나']); // 본문 글은 건드리지 않고 이름 자리(로고 등)만
   // 3. 불러온 뒤 되돌리기 기록 없음
   const json = await page.evaluate(() => JSON.stringify(KZ.store.pack(window.__kz.S, window.__kzEditor.getProjectData())));
   await page.setInputFiles('#jsonIn', { name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(json) });
@@ -1221,10 +1221,11 @@ test('세트 자리표시([가게 이름])도 사이트 이름으로 — 로고 
       d.querySelectorAll('.foot').forEach(b => { if (b.textContent.includes('[이름]')) footLeft++; });
       d.querySelectorAll('.brand,.foot').forEach(b => b.remove()); body += (d.innerHTML.match(/\[이름\]/g) || []).length;
     });
-    return { brandLeft, footLeft, body, brand: e.Canvas.getDocument().querySelector('.brand').textContent };
+    let names = 0, wrong = 0; e.Pages.getAll().forEach(p => { const d = document.createElement('div'); d.innerHTML = p.getMainComponent().toHTML(); d.querySelectorAll('[data-site-name]').forEach(x => { names++; if (x.textContent !== '홍길동') wrong++; }); });
+    return { brandLeft, footLeft, body, names, wrong, brand: e.Canvas.getDocument().querySelector('.brand').textContent };
   });
   expect(r.brandLeft).toBe(0); expect(r.footLeft).toBe(0); expect(r.brand).toBe('홍길동');
-  expect(before).toBeGreaterThan(r.body); // 본문 [이름] 은 남음 (로고 · 바닥글만 바뀜)
+  expect(r.names).toBeGreaterThan(5); expect(r.wrong).toBe(0); expect(before).toBeGreaterThan(0);
   expect(r.body).toBeGreaterThan(0); // 본문의 [이름] 은 그대로
   expect(errors).toEqual([]);
 });
@@ -1248,20 +1249,45 @@ test('섹션은 메뉴를 품은 히어로 위로 못 감 · 상단 메뉴 블�
 });
 
 // ---------- 0.16.7 ----------
-test('팝업 버튼에 링크를 넣으면 팝업 효과를 풀고, 남아 있으면 내보내기에서 경고', async ({ page }) => {
+test('누르면 설정 하나: 팝업 버튼을 페이지 이동으로 바꾸면 링크만 남고, 두 탭이 같은 설정을 보여 준다', async ({ page }) => {
   const errors = await open(page);
-  // 팝업 버튼 하나 만들고 링크 넣기
   await page.evaluate(() => { const e = window.__kzEditor; const a = e.getWrapper().append('<a class="btn" href="#" data-click="modal" data-title="문의" data-text="전화">예약</a>')[0]; e.select(a); return 1; });
   await page.click('#side [data-tab="design"]');
+  await expect(page.locator('#tabDesign .opts button.on', { hasText: '중앙 모달' })).toBeVisible();
+  await page.locator('#tabDesign .opts button', { hasText: '페이지 이동' }).click();
   const url = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '또는 직접 주소' }) }).locator('input');
   await url.fill('https://booking.naver.com/x'); await url.press('Enter');
+  await expect.poll(() => page.evaluate(() => window.__kzEditor.getSelected().getAttributes().href)).toBe('https://booking.naver.com/x');
   const at = await page.evaluate(() => window.__kzEditor.getSelected().getAttributes());
-  expect(at.href).toBe('https://booking.naver.com/x'); expect(at['data-click']).toBeUndefined(); expect(at['data-title']).toBeUndefined();
-  await expect(page.locator('#toast')).toContainText('풀었습니다');
-  // 예전 작업 파일처럼 둘 다 걸린 것 → 내보내기 경고
-  await page.evaluate(() => { window.__kzEditor.getWrapper().append('<a class="btn" href="https://a.com" data-click="modal">x</a>'); return 1; });
-  await page.click('#publishBtn');
-  await expect(page.locator('#dlgB')).toContainText('함께 걸린 버튼');
+  expect(at['data-click']).toBeUndefined(); expect(at['data-title']).toBeUndefined(); expect(at.target).toBe('_blank');
+  // 효과 탭도 같은 설정
+  await page.click('#side [data-tab="fx"]');
+  await expect(page.locator('#tabFx .opts button.on', { hasText: '페이지 이동' })).toBeVisible();
+  // 효과 탭에서 팝업으로 바꾸면 링크 주소는 비움 (둘이 함께 걸리지 않음)
+  await page.locator('#tabFx .opts button', { hasText: '하단 시트' }).click();
+  await expect.poll(() => page.evaluate(() => { const a = window.__kzEditor.getSelected().getAttributes(); return a.href + '|' + a['data-click'] + '|' + (a.target || ''); })).toBe('#|sheet|');
+  expect(errors).toEqual([]);
+});
+
+test('예전 형식 작업 파일: 이름 자리에 표시가 달리고, 링크와 팝업이 함께 걸린 버튼은 팝업대로 정리', async ({ page }) => {
+  const errors = await open(page);
+  const json = await page.evaluate(() => {
+    const e = window.__kzEditor;
+    e.Pages.getAll().forEach(p => (function f(c) { if (c.getAttributes()['data-site-name']) { c.removeAttributes('data-site-name'); c.components('옛 이름'); } c.components().forEach(f); })(p.getMainComponent()));
+    e.getWrapper().append('<a class="btn" id="both" href="https://a.com" data-click="modal" data-title="t">x</a>');
+    const d = KZ.store.pack(Object.assign({}, window.__kz.S, { siteName: '옛 이름' }), e.getProjectData()); d.v = 1; return JSON.stringify(d);
+  });
+  await page.setInputFiles('#jsonIn', { name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(json) });
+  await expect(page.locator('#toast')).toContainText('불러왔습니다');
+  await page.fill('#siteName', '새 이름'); await page.locator('#siteName').blur(); await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor; let brands = 0, ok = 0, old = 0;
+    e.Pages.getAll().forEach(p => { const d = document.createElement('div'); d.innerHTML = p.getMainComponent().toHTML(); d.querySelectorAll('.brand').forEach(b => { brands++; if (b.textContent === '새 이름') ok++; }); old += (d.textContent.match(/옛 이름/g) || []).length; });
+    const b = e.Pages.getAll().map(p => p.getMainComponent().find('#both')[0]).find(Boolean).getAttributes();
+    return { brands, ok, old, href: b.href, click: b['data-click'] };
+  });
+  expect(r.brands).toBeGreaterThan(3); expect(r.ok).toBe(r.brands); expect(r.old).toBe(0);
+  expect(r.href).toBe('#'); expect(r.click).toBe('modal');
   expect(errors).toEqual([]);
 });
 
@@ -1278,5 +1304,28 @@ test('종류가 빈 사진 파일은 확장자로 올리고, 사진 · 영상이
   await expect(page.locator('#toast')).toContainText('1개는 사진 · 영상이 아니라');
   await page.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File(['x'], 'a.pdf', { type: 'application/pdf' })); const inp = document.getElementById('fileIn'); inp.files = dt.files; inp.dispatchEvent(new Event('change')); });
   await expect(page.locator('#toast')).toContainText('사진 · 영상만 올릴 수 있습니다');
+  expect(errors).toEqual([]);
+});
+
+// ---------- 0.17.0 한 곳에서 관리 ----------
+test('화면에서 로고를 고치면 사이트 이름이 바뀌고, 첫 화면 제목을 다른 글로 고치면 그 글은 남는다', async ({ page }) => {
+  const errors = await open(page);
+  const F = page.frameLocator('.gjs-frame');
+  await F.locator('.brand').first().dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('카페 루나');
+  await F.locator('.foot').first().click(); await page.waitForTimeout(400);
+  await expect(page.locator('#siteName')).toHaveValue('카페 루나');
+  const all = () => page.evaluate(() => { const o = []; window.__kzEditor.Pages.getAll().forEach(p => { const d = document.createElement('div'); d.innerHTML = p.getMainComponent().toHTML(); d.querySelectorAll('.brand').forEach(b => o.push(b.textContent)); }); return [...new Set(o)]; });
+  expect(await all()).toEqual(['카페 루나']);
+  // 첫 화면 큰 제목: 이름과 연동돼 있다가, 다른 글로 고치면 연동이 풀림
+  const h1 = F.locator('h1').first(); await expect(h1).toHaveText('카페 루나');
+  await h1.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('따뜻한 한 잔'); await F.locator('.foot').first().click(); await page.waitForTimeout(400);
+  await page.fill('#siteName', 'LUNA'); await page.locator('#siteName').blur(); await page.waitForTimeout(300);
+  await expect(h1).toHaveText('따뜻한 한 잔');
+  expect(await all()).toEqual(['LUNA']);
+  await expect(F.locator('.foot span').first()).toHaveText('© LUNA');
+  // 되돌리기 뒤에도 다시 하기가 남음 (메뉴 · 이름 맞추기가 기록을 지우지 않음)
+  await page.evaluate(() => { window.__kzEditor.getWrapper().append('<p id="zz">추가</p>'); return 1; }); await page.waitForTimeout(200);
+  await page.click('#undo'); await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__kzEditor.UndoManager.hasRedo())).toBe(true);
   expect(errors).toEqual([]);
 });
