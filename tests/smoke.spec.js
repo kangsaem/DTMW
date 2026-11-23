@@ -1083,3 +1083,51 @@ test('페이지 주소 자동 · 주소 바꾸기(링크도) · 첫 페이지 �
   await expect(page.locator('#layers .gjs-layer-name').first()).toHaveText('페이지');
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.16.4 다시 점검 ----------
+test('첫 페이지의 하위 페이지도 메뉴에 · 사이트 이름은 글 전체가 같을 때만 · 불러온 뒤 되돌리기 없음 · 주소 되돌리기 순서 유지', async ({ page }) => {
+  const errors = await open(page);
+  // 1. 첫 페이지 하위 페이지
+  await page.evaluate(() => { window.__kz.movePage('about', 'home', 'inside'); return 1; });
+  const nav = await page.evaluate(() => (window.__kzEditor.Pages.get('news').getMainComponent().toHTML().match(/<nav[^]*?<\/nav>/) || [''])[0]);
+  expect(nav).toContain('href="#about"');
+  expect(nav).not.toContain('href="#home"');
+  // 2. 사이트 이름
+  const nm = await page.evaluate(() => {
+    const e = window.__kzEditor, s = document.getElementById('siteName');
+    s.value = '카페'; s.dispatchEvent(new Event('change'));
+    e.Pages.select('news'); e.getWrapper().append('<p id="pp1">카페 메뉴를 소개합니다</p><p id="pp2">카페</p>');
+    s.value = '카페 루나'; s.dispatchEvent(new Event('change'));
+    const w = e.Pages.get('news').getMainComponent();
+    return [w.find('#pp1')[0].getInnerHTML(), w.find('#pp2')[0].getInnerHTML(), e.Canvas.getDocument().querySelector('.brand').textContent];
+  });
+  expect(nm).toEqual(['카페 메뉴를 소개합니다', '카페 루나', '카페 루나']);
+  // 3. 불러온 뒤 되돌리기 기록 없음
+  const json = await page.evaluate(() => JSON.stringify(KZ.store.pack(window.__kz.S, window.__kzEditor.getProjectData())));
+  await page.setInputFiles('#jsonIn', { name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(json) });
+  await expect(page.locator('#toast')).toContainText('불러왔습니다');
+  expect(await page.evaluate(() => window.__kzEditor.UndoManager.hasUndo())).toBe(false);
+  // 4. 주소 바꾸기 → 되돌리기: 순서 · 하위 관계 유지
+  const before = await page.evaluate(() => window.__kz.orderedPages().map(p => p.getId()));
+  await page.evaluate(() => { window.__kzEditor.Pages.select('about'); return 1; });
+  await page.click('.rail button[data-pane="pg"]'); await page.waitForTimeout(300);
+  await page.locator('.pg.on .pg-id').click(); await page.locator('#npNewId').fill('studio'); await page.locator('#dlgF button', { hasText: '바꾸기' }).click();
+  await expect.poll(() => page.evaluate(() => window.__kz.treeEnsure().studio && window.__kz.treeEnsure().studio.parent)).toBe('home');
+  await page.evaluate(() => { for (let i = 0; i < 40 && !window.__kzEditor.Pages.get('about'); i++) window.__kzEditor.UndoManager.undo(); return 1; });
+  await page.waitForTimeout(100);
+  const after = await page.evaluate(() => ({ order: window.__kz.orderedPages().map(p => p.getId()), parent: window.__kz.treeEnsure().about.parent }));
+  expect(after.order).toEqual(before);
+  expect(after.parent).toBe('home');
+  expect(errors).toEqual([]);
+});
+
+test('전시 글 줄 간격 처음 값 · 꺼낸 창 Ctrl+S', async ({ page }) => {
+  const errors = await open(page);
+  // 줄 간격: 화면의 글자 크기 기준 (전시 표지 제목 50 / 50 → 1.00 근처)
+  await page.evaluate(() => { const e = window.__kzEditor; e.getWrapper().append(KZ.sectionHtml('exh-cover')); e.select(e.getWrapper().find('.exh-title')[0]); return 1; });
+  await page.click('#side [data-tab="design"]');
+  const lh = await page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^줄 간격$/ }) }).first().locator('output').textContent();
+  expect(+lh).toBeLessThan(1.3);
+  expect(await page.evaluate(() => typeof KZ.saveKey)).toBe('function');
+  expect(errors).toEqual([]);
+});

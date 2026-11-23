@@ -138,7 +138,7 @@
     function saveKey(e) {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); e.stopPropagation(); saveProjectFile(); toast('작업 파일을 받았습니다 (Ctrl+S)'); }
     }
-    document.addEventListener('keydown', saveKey, true);
+    document.addEventListener('keydown', saveKey, true); KZ.saveKey = saveKey;
     function saveProjectFile() {
       offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
       fileDirty(false);
@@ -315,8 +315,10 @@
     }
     function syncMenus() {
       if (S.autoMenu === false) return;
-      const first = (orderedPages()[0] || { getId: () => 'home' }).getId();
-      const items = menuItems().filter(i => i.id !== first);
+      const first = (orderedPages()[0] || { getId: () => 'home' }).getId(), T = treeEnsure();
+      // 첫 페이지는 메뉴에서 빼되(로고가 첫 페이지로 감), 그 하위 페이지는 메뉴 맨 앞에 (전에는 함께 사라졌음)
+      const firstKids = T[first] ? kids(first).filter(c => T[c.getId()].menu !== false).map(c => ({ id: c.getId(), name: pname(c), kids: [] })) : [];
+      const items = firstKids.concat(menuItems().filter(i => i.id !== first));
       const nav = items.map(i => i.kids.length
         ? '<div class="nav-item"><a href="#' + i.id + '">' + esc(i.name) + '</a><div class="nav-sub">' + i.kids.map(k => '<a href="#' + k.id + '">' + esc(k.name) + '</a>').join('') + '</div></div>'
         : '<a href="#' + i.id + '">' + esc(i.name) + '</a>').join('');
@@ -362,9 +364,8 @@
       if (!v) return;
       const want = v.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
       if (!want || want === old) return;
-      const nid = uniqueId(want), T = treeEnsure(), t = T[old];
-      p.set('id', nid); delete T[old]; T[nid] = t;
-      Object.values(T).forEach(x => { if (x.parent === old) x.parent = nid; });
+      const nid = uniqueId(want); treeEnsure();
+      p.set('id', nid); // 트리 옮기기는 아래 change:id 에서 (되돌리기로 주소가 돌아갈 때도 같은 처리)
       let n = 0;
       editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
         const at = c.getAttributes(); const ch = {};
@@ -373,6 +374,16 @@
       }));
       afterTree(); renderPages(); toast('주소를 #' + nid + ' (으)로 바꿨습니다' + (n ? ' — 링크 ' + n + '곳도' : ''));
     }
+    // 페이지 주소가 바뀌면(주소 바꾸기 · 그 되돌리기) 트리의 순서 · 하위 관계를 새 주소로 옮김
+    // (전에는 되돌리면 그 페이지가 목록 맨 끝으로 가고 하위 관계가 풀렸음)
+    editor.Pages.pages.on('change:id', p => {
+      const old = p.previous('id'), nid = p.getId(), T = S.tree;
+      if (!T || old == null || old === nid || !T[old]) return;
+      T[nid] = T[old]; delete T[old];
+      Object.values(T).forEach(x => { if (x.parent === old) x.parent = nid; });
+      if (collapsed.delete(old)) collapsed.add(nid);
+      if (booted) setTimeout(() => { renderNav(); renderPages(); }, 0);
+    });
     async function deletePage(p) {
       if (realPages().length < 2) return toast('마지막 페이지는 지울 수 없습니다');
       if (orderedPages()[0] === p) return toast('첫 페이지(사이트를 열면 보이는 페이지)는 지울 수 없습니다 — 다른 페이지를 \'첫 페이지로\' 지정한 뒤 지우세요');
@@ -828,7 +839,8 @@
         [['300', '가늘게'], ['400', '보통'], ['500', '중간'], ['600', '약간 굵게'], ['700', '굵게']].forEach(([v, t]) => w.appendChild(h('option', { value: v, textContent: t })));
         w.value = String(Math.round(num(val(sel, 'font-weight'), 400) / 100) * 100); w.onchange = () => setStyle(sel, { 'font-weight': w.value });
         box.appendChild(field('굵기', w));
-        const fs = num(val(sel, 'font-size'), 16);
+        // 줄 간격 · 자간 환산용 글자 크기는 화면에 실제로 보이는 값 (calc(var(--u) * N) · min(…) 은 숫자로 못 읽어 16 으로 잘못 환산됐음)
+        const fs = num(cs(sel) ? cs(sel).fontSize : '', num(val(sel, 'font-size'), 16));
         const lhRaw = val(sel, 'line-height'); const lh = /px/.test(lhRaw) ? num(lhRaw, fs * 1.5) / fs : num(lhRaw, 1.5);
         box.appendChild(slider('줄 간격', 0.9, 2.6, 0.05, +lh.toFixed(2), v => v.toFixed(2), v => setStyle(sel, { 'line-height': String(v) })));
         const lsRaw = val(sel, 'letter-spacing'); const ls = /em/.test(lsRaw) ? num(lsRaw, 0) : num(lsRaw, 0) / fs;
@@ -1057,13 +1069,16 @@
     }
     $('#pvTrans').onclick = () => openPreview();
     // 사이트 이름: 페이지 안의 [사이트 이름] · 이전 이름도 함께 바꿈 (직접 다른 글로 고친 곳은 그대로)
+    // [사이트 이름] 자리표시는 글 중간에 있어도 바꾸고, 이전 이름은 글 전체가 그 이름일 때만 바꿈 ('카페' → '카페 루나' 가 '카페 메뉴' 까지 바꾸던 문제)
     $('#siteName').onchange = e => {
       const prev = S.siteName, next = e.target.value.trim() || '내 사이트'; S.siteName = next;
-      const targets = [...new Set([prev, '[사이트 이름]'].filter(t => t && t !== next && t !== '내 사이트'))];
+      const PH = '[사이트 이름]', whole = prev && prev !== next && prev !== '내 사이트' && prev !== PH ? esc(prev) : null;
       let n = 0;
       editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
         if (!c.components().length || !c.components().every(x => x.is('textnode'))) return;
-        const html = c.getInnerHTML(); let out = html; targets.forEach(t => { out = out.split(esc(t)).join(esc(next)); });
+        const html = c.getInnerHTML(); let out = html;
+        if (next !== PH) out = out.split(esc(PH)).join(esc(next));
+        if (whole && out.trim() === whole) out = esc(next);
         if (out !== html) { c.components(out); n++; }
       }));
       save(); if (n) toast('페이지 안의 사이트 이름 ' + n + '곳도 바꿨습니다');
@@ -1144,7 +1159,8 @@
       try {
         const d = KZ.store.migrate(JSON.parse(await f.text()));
         S = Object.assign(DEFAULT_S(), d.S || {}); editor.loadProjectData(d.gjs);
-        treeEnsure(); syncMenus(); syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
+        treeEnsure(); syncMenus(); editor.UndoManager.clear(); // 불러오기 전 되돌리기 기록은 버림 (남아 있으면 Ctrl+Z 가 불러온 내용을 어긋나게 바꿈)
+        syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
     $('#publishBtn').onclick = () => exportDialog();

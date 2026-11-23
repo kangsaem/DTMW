@@ -52,6 +52,7 @@ window.KZ = window.KZ || {};
       var mark = document.createComment('panel:' + name); el.parentNode.insertBefore(mark, el);
       doc.body.appendChild(el); el.classList.add('outside');
       KZ.ui.docs.push(doc);
+      if (KZ.saveKey) doc.addEventListener('keydown', KZ.saveKey, true); // 꺼낸 창에서도 Ctrl+S = 작업 파일 받기
       outs[name] = { name: name, el: el, mark: mark, win: win, kind: r.kind };
       document.getElementById('main').classList.add('float-' + name);
       btnState(name, true);
