@@ -7,7 +7,7 @@
   html: () =>
     '<section class="hero" data-bgvideo="1"><div class="hero-bg"></div><div class="hero-photo" style="background-image:url(&quot;' + KZ.sample(0, 1600, 1000) + '&quot;)"></div><div class="hero-shade"></div>' + nav(true) +
     '<p class="hero-note">샘플 배경 — 이 영역을 선택하고 업로드 탭에서 사진 · 영상으로 교체</p>' +
-    '<div class="hero-txt"><h1 class="hero-name" data-anim="fade-up">[사이트 이름]</h1><a class="hero-now" href="#news" data-anim="fade-up">[알림 한 줄] — [제목] · [날짜] →</a></div></section>' +
+    '<div class="hero-txt"><h1 class="hero-name" data-anim="fade-up" data-site-name="1">[사이트 이름]</h1><a class="hero-now" href="#news" data-anim="fade-up">[알림 한 줄] — [제목] · [날짜] →</a></div></section>' +
     '<section class="wrap"><div class="row-head"><h2 class="h2">대표 항목</h2><a class="more" href="#gallery">전체 보기 →</a></div>' +
     '<div class="grid g3">' + fig(0, 2026, { hover: 'zoom' }) + fig(1, 2025, { hover: 'zoom' }) + fig(2, 2024, { hover: 'zoom' }) + '</div></section>' +
     '<section class="wrap"><div class="row-head"><h2 class="h2">소식</h2><a class="more" href="#news">전체 소식 →</a></div><div>' + exRow('[분류 A]') + exRow('[분류 B]') + exRow('[분류 A]') + '</div></section>' + FOOT });

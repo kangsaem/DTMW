@@ -3,7 +3,7 @@
 window.KZ = window.KZ || {};
 (function (KZ) {
   'use strict';
-  var FORMAT = 1; // 작업 파일 형식 버전
+  var FORMAT = 2; // 작업 파일 형식 버전 (2: 사이트 이름 자리 표시 data-site-name, 누르면 설정 하나 — 0.17.0)
 
   var DB = {
     // 연결은 한 번 열어 재사용합니다 (창을 닫는 순간의 저장도 바로 시작되도록). 연결이 닫히면 다시 엶
@@ -24,7 +24,8 @@ window.KZ = window.KZ || {};
     if (d.kind !== 'kz-editor') throw new Error('작업 파일이 아닙니다');
     if (!d.v) d.v = 1;
     if (d.v > FORMAT) throw new Error('더 새 버전의 편집기에서 만든 파일입니다. 편집기를 새로고침해 보세요.');
-    // 예: if (d.v === 1) { …형식 변환…; d.v = 2; }
+    // 요소를 고쳐야 하는 변환은 불러온 뒤 편집기에서 (main.js upgradeProject) — 여기서는 어느 형식에서 왔는지만 알려 줌
+    d.from = d.v; d.v = FORMAT;
     return d;
   }
   KZ.store = { DB: DB, FORMAT: FORMAT, pack: pack, migrate: migrate };
