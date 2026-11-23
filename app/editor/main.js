@@ -61,7 +61,9 @@
         const ed = doc.createElement('style'); ed.id = 'kz-edit';
         ed.textContent = 'html body{background:var(--bg)}' +
           ':is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption):empty{min-height:1em;min-width:3em}' +
-          ':is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption):empty:not(:focus)::before{content:"[빈 글]";opacity:.35;font-size:max(12px,.6em)}';
+          ':is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption):empty:not(:focus)::before{content:"[빈 글]";opacity:.35;font-size:max(12px,.6em)}' +
+          ':is(a,button):empty{display:inline-block;min-width:3em;min-height:1em;vertical-align:middle}' +
+          ':is(a,button):empty:not(:focus)::before{content:"[빈 링크]";opacity:.45;font-size:12px}';
         doc.head.appendChild(ed);
         // Alt(⌥)+클릭: 링크가 가리키는 페이지로 이동
         const jump = e => {
@@ -322,8 +324,22 @@
       let id = (base || 'page').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
       let n = 1, out = id; while (editor.Pages.get(out)) out = id + '-' + (++n); return out;
     }
+    // 빈 페이지에 넣을 상단 메뉴 · 바닥글: 다른 페이지에 맨 위 단계로 있는 것을 복사 (없으면 기본). 메뉴 글은 자동 메뉴가 다시 맞춤
+    function frameHtml() {
+      let navH = '', footH = '';
+      for (const pg of orderedPages()) {
+        const cs = pg.getMainComponent().components();
+        if (!navH) { const n = cs.find(isNavTop); if (n) navH = n.toHTML(); }
+        if (!footH) { const f = cs.find(isFootTop); if (f) footH = f.toHTML(); }
+        if (navH && footH) break;
+      }
+      const strip = h => h.replace(/\sid="[^"]*"/g, '');
+      return [strip(navH || KZ.H.nav()), strip(footH || KZ.H.FOOT)];
+    }
     function addPage(name, html, id, parent) {
-      const p = editor.Pages.add({ id: uniqueId(id || 'page'), name: name || '새 페이지', component: html || '<section class="wrap" data-blank="1"><h1 class="title">새 페이지</h1><p class="body-p">템플릿 탭에서 섹션을 고르거나 요소 탭에서 끌어 오세요. 첫 섹션을 넣으면 이 안내는 사라집니다.</p></section>' });
+      let comp = html;
+      if (!comp) { const [nv, ft] = frameHtml(); comp = nv + '<section class="wrap" data-blank="1"><h1 class="title">새 페이지</h1><p class="body-p">템플릿 탭에서 섹션을 고르거나 요소 탭에서 끌어 오세요. 첫 섹션을 넣으면 이 안내는 사라집니다.</p></section>' + ft; }
+      const p = editor.Pages.add({ id: uniqueId(id || 'page'), name: name || '새 페이지', component: comp });
       const T = treeEnsure(); if (parent && T[parent] && !T[parent].parent) { T[p.getId()].parent = parent; renumberAll(); }
       editor.Pages.select(p); afterTree(); return p;
     }
@@ -409,9 +425,18 @@
       narrowCheck();
     }
     // PC 화면인데 편집 화면이 좁으면(사이트 대부분이 모양을 바꾸는 760px 미만) 모바일 모양으로 보인다고 알림
+    // 편집 화면이 640px 보다 좁으면 PC 모양(메뉴 ≡)이 안 보임 → 처음 한 번은 왼쪽 패널을 자동으로 접고, 그 뒤로는 알림만
+    let autoFolded = false;
     function narrowCheck() {
-      const f = editor.Canvas.getFrameEl(), w = f ? f.clientWidth : 0, n = $('#narrowNote');
-      if (n) n.hidden = !(editor.getDevice() === 'desktop' && w > 0 && w < 640);
+      const cv = editor.Canvas.getElement(), w = cv ? cv.clientWidth : 0, n = $('#narrowNote');
+      const narrow = editor.getDevice() === 'desktop' && w > 0 && w < 640;
+      if (narrow && !autoFolded && !$('#main').classList.contains('no-drawer') && !(KZ.popout && KZ.popout.isOut('drawer'))) {
+        autoFolded = true; $('#main').classList.add('no-drawer'); $$('.rail button').forEach(b => b.classList.remove('on'));
+        setTimeout(() => editor.refresh(), 50);
+        toast('편집 화면이 좁아 왼쪽 패널을 접었습니다 — 왼쪽 아이콘을 누르면 다시 열립니다');
+        return setTimeout(narrowCheck, 300);
+      }
+      if (n) n.hidden = !narrow;
     }
     if (window.ResizeObserver) new ResizeObserver(() => narrowCheck()).observe($('#gjs'));
     $('#pageSel').onchange = e => editor.Pages.select(e.target.value);
@@ -481,8 +506,14 @@
         const leaf = sel.is('text') || sel.is('image') || sel.is('video') || sel.is('link') || sel.get('tagName') === 'button';
         if (leaf && sel.parent()) { target = sel.parent(); at = sel.index() + 1; } else target = sel;
       }
-      const added = target.append(def, at != null ? { at } : {})[0];
-      if (added) editor.select(added);
+      let added;
+      if (target === wrapper) {
+        // 아무것도 고르지 않았으면 새 섹션으로 감싸 바닥글 바로 위에 (바닥글 아래 · 맨 끝에 들어가 안 보이던 문제)
+        const f = wrapper.components().filter(isFootTop).pop();
+        const sec = wrapper.append({ tagName: 'section', classes: ['wrap'], components: [def] }, { at: f ? f.index() : wrapper.components().length })[0];
+        added = sec && sec.components().at(0);
+      } else added = target.append(def, at != null ? { at } : {})[0];
+      if (added) { editor.select(added); try { added.getEl().scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* 무시 */ } }
       return added;
     }
     function applyAsset(a) {
@@ -491,6 +522,16 @@
         if (sel && sel.is('image')) { sel.set('src', a.src); fitPosArt(sel); return toast('이미지를 바꿨습니다'); }
         const fx = up(sel, c => !!attr(c, 'data-bgvideo')), fxm = fx && fx.find('.bgfix-media')[0];
         if (fxm && !fxm.find('img').length) { fxm.components(''); fxm.append({ type: 'image', src: a.src, attributes: { alt: '' } }); return toast('배경 사진을 넣었습니다'); }
+        // 히어로(사진 · 영상 배경): 고른 곳이 히어로 안이면 배경 사진으로 — 배경 영상 · 안내 문구는 뺌
+        const hero = up(sel, c => !!attr(c, 'data-bgvideo'));
+        if (hero && !(sel && sel.is('link'))) {
+          let ph = hero.find('.hero-photo')[0];
+          if (!ph) ph = hero.append({ tagName: 'div', classes: ['hero-photo'] }, { at: 1 })[0];
+          ph.addStyle({ 'background-image': 'url("' + a.src + '")' });
+          hero.find('video').forEach(v => v.remove());
+          const note = hero.find('.hero-note')[0]; if (note) note.remove();
+          return toast('배경 사진을 바꿨습니다');
+        }
         if (sel && attr(sel, 'data-hover') === 'cursor') { sel.addAttributes({ 'data-preview': a.src }); return toast('커서 미리보기 이미지를 바꿨습니다'); }
         const inner = sel && sel.find('img')[0];
         if (inner) { inner.set('src', a.src); return toast('선택한 영역의 이미지를 바꿨습니다'); }
@@ -577,7 +618,7 @@
         mk('앞으로', '<svg ' + P + '><rect x="4" y="4" width="11" height="11"/><rect x="9" y="9" width="11" height="11" fill="currentColor" opacity=".25"/></svg>', () => { const z = num(val(sel, 'z-index'), 0) + 1; const p = val(sel, 'position'); setStyle(sel, Object.assign({ 'z-index': String(z) }, p === 'static' ? { position: 'relative' } : {})); toast('앞으로 (z ' + z + ')'); }),
         mk('뒤로', '<svg ' + P + '><rect x="9" y="9" width="11" height="11"/><rect x="4" y="4" width="11" height="11" fill="currentColor" opacity=".25"/></svg>', () => { const z = num(val(sel, 'z-index'), 0) - 1; const p = val(sel, 'position'); setStyle(sel, Object.assign({ 'z-index': String(z) }, p === 'static' ? { position: 'relative' } : {})); toast('뒤로 (z ' + z + ')'); }),
         mk('맞춤 해제', '<svg ' + P + '><path d="M4 4l16 16M20 4L4 20"/></svg>', () => { editor.Css.setRule('#' + sel.getId(), {}, mediaOpts()); renderSide(); toast('이 기기 화면에서 바꾼 스타일을 지웠습니다'); }),
-        mk('페이지 끝', '<svg ' + P + '><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>', () => { const w = editor.getWrapper(); if (sel.move) sel.move(w, { at: w.components().length }); editor.select(sel); })
+        mk('페이지 끝', '<svg ' + P + '><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>', () => { const w = editor.getWrapper(), f = w.components().filter(isFootTop).pop(); if (sel.move && sel !== f) sel.move(w, { at: f ? f.index() : w.components().length }); editor.select(sel); })
       );
       return box;
     }
@@ -963,8 +1004,34 @@
       const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; if (am.checked) syncMenus(); save(); toast(am.checked ? '상단 메뉴를 페이지 목록대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
       $$('#speedSeg button').forEach(b => { b.classList.toggle('on', b.dataset.v === S.speed); b.onclick = () => { S.speed = b.dataset.v; $$('#speedSeg button').forEach(x => x.classList.toggle('on', x === b)); refreshTheme(); save(); }; });
     }
+    // 공유 · 검색: 설명, 사이트 주소, 공유 이미지, 파비콘 (내보낸 사이트의 <head>)
+    function renderMeta() {
+      const box = $('#metaFields'); if (!box) return; box.innerHTML = '';
+      const imgs = S.assets.filter(a => a.type === 'image');
+      const lab = (t, el, hint) => h('label', { className: 'meta-f' }, [h('span', { className: 'lbl', textContent: t }), el].concat(hint ? [h('small', { className: 'hint', textContent: hint })] : []));
+      const ds = h('textarea', { className: 'inp', rows: 2, value: S.desc || '', placeholder: '예: 강이조 개인전 · 작업 소개' }); ds.onchange = () => { S.desc = ds.value.trim(); save(); };
+      const url = h('input', { className: 'inp', value: S.siteUrl || '', placeholder: 'https://아이디.github.io/저장소' }); url.onchange = () => { S.siteUrl = url.value.trim(); save(); renderMeta(); };
+      const pick = (key, none) => { const sl = h('select', { className: 'inp' }); sl.appendChild(h('option', { value: '', textContent: none })); imgs.forEach(a => sl.appendChild(h('option', { value: a.id, textContent: a.name }))); sl.value = imgs.some(a => a.id === S[key]) ? S[key] : ''; sl.onchange = () => { S[key] = sl.value; save(); }; return sl; };
+      box.append(
+        lab('사이트 설명', ds, '검색 결과와 링크 공유 때 보이는 한두 줄'),
+        lab('사이트 주소 (선택)', url, '올린 뒤의 주소. 넣어야 카카오톡 등에서 공유 이미지가 보입니다'),
+        lab('공유 이미지', pick('shareImg', imgs.length ? '없음' : '없음 — 업로드 탭에서 사진을 올리세요'), S.siteUrl ? '' : '사이트 주소를 넣어야 적용됩니다'),
+        lab('파비콘 (탭 아이콘)', pick('favicon', '사이트 이름 첫 글자 (자동)'))
+      );
+    }
     $('#pvTrans').onclick = () => openPreview();
-    $('#siteName').onchange = e => { S.siteName = e.target.value || 'site'; save(); };
+    // 사이트 이름: 페이지 안의 [사이트 이름] · 이전 이름도 함께 바꿈 (직접 다른 글로 고친 곳은 그대로)
+    $('#siteName').onchange = e => {
+      const prev = S.siteName, next = e.target.value.trim() || '내 사이트'; S.siteName = next;
+      const targets = [...new Set([prev, '[사이트 이름]'].filter(t => t && t !== next && t !== '내 사이트'))];
+      let n = 0;
+      editor.Pages.getAll().forEach(pg => walk(pg.getMainComponent(), c => {
+        if (!c.components().length || !c.components().every(x => x.is('textnode'))) return;
+        const html = c.getInnerHTML(); let out = html; targets.forEach(t => { out = out.split(esc(t)).join(esc(next)); });
+        if (out !== html) { c.components(out); n++; }
+      }));
+      save(); if (n) toast('페이지 안의 사이트 이름 ' + n + '곳도 바꿨습니다');
+    };
 
     // ---------- 왼쪽 탭 ----------
     function openPane(id) {
@@ -973,8 +1040,14 @@
       $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === id));
       const rb = $('.rail button[data-pane="' + id + '"]'); $('#drawerTitle').textContent = rb ? rb.textContent.trim() : '';
       if (id === 'pg') renderPages();
+      if (id === 'site') renderMeta();
       setTimeout(() => editor.refresh(), 50);
     }
+    // 그림을 두 번 누르면: GrapesJS 영어 'Select Image' 창 대신 업로드 탭 (올린 사진이 없으면 파일 고르기)
+    ['core:open-assets', 'open-assets'].forEach(cmd => editor.Commands.add(cmd, { run() {
+      const out = KZ.popout && KZ.popout.isOut('drawer'); if (!out) openPane('up');
+      if (!S.assets.some(a => a.type === 'image')) fileIn.click(); else toast('올린 사진을 누르면 고른 그림이 바뀝니다');
+    } }));
     $$('.rail button').forEach(b => b.onclick = () => {
       const drawerOut = KZ.popout && KZ.popout.isOut('drawer');
       if (!drawerOut && b.classList.contains('on') && !$('#main').classList.contains('no-drawer')) { $('#main').classList.add('no-drawer'); b.classList.remove('on'); setTimeout(() => editor.refresh(), 50); return; }
@@ -986,15 +1059,36 @@
     mq.addEventListener ? mq.addEventListener('change', onMq) : mq.addListener(onMq); onMq();
 
     // ---------- 상단 바 ----------
-    $('#undo').onclick = () => editor.UndoManager.undo();
-    $('#redo').onclick = () => editor.UndoManager.redo();
+    // 되돌리기: 글 고치기 한 번이 GrapesJS 안에서 여러 단계로 쌓여, 한 번 눌러서는 화면이 그대로인 경우가 있음
+    // → 화면(HTML · CSS)이 바뀔 때까지 몇 단계 더 되돌림
+    const snap = () => editor.getHtml() + '\n' + editor.getCss({ keepUnusedStyles: true });
+    function stepUndo(redo) {
+      const um = editor.UndoManager, has = () => redo ? um.hasRedo() : um.hasUndo();
+      if (!has()) return;
+      const before = snap(); let n = 0;
+      do { redo ? um.redo() : um.undo(); n++; } while (has() && n < 8 && snap() === before);
+    }
+    ['core:undo', 'core:redo'].forEach(id => editor.Commands.add(id, { run() { stepUndo(id === 'core:redo'); } }));
+    // 글 고치기 한 번(두 번 눌러 편집 ~ 끝)에 쌓인 단계를 하나로 묶음: 되돌리기 한 번에 편집 전 글로
+    let rteFrom = -1;
+    editor.on('rte:enable', () => { rteFrom = editor.UndoManager.getStack().length; });
+    editor.on('rte:disable', () => setTimeout(() => {
+      const st = editor.UndoManager.getStack(); if (rteFrom < 0 || st.length - rteFrom < 2) return;
+      const first = st.at(rteFrom); const idx = first && first.get('magicFusionIndex');
+      if (idx != null) for (let i = rteFrom; i < st.length; i++) st.at(i).set('magicFusionIndex', idx);
+      rteFrom = -1;
+    }, 0));
+    $('#undo').onclick = () => stepUndo(false);
+    $('#redo').onclick = () => stepUndo(true);
     $$('[data-dev]').forEach(b => b.onclick = () => {
       editor.setDevice(b.dataset.dev); $$('[data-dev]').forEach(x => x.classList.toggle('on', x === b));
       if (b.dataset.dev !== 'desktop') toast((b.dataset.dev === 'mobile' ? '모바일' : '태블릿') + ' 화면 — 여기서 바꾼 디자인은 이 크기에만 적용됩니다');
       renderSide(); renderStageHead();
+      // 화면 크기가 바뀌는 동안 읽은 값(글자 크기 · 좁음 알림)이 틀릴 수 있어 바뀐 뒤 한 번 더
+      setTimeout(() => { renderSide(); narrowCheck(); }, 500);
     });
     $('#modeFlow').onclick = () => { editor.setDragMode(''); $('#modeFlow').classList.add('on'); $('#modeFree').classList.remove('on'); toast('정렬 배치 — 요소가 위아래로 정렬됩니다'); };
-    $('#modeFree').onclick = () => { editor.setDragMode('absolute'); $('#modeFree').classList.add('on'); $('#modeFlow').classList.remove('on'); toast('자유 배치 — 끌어서 원하는 위치에 놓습니다. 모바일 화면도 꼭 확인하세요'); };
+    $('#modeFree').onclick = () => { editor.setDragMode('translate'); $('#modeFree').classList.add('on'); $('#modeFlow').classList.remove('on'); toast('자유 배치 — 끌어서 원하는 위치에 놓습니다. 모바일 화면도 꼭 확인하세요'); };
     const fileMenu = $('#fileMenu');
     $('#fileBtn').onclick = e => { e.stopPropagation(); fileMenu.classList.toggle('open'); };
     document.addEventListener('click', () => fileMenu.classList.remove('open'));
@@ -1035,7 +1129,7 @@
         '<p class="hint"><a href="' + GUIDE + '" target="_blank" rel="noopener">GitHub에 올리는 방법 보기 ↗</a> · 나중에 고치려면 <b>작업 파일</b>도 받아 두세요 (GitHub에는 올리지 않음).</p>';
       const btns = [['닫기', null], ['작업 파일', d => { d(null); saveProjectFile(); }]];
       if (media.length) {
-        btns.push(['index.html 하나', d => { d(null); offerFile('index.html', html, 'text/html'); }]);
+        btns.push(['index.html 하나', d => { d(null); offerFile('index.html', html.replace(/<meta property="og:image" content="[^"]*data:[^"]*">\n/, ''), 'text/html'); }]);
         btns.push(['ZIP 받기', d => { d(null); offerFile(fileBase() + '.zip', KZ.zip([{ path: 'index.html', text: pkg.html }].concat(media)), 'application/zip'); }, 'pri']);
       } else btns.push(['index.html 받기', d => { d(null); offerFile('index.html', html, 'text/html'); }, 'pri']);
       return dialog('내보내기', body, btns);
@@ -1043,10 +1137,12 @@
 
     // ---------- 내보내기 ----------
     const offerFile = (name, data, mime) => KZ.offerFile(name, data, mime);
+    const assetSrc = id => { const a = id && S.assets.find(x => x.id === id && x.type === 'image'); return a ? a.src : ''; };
     function buildSite(startId) {
       return KZ.buildSite({
         pages: orderedPages().map(p => { const t = treeEnsure()[p.getId()]; return { id: p.getId(), name: pname(p), parent: t.parent || null, menu: t.menu !== false, html: p.getMainComponent().getInnerHTML() }; }),
-        css: editor.getCss({ keepUnusedStyles: true }) || '', S, startId
+        css: editor.getCss({ keepUnusedStyles: true }) || '', S, startId,
+        shareSrc: assetSrc(S.shareImg), iconSrc: assetSrc(S.favicon)
       });
     }
 

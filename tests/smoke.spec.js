@@ -604,8 +604,11 @@ for (const w of [1024, 1280, 1440]) {
 }
 
 test('PC 화면인데 편집 화면이 좁으면 알림이 뜨고, 넓으면 없다', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
+  // 0.16.2: 처음 한 번은 왼쪽 패널을 자동으로 접어 PC 모양으로, 다시 펼치면 알림
+  await page.setViewportSize({ width: 1100, height: 800 });
   await open(page);
+  await expect(page.locator('#main')).toHaveClass(/no-drawer/);
+  await page.click('.rail button[data-pane="tpl"]');
   await expect(page.locator('#narrowNote')).toBeVisible();
   await page.setViewportSize({ width: 1600, height: 900 });
   await expect(page.locator('#narrowNote')).toBeHidden();
@@ -852,7 +855,7 @@ test('빈 페이지에 첫 섹션을 넣으면 안내 섹션이 사라지고, �
   await page.click('.rail button[data-pane="tpl"]');
   await page.locator('.tpl', { hasText: '약력 · 연락처' }).first().click(); await page.locator('#dlgF button', { hasText: '섹션으로 추가' }).click();
   const tops = await page.evaluate(() => window.__kzEditor.getWrapper().components().map(c => c.getClasses().join('.')));
-  expect(tops).toEqual(['exh.exh-cv']);
+  expect(tops).toEqual(['nav', 'exh.exh-cv', 'foot']); // 0.16.2: 빈 페이지에도 상단 메뉴 · 바닥글
   const t = page.frameLocator('.gjs-frame').locator('.exh-cv-t').first();
   await t.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('my_account'); await page.mouse.click(800, 60);
   expect(await t.innerText()).toBe('my_account');
@@ -988,5 +991,71 @@ test('Ctrl+S 는 작업 파일 받기, 아이폰 HEIC 는 안내 후 올리지 �
   await page.locator('.asset-w', { has: page.locator('img[alt="jiul.png"]') }).locator('.asset-x').click();
   await expect.poll(() => page.evaluate(() => window.__kz.S.assets.some(a => a.name === 'jiul.png'))).toBe(false);
   await expect(page.locator('#autoMenu + span')).toHaveText('상단 메뉴를 페이지 목록대로 자동으로');
+  expect(errors).toEqual([]);
+});
+
+// ---------- 0.16.2 사용자 점검에서 찾은 버그 ----------
+test('첫 화면 사진 교체 · 넣기 위치 · 그림 두 번 누르기 · 빈 링크', async ({ page }) => {
+  const errors = await open(page);
+  const fr = page.frameLocator('.gjs-frame');
+  await page.click('.rail button[data-pane="up"]');
+  await page.setInputFiles('#fileIn', { name: 'p.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') });
+  await expect.poll(() => page.evaluate(() => window.__kz.S.assets.length)).toBe(1);
+  // 히어로 고르고 사진 → 배경 사진이 바뀜 (새 그림 안 생김)
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('section.hero')[0]); });
+  await page.locator('.asset').first().click();
+  const hero = await page.evaluate(() => { const e = window.__kzEditor, h = e.getWrapper().find('section.hero')[0]; return { imgs: h.find('img').length, bg: getComputedStyle(h.find('.hero-photo')[0].getEl()).backgroundImage.slice(0, 20), note: h.find('.hero-note').length }; });
+  expect(hero).toEqual({ imgs: 0, bg: 'url("data:image/webp', note: 0 });
+  // 아무것도 안 고르고 넣기 → 바닥글 위 새 섹션
+  await page.evaluate(() => { window.__kzEditor.select(null); return 1; });
+  await page.locator('.asset').first().click();
+  expect(await page.evaluate(() => { const cs = window.__kzEditor.getWrapper().components(); const last = cs.at(cs.length - 1), prev = cs.at(cs.length - 2); return [last.getClasses()[0], prev.find('img').length > 0]; })).toEqual(['foot', true]);
+  // 그림 두 번 누르기 → 영어 창 대신 업로드 탭
+  await page.click('.rail button[data-pane="tpl"]');
+  await fr.locator('section.wrap img').first().dblclick(); await page.waitForTimeout(300);
+  await expect(page.locator('.gjs-mdl-dialog:visible')).toHaveCount(0);
+  await expect(page.locator('.pane[data-pane="up"]')).toHaveClass(/on/);
+  // 빈 링크도 높이가 남음
+  const h = await page.evaluate(() => { const e = window.__kzEditor, a = e.getWrapper().find('a.more')[0]; a.components(''); return a.getEl().getBoundingClientRect().height; });
+  expect(h).toBeGreaterThan(8);
+  expect(errors).toEqual([]);
+});
+
+test('빈 페이지에 상단 메뉴 · 바닥글, 글 고친 뒤 되돌리기 한 번, 자유 배치 끌기', async ({ page }) => {
+  const errors = await open(page);
+  const fr = page.frameLocator('.gjs-frame');
+  await page.click('.rail button[data-pane="pg"]'); await page.click('#addPage');
+  await page.locator('#dlgB input').nth(1).fill('blank'); await page.locator('#dlgF button', { hasText: '추가' }).click();
+  await expect.poll(() => page.evaluate(() => { const p = window.__kzEditor.Pages.get('blank'); return p ? p.getMainComponent().components().map(c => c.get('tagName')).join(',') : ''; })).toBe('header,section,footer');
+  await page.evaluate(() => { window.__kzEditor.Pages.select('home'); return 1; }); await page.waitForTimeout(600);
+  const h1 = fr.locator('h1').first(); await h1.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('XYZ');
+  await fr.locator('body').click({ position: { x: 5, y: 500 } }); await page.waitForTimeout(300);
+  await page.click('#undo'); await page.waitForTimeout(300);
+  expect(await h1.textContent()).toBe('[사이트 이름]');
+  // 자유 배치: 끈 만큼만 움직임 (예전엔 부모 기준이 틀려 화면 밖으로)
+  await page.click('#modeFree'); await h1.click(); const b0 = await h1.boundingBox();
+  await page.mouse.move(b0.x + 30, b0.y + 20); await page.mouse.down(); await page.mouse.move(b0.x + 130, b0.y - 80, { steps: 10 }); await page.mouse.up(); await page.waitForTimeout(300);
+  const b1 = await h1.boundingBox();
+  expect(Math.abs(b1.y - b0.y + 100)).toBeLessThan(40); expect(Math.abs(b1.x - b0.x - 100)).toBeLessThan(40);
+  await page.click('#modeFlow');
+  expect(errors).toEqual([]);
+});
+
+test('사이트 이름 바꾸기 · 공유 정보 · 페이지별 탭 제목 · 크기 슬라이더 값', async ({ page, context }, info) => {
+  const errors = await open(page);
+  await page.fill('#siteName', '테스트 작업실'); await page.locator('#siteName').blur(); await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__kzEditor.Canvas.getDocument().querySelector('.brand').textContent)).toBe('테스트 작업실');
+  await page.evaluate(() => { const S = window.__kz.S; S.desc = '설명 한 줄'; S.siteUrl = 'https://a.github.io/b/'; });
+  const html = await page.evaluate(() => KZ.buildSite({ pages: window.__kzEditor.Pages.getAll().map(p => ({ id: p.getId(), name: p.get('name'), html: p.getMainComponent().getInnerHTML() })), css: '', S: window.__kz.S }));
+  expect(html).toContain('<meta name="description" content="설명 한 줄">'); expect(html).toContain('<meta property="og:url" content="https://a.github.io/b/">'); expect(html).toContain('<link rel="icon" href="data:image/svg+xml');
+  const file = info.outputPath('t.html'); require('fs').writeFileSync(file, html);
+  const q = await context.newPage(); await q.goto('file://' + file); await q.waitForTimeout(300);
+  expect(await q.title()).toBe('테스트 작업실');
+  await q.evaluate(() => { location.hash = 'gallery'; }); await q.waitForTimeout(600);
+  expect(await q.title()).toBe('갤러리 · 테스트 작업실');
+  // 큰 글자 min(48px, …) 도 슬라이더에 48 로
+  await page.evaluate(() => { const e = window.__kzEditor, c = e.getWrapper().find('h1')[0]; e.Css.setRule('#' + c.getId(), { 'font-size': 'min(48px, 7.03vw)' }); e.select(c); });
+  await page.click('#side [data-tab="design"]');
+  await expect(page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^크기$/ }) }).first().locator('output')).toHaveText('48px');
   expect(errors).toEqual([]);
 });

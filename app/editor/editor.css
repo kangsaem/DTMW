@@ -302,3 +302,8 @@ body.kz-out > .drawer,body.kz-out > .side{position:static!important;display:flex
 .status.bad{color:#f2c94c;display:inline!important}
 .opts button.fx-off{opacity:.4;text-decoration:line-through}
 .fx-fixnote{color:#f2c94c!important}
+
+.meta-f{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.meta-f .lbl{font-size:12px;color:var(--ui-sub)}
+.meta-f textarea{resize:vertical;min-height:44px;font:inherit}
+.meta-f small{font-size:11px;line-height:1.4}

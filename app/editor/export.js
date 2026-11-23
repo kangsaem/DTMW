@@ -23,14 +23,30 @@ window.KZ = window.KZ || {};
     });
   };
 
+  // 설명 · 공유 미리보기 · 파비콘. o.shareSrc · o.iconSrc: 고른 사진 주소 (없으면 공유 이미지 없음, 파비콘은 이름 첫 글자)
+  KZ.headMeta = function (S, o) {
+    var esc = ui.esc, out = '', url = String(S.siteUrl || '').trim().replace(/\/+$/, '');
+    if (S.desc) out += '<meta name="description" content="' + esc(S.desc) + '">\n<meta property="og:description" content="' + esc(S.desc) + '">\n';
+    out += '<meta property="og:type" content="website">\n<meta property="og:title" content="' + esc(S.siteName || '') + '">\n';
+    if (url) out += '<meta property="og:url" content="' + esc(url + '/') + '">\n';
+    // 공유 이미지는 전체 주소가 있어야 카카오톡 · 페이스북에서 보임 — ZIP 으로 받으면 media/파일 로 바뀜
+    if (url && o.shareSrc) out += '<meta property="og:image" content="' + esc(url) + '/' + o.shareSrc + '">\n';
+    var icon = o.iconSrc;
+    if (!icon) {
+      var ch = (String(S.siteName || 'W').replace(/[\[\]\s]/g, '') || 'W').charAt(0), c = (S.colors || {});
+      icon = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="' + (c.ink || '#1A1A1A') + '"/><text x="32" y="44" font-family="sans-serif" font-size="36" font-weight="700" text-anchor="middle" fill="' + (c.bg || '#FFFFFF') + '">' + esc(ch) + '</text></svg>');
+    }
+    out += '<link rel="icon" href="' + icon + '">\n';
+    return out;
+  };
   // o: { pages:[{id,name,html}], css, S, startId }
   KZ.buildSite = function (o) {
     var esc = ui.esc, S = o.S;
     var fix = function (html) { return html.replace(/<video\b(?![^>]*\bplaysinline)/g, '<video playsinline muted'); };
     var body = o.pages.map(function (p) { return '<div class="rt-page" data-page="' + esc(p.id) + '" hidden>' + fix(p.html) + '</div>'; }).join('\n');
-    var meta = JSON.stringify({ start: o.startId || (o.pages[0] && o.pages[0].id), pages: o.pages.map(function (p) { var m = { id: p.id, name: p.name }; if (p.parent) m.parent = p.parent; if (p.menu === false) m.menu = false; return m; }) }).replace(/</g, '\\u003c');
-    return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + esc(S.siteName) + '</title>\n' +
-      '<meta name="generator" content="KZ site editor ' + esc(KZ.VERSION) + '">\n' +
+    var meta = JSON.stringify({ site: S.siteName || '', start: o.startId || (o.pages[0] && o.pages[0].id), pages: o.pages.map(function (p) { var m = { id: p.id, name: p.name }; if (p.parent) m.parent = p.parent; if (p.menu === false) m.menu = false; return m; }) }).replace(/</g, '\\u003c');
+    return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>' + esc(S.siteName) + '</title>\n' + KZ.headMeta(S, o) +
+      '<meta name="generator" content="WMW ' + esc(KZ.VERSION) + '">\n' +
       KZ.fontHead(KZ.themeCss(S) + (o.css || '') + body, { embed: true }) + '\n<style>\n' + KZ.themeCss(S) + '\n' + KZ.site.base + '\n' + KZ.site.motion + '\n' + (o.css || '') + '\n</style>\n</head>\n' +
       '<body class="rt" data-transition="' + esc(S.transition) + '" data-speed="' + esc(S.speed) + '">\n' + body + '\n' +
       '<div id="rt-curtain"></div><img id="rt-cursor" alt=""><div id="rt-ov" class="rt-ov" hidden><div class="rt-back"></div><div class="rt-box" role="dialog" aria-modal="true"></div></div>\n' +
