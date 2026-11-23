@@ -52,6 +52,20 @@ window.KZ = window.KZ || {};
     var r = h('input', { type: 'range', min: min, max: max, step: step, value: cur });
     r.setAttribute('aria-label', label);
     r.oninput = function () { out.textContent = fmt(+r.value); onInput(+r.value); };
+    // 숫자를 눌러 직접 입력 (정확한 값으로 맞출 때)
+    out.title = '눌러서 숫자 입력'; out.tabIndex = 0; out.setAttribute('role', 'button');
+    out.onclick = out.onkeydown = function (e) {
+      if (e.type === 'keydown' && e.key !== 'Enter') return;
+      var inp = h('input', { type: 'number', className: 'num-in', step: step, value: r.value });
+      var done = false, apply = function (ok) {
+        if (done) return; done = true;
+        if (ok && inp.value !== '' && !isNaN(+inp.value)) { var v = Math.max(+min, Math.min(+max, +inp.value)); r.value = v; out.textContent = fmt(v); onInput(v); }
+        inp.replaceWith(out);
+      };
+      inp.onkeydown = function (ev) { if (ev.key === 'Enter') apply(true); if (ev.key === 'Escape') apply(false); ev.stopPropagation(); };
+      inp.onblur = function () { apply(true); };
+      out.replaceWith(inp); inp.focus(); inp.select();
+    };
     return field(label, h('div', { className: 'slider' }, [r, out]));
   }
   function seg(label, items, cur, on) {

@@ -804,3 +804,56 @@ test('전시 섹션: 섹션 style 의 변수로 위치를 섹션마다 바꿀 �
   const m = await q.evaluate(() => { const s = document.querySelector('.exh-work'), a = s.querySelector('.exh-art').getBoundingClientRect(); return [s.getBoundingClientRect().height, a.left, a.top]; });
   expect(m.map(Math.round)).toEqual([600, 24, 0]);
 });
+
+// ---------- 0.15.0 전시 배치 칸 · 글자 크기 · 빈 페이지 ----------
+test('전시 배치 칸: 숫자를 눌러 입력하면 섹션 변수로 저장되고, PC · 모바일이 따로 저장된다', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.getWrapper().append(KZ.sectionHtml('exh-work', {})); e.select(e.getWrapper().find('.exh-work .exh-cap-t')[0]); });
+  await page.click('#side [data-tab="design"]');
+  await expect(page.locator('#tabDesign')).toContainText('전시 배치 — PC');
+  const setF = async (label, v) => { const f = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: label }) }).first(); await f.locator('output').click(); await page.keyboard.press('Control+a'); await page.keyboard.type(String(v)); await page.keyboard.press('Enter'); };
+  await setF('작품 위', 40); await setF('캡션 위', 600);
+  await page.click('[data-dev="mobile"]'); await page.waitForTimeout(400);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.exh-work .exh-cap-t')[0]); });
+  await page.click('#side [data-tab="design"]');
+  await expect(page.locator('#tabDesign')).toContainText('전시 배치 — 모바일');
+  await setF('섹션 높이', 500); await setF('양옆 여백', 30);
+  const v = await page.evaluate(() => { const e = window.__kzEditor, s = e.getWrapper().find('.exh-work')[0]; return e.Css.getRule('#' + s.getId()).getStyle(); });
+  expect(v).toMatchObject({ '--at': '40', '--ct': '600', '--mh': '500', '--mx': '30' });
+  await page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '배경' }) }).first().locator('select').selectOption('orange');
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().find('.exh-work')[0].getAttributes()['data-bg'])).toBe('orange');
+  expect(errors).toEqual([]);
+});
+
+test('글자 크기: 전시 섹션은 판 단위(모바일 자동), 일반 섹션의 큰 글자는 작은 화면에서 줄어든다', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.getWrapper().append(KZ.sectionHtml('exh-cover', { title: 'MEMORY BIAS' })); e.select(e.getWrapper().find('.exh-title')[0]); });
+  await page.click('#side [data-tab="design"]');
+  const f = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '크기 (판 단위)' }) }).first();
+  await f.locator('output').click(); await page.keyboard.press('Control+a'); await page.keyboard.type('123'); await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => { const e = window.__kzEditor, t = e.getWrapper().find('.exh-title')[0], id = '#' + t.getId();
+    return [e.Css.getRule(id).getStyle()['font-size'], (e.Css.getRule(id, { atRuleType: 'media', atRuleParams: '(max-width: 640px)' }) || { getStyle: () => ({}) }).getStyle()['font-size']]; });
+  expect(r[0]).toBe('calc(var(--u) * 123)');
+  const m = parseFloat(String(r[1]).replace(/[^\d.]+/g, ' ').trim().split(' ').pop());
+  expect(m).toBeLessThan(123 * 0.79); // 375 판의 폭 안에 들어가도록 자동으로 줄임
+  // 일반 섹션
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('h1.hero-name')[0] || e.getWrapper().find('h1')[0]); });
+  await page.click('#side [data-tab="design"]');
+  const g = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: /^크기$/ }) }).first();
+  await g.locator('output').click(); await page.keyboard.press('Control+a'); await page.keyboard.type('120'); await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => { const e = window.__kzEditor, t = e.getSelected(); return e.Css.getRule('#' + t.getId()).getStyle()['font-size']; })).toBe('min(120px, 17.57vw)');
+});
+
+test('빈 페이지에 첫 섹션을 넣으면 안내 섹션이 사라지고, 약력 링크 글은 따로 고칠 수 있다', async ({ page }) => {
+  await open(page);
+  await page.click('.rail button[data-pane="pg"]'); await page.click('#addPage');
+  await page.fill('#npName', '시험'); await page.fill('#npId', 'test-p'); await page.locator('#dlgF button', { hasText: '추가' }).click();
+  await page.click('.rail button[data-pane="tpl"]');
+  await page.locator('.tpl', { hasText: '약력 · 연락처' }).first().click(); await page.locator('#dlgF button', { hasText: '섹션으로 추가' }).click();
+  const tops = await page.evaluate(() => window.__kzEditor.getWrapper().components().map(c => c.getClasses().join('.')));
+  expect(tops).toEqual(['exh.exh-cv']);
+  const t = page.frameLocator('.gjs-frame').locator('.exh-cv-t').first();
+  await t.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('my_account'); await page.mouse.click(800, 60);
+  expect(await t.innerText()).toBe('my_account');
+});
