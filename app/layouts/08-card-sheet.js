@@ -11,7 +11,7 @@
       badgeOn: '[상태 A]', badgeOff: '[상태 B]',
       items: [1, 2, 3, 4, 5].map(n => ['[항목 ' + n + ']', '[한 줄 설명]', n < 4 ? 1 : 0, '[자세한 설명 — 줄바꿈 가능]'])
     }, data || {});
-    return '<header class="nav"><a class="brand" href="#home" data-site-name="1">[사이트 이름]</a><nav class="links"><a href="#home">홈</a><a href="#effects">효과 샘플</a></nav><div class="lang"><a href="#" class="on">KR</a><a href="#">EN</a><a href="#">JP</a></div>' + MENU_BTN + '</header>' +
+    return '<header class="nav"><a class="brand" href="#home" data-site-name="1">[사이트 이름]</a><nav class="links"><a href="#home">홈</a><a href="#effects">효과 샘플</a></nav>' + MENU_BTN + '</header>' +
       '<section class="wrap"><p class="cap" style="margin:0 0 10px">' + D.kicker + '</p><h1 class="title">' + D.title + '</h1><div class="apps">' +
       D.items.map(a => '<a class="app" href="#" data-hover="lift" data-anim="fade-up" data-click="sheet" data-title="' + a[0] + '" data-text="' + a[3] + '"><span class="app-ico"></span><span class="app-n">' + a[0] + '</span><span class="app-d">' + a[1] + '</span><span class="badge' + (a[2] ? ' on' : '') + '">' + (a[2] ? D.badgeOn : D.badgeOff) + '</span></a>').join('') +
       '</div></section><footer class="foot"><span>' + D.footL + '</span><span>' + D.footR + '</span></footer>';

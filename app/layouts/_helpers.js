@@ -22,7 +22,7 @@ window.KZ = window.KZ || {};
     return '<header class="nav' + (light ? ' nav--light' : '') + '">' +
       '<a class="brand" href="#home" data-site-name="1">[사이트 이름]</a>' +
       '<nav class="links"><a href="#gallery">갤러리</a><a href="#news">소식</a><a href="#journal">글</a><a href="#about">소개</a><a href="#effects">효과 샘플</a></nav>' +
-      '<div class="lang"><a href="#" class="on">KR</a><a href="#">EN</a><a href="#">JP</a></div>' + MENU_BTN + '</header>';
+      MENU_BTN + '</header>';
   }
   var FOOT = '<footer class="foot"><span>© <span data-site-name="1">[사이트 이름]</span></span><span>[이메일] · [SNS]</span></footer>';
   function fig(i, year, o) {

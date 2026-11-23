@@ -12,13 +12,10 @@ a{color:inherit}
 .nav .links .nav-sub a{padding:8px 14px;font-size:14px}
 .nav .links a{text-decoration:none;font-size:14px;padding:6px 0}
 .nav .links a:hover{text-decoration:underline}
-.nav .lang{display:none;gap:10px;font-size:13px;color:var(--sub)} /* 언어 전환은 아직 없음 — 다국어(C) 작업 때 다시 보이게 */
-.nav .lang a{text-decoration:none;padding:6px 2px}
-.nav .lang a.on{color:var(--ink);border-bottom:1px solid currentColor}
+.nav .lang{display:none} /* 예전 작업에 남아 있는 언어 버튼(KR · EN · JP)은 숨김 — 0.17.1 부터 새로 넣지 않음 */
 .nav--light{color:#fff}
-.nav--light .lang,.nav--light .lang a.on{color:#fff}
 .menu-btn{display:none;width:44px;height:44px;border:0;background:none;color:inherit;font-size:26px;line-height:1;cursor:pointer}
-@media (max-width:640px){.nav .links,.nav .lang{display:none}.menu-btn{display:inline-flex;align-items:center;justify-content:center}}
+@media (max-width:640px){.nav .links{display:none}.menu-btn{display:inline-flex;align-items:center;justify-content:center}}
 .wrap{max-width:1200px;margin:0 auto;padding:64px 5vw}
 .title{font-family:var(--fh);font-weight:400;font-size:clamp(34px,5vw,58px);line-height:1.1;margin:0 0 28px}
 .h2{font-family:var(--fh);font-weight:400;font-size:clamp(22px,2.4vw,30px);margin:0}

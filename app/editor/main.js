@@ -104,9 +104,8 @@
       const b = $('#fxMarkBtn'); if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
     }
     function refreshTheme() { docs.forEach(d => { try { const t = d.getElementById('kz-theme'); if (t) t.textContent = KZ.themeCss(S); else docs.delete(d); } catch (e) { docs.delete(d); } }); }
-    editor.on('canvas:frame:load', ({ window: w }) => injectDoc(w.document));
-    // 페이지 · 기기 전환 때 새 프레임에도 CSS가 들어가도록 주기적으로 확인
-    setInterval(() => { try { const d = editor.Canvas.getDocument(); if (d && d.head && !d.getElementById('kz-base')) injectDoc(d); } catch (e) { /* 프레임 준비 중 */ } }, 250);
+    // 프레임(페이지 · 기기 전환 때 새로 생김)의 머리 · 본문이 다 만들어진 뒤에 넣음 — 'canvas:frame:load' 때 넣으면 GrapesJS 가 머리를 다시 써서 지워짐
+    editor.on('canvas:frame:load:body', ({ window: w }) => injectDoc(w.document));
 
     // 블록
     KZ.BLOCKS.forEach(([id, label, category, media, content]) => {
@@ -149,7 +148,7 @@
     }
     document.addEventListener('keydown', saveKey, true); KZ.saveKey = saveKey;
     function saveProjectFile() {
-      offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
+      KZ.offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
       fileDirty(false);
     }
     // 브라우저 저장: 고친 뒤 0.9초 모아서 저장. 창을 닫거나 탭을 숨길 때는 바로 저장(flush)
@@ -640,10 +639,9 @@
       const sel = editor.getSelected();
       if (a.type === 'image') {
         if (sel && sel.is('image')) { sel.set('src', a.src); fitPosArt(sel); return toast('이미지를 바꿨습니다'); }
-        const fx = up(sel, c => !!attr(c, 'data-bgvideo')), fxm = fx && fx.find('.bgfix-media')[0];
+        const hero = up(sel, c => !!attr(c, 'data-bgvideo')), fxm = hero && hero.find('.bgfix-media')[0];
         if (fxm && !fxm.find('img').length) { fxm.components(''); fxm.append({ type: 'image', src: a.src, attributes: { alt: '' } }); return toast('배경 사진을 넣었습니다'); }
         // 히어로(사진 · 영상 배경): 고른 곳이 히어로 안이면 배경 사진으로 — 배경 영상 · 안내 문구는 뺌
-        const hero = up(sel, c => !!attr(c, 'data-bgvideo'));
         if (hero && !(sel && sel.is('link'))) {
           let ph = hero.find('.hero-photo')[0];
           if (!ph) ph = hero.append({ tagName: 'div', classes: ['hero-photo'] }, { at: 1 })[0];
@@ -779,7 +777,7 @@
     // 위치를 정한 그림(.exh-pos)의 사진을 바꾸면 높이는 두고 폭을 새 사진 비율에 맞춤
     function fitPosArt(img) {
       if (!img || !img.getClasses().includes('exh-pos')) return;
-      const top = topOf(img); if (!top || !hasClass(top, 'exh')) return;
+      const top = topOf(img); if (!top || !hasCls(top, 'exh')) return;
       const im = new Image(); im.onload = () => {
         const V = exhVars(top), ah = parseFloat(V['--ah']) || 200, ax = parseFloat(V['--ax']), aw0 = parseFloat(V['--aw']) || ah;
         const aw = +(ah * im.naturalWidth / im.naturalHeight).toFixed(1), c = isNaN(ax) ? 0 : ax + aw0 / 2;
@@ -882,7 +880,7 @@
           sb('↓ 섹션 아래로', () => { if (!moveSection(top, 1)) toast('더 내릴 수 없습니다'); }),
           top !== sel ? sb('섹션 선택', () => editor.select(top)) : null
         ]));
-        if (hasClass(top, 'exh')) exhPanel(top, box, sec);
+        if (hasCls(top, 'exh')) exhPanel(top, box, sec);
       }
 
       if (kind === 'text') {
@@ -891,7 +889,7 @@
         [['', '테마 기본'], ['var(--fh)', '제목 글꼴 (테마)'], ['var(--fb)', '본문 글꼴 (테마)'], ...Object.values(FONTS).map(f => [f.h, f.name.split(' (')[0].split(' +')[0]])].forEach(([v, t]) => fsel.appendChild(h('option', { value: v, textContent: t })));
         fsel.value = ruleStyle(sel)['font-family'] || ''; fsel.onchange = () => setStyle(sel, { 'font-family': fsel.value });
         box.appendChild(field('글꼴', fsel));
-        const exhTop = top && hasClass(top, 'exh') ? top : null;
+        const exhTop = top && hasCls(top, 'exh') ? top : null;
         if (exhTop) {
           // 전시 섹션: 판 단위로 저장 → 화면 크기에 비례. PC 에서 바꾸면 모바일은 화면에 맞게 자동 (모바일 보기에서 따로 바꾸면 그 값 유지)
           const U = exhUnit(exhTop), isM = editor.getDevice() === 'mobile';
@@ -1022,6 +1020,7 @@
       let ph = ''; // 세트의 로고 자리표시 ([가게 이름] 등)
       realPages().forEach(p => walk(p.getMainComponent(), c => { if (!ph && hasCls(c, 'brand') && textOnly(c) && isPh(c.getInnerHTML())) ph = c.getInnerHTML().trim(); }));
       const names = [name, esc('[사이트 이름]'), ph].filter(Boolean);
+      realPages().forEach(p => p.getMainComponent().find('.nav .lang').forEach(c => c.remove())); // 숨겨져 있던 언어 버튼
       realPages().forEach(p => walk(p.getMainComponent(), c => {
         const at = c.getAttributes();
         if ((c.get('tagName') || '').toLowerCase() === 'a' && at['data-click']) {
@@ -1046,7 +1045,6 @@
     const FIX_BAD_ANIM = v => !!v && v !== 'fade';        // 페이드(투명도만)는 함께 써도 됨
     const FIX_BAD_HOVER = v => v === 'lift';
     const FIX_MEDIA = '.bgfix-media,.hero-photo,.hero-video,.hero-bg,.band-img';
-    const hasClass = (c, k) => c.getClasses().includes(k);
     function fixMedia(sel) { return sel.components().filter(c => c.getEl && c.getEl() && c.getEl().matches && c.getEl().matches(FIX_MEDIA)); }
     function bgfixVideos() { const w = editor.getWrapper(); return w.find('[data-scroll="bgfix"]').filter(c => vids(c).length).length; }
     async function applyBgfix(sel) {
@@ -1062,7 +1060,7 @@
           return renderFx(sel);
         }
       }
-      const bad = [FIX_BAD_ANIM(attr(sel, 'data-anim')) && label2(ANIMS, attr(sel, 'data-anim')), FIX_BAD_HOVER(attr(sel, 'data-hover')) && label2(HOVERS, attr(sel, 'data-hover'))].filter(Boolean);
+      const bad = [FIX_BAD_ANIM(attr(sel, 'data-anim')) && labelOf(ANIMS, attr(sel, 'data-anim')), FIX_BAD_HOVER(attr(sel, 'data-hover')) && labelOf(HOVERS, attr(sel, 'data-hover'))].filter(Boolean);
       if (bad.length) {
         if (!await confirmDlg('함께 쓸 수 없는 효과', '배경 고정을 걸면 <b>' + bad.map(esc).join(' · ') + '</b> 효과가 풀립니다 (고정이 풀리는 효과라서). 계속할까요?', '배경 고정')) return renderFx(sel);
         if (FIX_BAD_ANIM(attr(sel, 'data-anim'))) sel.removeAttributes('data-anim');
@@ -1072,14 +1070,13 @@
       toast(bgfixVideos() > 2 ? '배경 고정 영상이 많습니다 — 휴대폰이 무거워질 수 있어 페이지당 1~2개를 권합니다' : '스크롤해도 배경이 제자리에 남습니다 (미리보기에서 확인)');
       renderFx(sel);
     }
-    const label2 = (list, v) => (list.find(x => x[0] === v) || [, v])[1];
+    const labelOf = (list, v) => (list.find(x => x[0] === v) || [, v])[1];
     function renderFx(sel) {
       const box = $('#tabFx'); box.innerHTML = '';
       const sec = (t, d) => { box.appendChild(h('h3', { textContent: t, style: 'font-size:12px;color:var(--ui-sub);font-weight:500;margin:16px 0 4px' })); if (d) box.appendChild(h('p', { className: 'hint', textContent: d, style: 'margin:0 0 8px' })); };
       const setA = (k, v) => { if (v) sel.addAttributes({ [k]: v }); else sel.removeAttributes(k); };
       // 배경 고정과 함께 쓰면 고정이 풀리는 효과 (요소 자체에 transform · clip-path)
       const isFix = attr(sel, 'data-scroll') === 'bgfix';
-      const label = (list, v) => (list.find(x => x[0] === v) || [, v])[1];
       const mark = (boxEl, list, bad) => { if (!isFix) return; $$('button', boxEl).forEach((b, i) => { if (bad(list[i][0])) { b.classList.add('fx-off'); b.title = '배경 고정과 함께 쓰면 고정이 풀립니다'; } }); };
       const unfix = async (what, then) => {
         if (await confirmDlg('배경 고정이 풀립니다', '<b>' + esc(what) + '</b> 효과를 걸면 이 요소의 배경 고정이 풀립니다. 바꿀까요?', '바꾸기')) { sel.removeAttributes('data-scroll'); then(); toast('배경 고정을 풀었습니다'); }
@@ -1088,14 +1085,14 @@
       sec('스크롤 등장', '화면에 들어올 때 재생');
       if (isFix) box.appendChild(h('p', { className: 'hint fx-fixnote', textContent: '배경 고정 중 — 흐린 효과는 함께 쓸 수 없습니다 (안쪽 글 · 버튼에는 가능)' }));
       const animBox = opts(ANIMS, attr(sel, 'data-anim'), v => {
-        if (isFix && FIX_BAD_ANIM(v)) return unfix(label(ANIMS, v), () => { setA('data-anim', v); replay(sel); });
+        if (isFix && FIX_BAD_ANIM(v)) return unfix(labelOf(ANIMS, v), () => { setA('data-anim', v); replay(sel); });
         setA('data-anim', v); if (v) replay(sel);
       });
       mark(animBox, ANIMS, FIX_BAD_ANIM); box.appendChild(animBox);
       const rp = h('button', { className: 'btn full', textContent: '▶ 다시 재생', style: 'margin-top:8px' }); rp.onclick = () => replay(sel); box.appendChild(rp);
       sec('마우스 올림');
       const hoverBox = opts(HOVERS, attr(sel, 'data-hover'), v => {
-        if (isFix && FIX_BAD_HOVER(v)) return unfix(label(HOVERS, v), () => setA('data-hover', v));
+        if (isFix && FIX_BAD_HOVER(v)) return unfix(labelOf(HOVERS, v), () => setA('data-hover', v));
         setA('data-hover', v);
         if (v === 'cursor' && !attr(sel, 'data-preview')) { const im = sel.find('img')[0]; sel.addAttributes({ 'data-preview': im ? im.get('src') : KZ.H.ph('미리보기', 440, 560, 2) }); toast('업로드 탭에서 사진을 누르면 미리보기 이미지가 바뀝니다'); }
         if (v === 'caption' && !sel.find('figcaption').length) toast('캡션(figcaption)이 있는 이미지 카드에서 작동합니다');
@@ -1110,7 +1107,7 @@
         if (v === 'parallax' && sel.parent()) { setStyle(sel.parent(), { overflow: 'hidden' }); toast('바깥 영역 안에서 느리게 움직입니다 (미리보기에서 확인)'); }
         if (v === 'sticky') toast('스크롤해도 화면 위에 고정됩니다 (미리보기에서 확인)');
       }));
-      if (isFix && hasClass(sel, 'bgfix')) {
+      if (isFix && hasCls(sel, 'bgfix')) {
         box.appendChild(h('div', { style: 'height:8px' }));
         box.appendChild(field('창 높이', opts([['100', '화면 100%'], ['70', '70%'], ['50', '50%']], attr(sel, 'data-h') || '100', v => sel.addAttributes({ 'data-h': v }))));
         box.appendChild(field('어둡게 덮기', opts([['0', '없음'], ['18', '약하게'], ['35', '보통'], ['55', '진하게']], attr(sel, 'data-dim') || '18', v => sel.addAttributes({ 'data-dim': v }))));
@@ -1271,14 +1268,13 @@
         '<p class="hint"><a href="' + GUIDE + '" target="_blank" rel="noopener">GitHub에 올리는 방법 보기 ↗</a> · 나중에 고치려면 <b>작업 파일</b>도 받아 두세요 (GitHub에는 올리지 않음).</p>';
       const btns = [['닫기', null], ['작업 파일', d => { d(null); saveProjectFile(); }]];
       if (media.length) {
-        btns.push(['index.html 하나', d => { d(null); offerFile('index.html', html.replace(/<meta property="og:image" content="[^"]*data:[^"]*">\n/, ''), 'text/html'); }]);
-        btns.push(['ZIP 받기', d => { d(null); offerFile(fileBase() + '.zip', KZ.zip([{ path: 'index.html', text: pkg.html }].concat(media)), 'application/zip'); }, 'pri']);
-      } else btns.push(['index.html 받기', d => { d(null); offerFile('index.html', html, 'text/html'); }, 'pri']);
+        btns.push(['index.html 하나', d => { d(null); KZ.offerFile('index.html', html.replace(/<meta property="og:image" content="[^"]*data:[^"]*">\n/, ''), 'text/html'); }]);
+        btns.push(['ZIP 받기', d => { d(null); KZ.offerFile(fileBase() + '.zip', KZ.zip([{ path: 'index.html', text: pkg.html }].concat(media)), 'application/zip'); }, 'pri']);
+      } else btns.push(['index.html 받기', d => { d(null); KZ.offerFile('index.html', html, 'text/html'); }, 'pri']);
       return dialog('내보내기', body, btns);
     }
 
     // ---------- 내보내기 ----------
-    const offerFile = (name, data, mime) => KZ.offerFile(name, data, mime);
     const assetSrc = id => { const a = id && S.assets.find(x => x.id === id && x.type === 'image'); return a ? a.src : ''; };
     function buildSite(startId) {
       return KZ.buildSite({
@@ -1324,7 +1320,7 @@
         const key = 'backup-' + new Date().toISOString().replace(/[:.]/g, '-');
         try { await KZ.store.DB.set(key, raw); } catch (e) { /* 아래에서 파일로 받기 */ }
         dialog('저장된 작업을 열지 못했습니다', '<p>이 브라우저에 저장된 작업을 열 수 없어 기본 세트로 시작합니다.</p><p class="hint">이유: ' + esc(loadErr.message || String(loadErr)) + '<br>원래 저장본은 지우지 않고 보관했습니다. 아래 버튼으로 파일로 받아 두고, 편집기를 새로고침한 뒤 <b>파일 → 작업 파일 불러오기</b>로 열어 보세요.</p>',
-          [['닫기', null], ['원래 저장본 받기', d => { d(null); offerFile('wmw-backup-project.json', JSON.stringify(raw), 'application/json'); }, 'pri']]);
+          [['닫기', null], ['원래 저장본 받기', d => { d(null); KZ.offerFile('wmw-backup-project.json', JSON.stringify(raw), 'application/json'); }, 'pri']]);
       }
       treeEnsure(); if (saved) upgradeProject(saved.from); syncChrome(); recordTree();
       editor.UndoManager.clear();
