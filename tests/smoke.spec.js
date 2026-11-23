@@ -765,8 +765,42 @@ for (const [w, h] of [[1366, 768], [2560, 1300], [390, 844]]) {
       near(m.cap.right, m.W / 2 + 460); near(m.cap.y, 687); near(m.cvName.y, 338);
     } else {
       // 모바일: Canva 모바일 보기 (표지 525, 사진 양옆 15px · 위 97, 캡션은 사진 아래 15px · 오른쪽 64px, 영문 이름 240)
-      near(m.coverH, 525); near(m.title.y, 281); near(m.art.x, 15); near(m.art.w, m.W - 30); near(m.art.y, 97);
-      near(m.cap.right, m.W - 64); near(m.cvName.y, 240);
+      const k = m.W / 375; // 모바일은 Canva 모바일 판(375) 기준으로 비례
+      near(m.coverH, 525 * k); near(m.title.y, 281 * k); near(m.art.x, 15 * k); near(m.art.w, m.W - 30 * k); near(m.art.y, 97 * k);
+      near(m.cap.right, m.W - 64 * k); near(m.cvName.y, 240 * k);
     }
   });
 }
+
+// ---------- 0.14.1 ----------
+test('내보낸 사이트: 메뉴로 옮긴 뒤 뒤로 가기 · 주소의 #페이지 바꾸기로 페이지가 바뀐다', async ({ page, context }, info) => {
+  await open(page);
+  const html = await page.evaluate(() => { const e = window.__kzEditor; return KZ.buildSite({ pages: e.Pages.getAll().map(p => ({ id: p.getId(), name: p.get('name'), html: p.getMainComponent().getInnerHTML() })), css: e.getCss(), S: Object.assign(KZ.C.DEFAULT_S(), { transition: 'none' }) }); });
+  const file = info.outputPath('site.html'); require('fs').writeFileSync(file, html);
+  const q = await context.newPage(); await q.goto('file://' + file); await q.waitForTimeout(500);
+  const shown = () => q.evaluate(() => document.querySelector('.rt-page:not([hidden])').dataset.page);
+  expect(await shown()).toBe('home');
+  await q.locator('.rt-page:not([hidden]) .nav a[href="#about"]').first().click(); await q.waitForTimeout(300);
+  expect(await shown()).toBe('about');
+  await q.goBack(); await q.waitForTimeout(300);
+  expect(await shown()).toBe('home');
+  await q.evaluate(() => { location.hash = 'gallery'; }); await q.waitForTimeout(300);
+  expect(await shown()).toBe('gallery');
+});
+
+test('전시 섹션: 섹션 style 의 변수로 위치를 섹션마다 바꿀 수 있다 (PC · 모바일)', async ({ page, context }, info) => {
+  await open(page);
+  const html = await page.evaluate(() => {
+    const t = document.createElement('template'); t.innerHTML = KZ.sectionHtml('exh-work', {});
+    const s = t.content.firstElementChild; s.setAttribute('style', '--at:0;--ah:600;--ct:500;--cr:400;--mt:0;--mx:24;--mh:600');
+    return KZ.buildSite({ pages: [{ id: 'home', name: '홈', html: s.outerHTML }], css: '', S: Object.assign(KZ.C.DEFAULT_S(), { theme: 'exhibit', colors: Object.assign({}, KZ.C.THEMES.exhibit), font: 'exhibit' }) });
+  });
+  const file = info.outputPath('v.html'); require('fs').writeFileSync(file, html);
+  const q = await context.newPage();
+  await q.setViewportSize({ width: 1366, height: 768 }); await q.goto('file://' + file); await q.waitForTimeout(400);
+  const d = await q.evaluate(() => { const s = document.querySelector('.exh-work'), a = s.querySelector('.exh-art').getBoundingClientRect(), c = s.querySelector('.exh-cap').getBoundingClientRect(); return [a.top, a.height, c.top, c.right]; });
+  expect(d.map(Math.round)).toEqual([0, 600, 500, 683 + 400]);
+  await q.setViewportSize({ width: 375, height: 800 }); await q.waitForTimeout(300);
+  const m = await q.evaluate(() => { const s = document.querySelector('.exh-work'), a = s.querySelector('.exh-art').getBoundingClientRect(); return [s.getBoundingClientRect().height, a.left, a.top]; });
+  expect(m.map(Math.round)).toEqual([600, 24, 0]);
+});

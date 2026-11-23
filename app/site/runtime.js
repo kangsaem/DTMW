@@ -33,10 +33,12 @@
   }
   function find(id) { for (var i = 0; i < pages.length; i++) if (pages[i].getAttribute('data-page') === id) return pages[i]; return null; }
   function reveal(p) { p.hidden = false; window.scrollTo(0, 0); arm(p); par(); }
-  function go(id, anim) {
+  // fromHistory: 뒤로 · 앞으로 가기나 주소 직접 입력으로 온 이동 — 기록을 새로 쌓지 않음
+  function go(id, anim, fromHistory) {
     var next = find(id) || pages[0]; if (!next || next === cur || busy) return;
     var prev = cur; cur = next;
-    try { history.replaceState(null, '', '#' + next.getAttribute('data-page')); } catch (e) { }
+    var h = '#' + next.getAttribute('data-page');
+    try { if (!prev) history.replaceState(null, '', h); else if (!fromHistory && location.hash !== h) history.pushState(null, '', h); } catch (e) { }
     var t = B.getAttribute('data-transition') || 'fade';
     if (!prev || !anim || !D || t === 'none' || !next.animate) { if (prev) prev.hidden = true; reveal(next); return; }
     busy = true;
@@ -147,4 +149,8 @@
     [].forEach.call(document.querySelectorAll('[data-scroll="bgfix"]'), function (w) { if (w.querySelector('video')) io.observe(w); });
   })();
   var start = (location.hash || '').slice(1); if (!find(start)) start = meta.start; go(start, false);
+  // 뒤로 가기 · 주소의 #페이지 바꾸기 → 그 페이지로 (0.14.1 — 전에는 기록이 남지 않아 뒤로 가기가 사이트 밖으로 나갔음)
+  function fromUrl() { var id = (location.hash || '').slice(1); if (!id) id = meta.start; if (find(id)) go(id, true, true); }
+  window.addEventListener('popstate', fromUrl);
+  window.addEventListener('hashchange', fromUrl);
 })();
