@@ -15,6 +15,8 @@ window.KZ = window.KZ || {};
     'Inter': 'g:Inter:wght@400;500;600',
     'IBM Plex Sans KR': 'g:IBM+Plex+Sans+KR:wght@300;400;500;600',
     'Playfair Display': 'g:Playfair+Display:wght@400;600',
+    'Figtree': 'g:Figtree:wght@400;800',
+    'Poppins': 'g:Poppins:wght@400;500',
     'Pretendard Variable': 'css:https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css',
     'WMW Heros': 'local:wmw-heros' // 헬베티카풍 — TeX Gyre Heros 파생본 (app/fonts/README.md)
   };
@@ -31,6 +33,7 @@ window.KZ = window.KZ || {};
     lavender: { name: '라벤더', bg: '#F1EEF6', ink: '#231F2E', sub: '#625B72', line: '#D8D2E4', accent: '#5D4E8C' },
     inkgold: { name: '먹 · 금', bg: '#111111', ink: '#EDE8DC', sub: '#A8A293', line: '#2E2C28', accent: '#C8A55A' },
     lime: { name: '블랙 · 라임', bg: '#0E0E0E', ink: '#F2F2F2', sub: '#A3A3A3', line: '#2B2B2B', accent: '#C6F432' },
+    exhibit: { name: '전시 회색', bg: '#EBEBEB', ink: '#1A1A1A', sub: '#535353', line: '#D2D2D2', accent: '#1A1A1A' },
     blueprint: { name: '블루프린트', bg: '#EAF1FB', ink: '#0B2545', sub: '#4A5D78', line: '#C8D6EA', accent: '#1D4ED8' }
   };
   C.COLOR_KEYS = [['bg', '배경'], ['ink', '글자'], ['sub', '보조 글자'], ['line', '선'], ['accent', '강조 (버튼)']];
@@ -44,6 +47,7 @@ window.KZ = window.KZ || {};
     pretendard: { name: 'Pretendard (요즘 고딕)', h: "'Pretendard Variable',sans-serif", b: "'Pretendard Variable',sans-serif" },
     dodum: { name: '고운돋움 (부드러운 고딕)', h: "'Gowun Dodum',sans-serif", b: "'Gowun Dodum',sans-serif" },
     plex: { name: 'IBM Plex Sans KR (기술 · 서비스)', h: "'IBM Plex Sans KR',sans-serif", b: "'IBM Plex Sans KR',sans-serif" },
+    exhibit: { name: 'Figtree + 가는 고딕 (전시)', h: "Figtree,'Noto Sans KR',sans-serif", b: "'Noto Sans KR',sans-serif", x: "Poppins,'Noto Sans KR',sans-serif" },
     playfair: { name: 'Playfair Display + 명조 (잡지)', h: "'Playfair Display','Noto Serif KR',serif", b: "'Noto Sans KR',sans-serif" }
   };
   C.TRANS = [['none', '없음'], ['fade', '페이드'], ['slide', '슬라이드'], ['curtain', '커튼'], ['blur', '블러'], ['zoom', '확대']];
@@ -103,6 +107,6 @@ window.KZ = window.KZ || {};
 
   KZ.themeCss = function (S) {
     var c = S.colors, f = C.FONTS[S.font] || C.FONTS.serif;
-    return ':root{--bg:' + c.bg + ';--ink:' + c.ink + ';--sub:' + c.sub + ';--line:' + c.line + ';--accent:' + c.accent + ';--fh:' + f.h + ';--fb:' + f.b + ';--d:' + C.SPEED[S.speed] + 'ms}';
+    return ':root{--bg:' + c.bg + ';--ink:' + c.ink + ';--sub:' + c.sub + ';--line:' + c.line + ';--accent:' + c.accent + ';--fh:' + f.h + ';--fb:' + f.b + ';--fx:' + (f.x || f.b) + ';--d:' + C.SPEED[S.speed] + 'ms}';
   };
 })(window.KZ);
