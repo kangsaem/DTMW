@@ -24,7 +24,7 @@ window.KZ = window.KZ || {};
     if (d.kind !== 'kz-editor') throw new Error('작업 파일이 아닙니다');
     if (!d.v) d.v = 1;
     if (d.v > FORMAT) throw new Error('더 새 버전의 편집기에서 만든 파일입니다. 편집기를 새로고침해 보세요.');
-    // 요소를 고쳐야 하는 변환은 불러온 뒤 편집기에서 (main.js upgradeProject) — 여기서는 어느 형식에서 왔는지만 알려 줌
+    // 요소를 고쳐야 하는 변환은 불러온 뒤 편집기에서 (save.js upgradeProject) — 여기서는 어느 형식에서 왔는지만 알려 줌
     d.from = d.v; d.v = FORMAT;
     return d;
   }

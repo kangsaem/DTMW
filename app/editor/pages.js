@@ -117,9 +117,18 @@ KZ.part(function (X) {
   function iconBtn(label, txt, fn) { const b = h('button', { className: 'ib', title: label, textContent: txt }); b.setAttribute('aria-label', label); b.onclick = e => { e.stopPropagation(); fn(); }; return b; }
   let dragId = null;
   function renderPages() {
-    const box = $('#pages'); if (!box) return; box.innerHTML = '';
+    const box = $('#pages'); if (!box) return;
     const T = treeEnsure(), cur = editor.Pages.getSelected();
-    kids(null).forEach(p => { row(p, 0); if (!collapsed.has(p.getId())) kids(p.getId()).forEach(c => row(c, 1)); });
+    const list = []; kids(null).forEach(p => { list.push([p, 0]); if (!collapsed.has(p.getId())) kids(p.getId()).forEach(c => list.push([c, 1])); });
+    // 목록 짜임이 그대로면(고른 페이지 · 이름만 바뀜) 줄을 다시 만들지 않고 표시 · 이름만 고침 — 다시 만들면 이름 칸을 누른 순간 그 칸이 사라져 입력 · 클릭이 끊김
+    const sig = JSON.stringify(list.map(([p, d]) => [p.cid, p.getId(), d, T[p.getId()].menu !== false, d ? 0 : kids(p.getId()).length, collapsed.has(p.getId())]));
+    if (box.dataset.sig === sig && box.children.length === list.length) {
+      const act = box.ownerDocument.activeElement;
+      list.forEach(([p], i) => { const r = box.children[i], inp = r.querySelector('input'); r.classList.toggle('on', p === cur); if (inp && inp !== act && inp.value !== pname(p)) inp.value = pname(p); });
+      return;
+    }
+    box.dataset.sig = sig; box.innerHTML = '';
+    list.forEach(([p, d]) => row(p, d));
     function row(p, depth) {
       const id = p.getId(), t = T[id], ks = depth ? [] : kids(id);
       const r = h('div', { className: 'pg' + (p === cur ? ' on' : '') + (t.menu === false ? ' hid' : ''), draggable: true });
@@ -133,11 +142,11 @@ KZ.part(function (X) {
       const code = h('button', { className: 'pg-id', textContent: '#' + id, title: '눌러서 주소 바꾸기' });
       code.onclick = e => { e.stopPropagation(); renamePageId(p); };
       const acts = h('span', { className: 'pg-acts' }, [
-        iconBtn(t.menu === false ? '메뉴에 표시' : '메뉴에서 숨기기', t.menu === false ? '◌' : '●', () => { t.menu = t.menu === false; afterTree(); }),
+        iconBtn(t.menu === false ? '메뉴에 표시' : '메뉴에서 숨기기', t.menu === false ? '◌' : '●', () => { const now = treeEnsure()[id]; now.menu = now.menu === false; afterTree(); }),
         iconBtn('위로', '↑', () => step(id, -1)), iconBtn('아래로', '↓', () => step(id, 1)),
         depth ? iconBtn('위 단계로', '⇤', () => outdent(id)) : iconBtn('위 페이지의 하위로', '⇥', () => indent(id)),
-        iconBtn('하위 페이지 추가', '+', () => addPage('새 하위 페이지', null, id + '-sub', depth ? t.parent : id)),
-        iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().components().map(c => c.clone()), id + '-copy', t.parent)), // clone: 요소별 스타일도 새 id로 복사
+        iconBtn('하위 페이지 추가', '+', () => addPage('새 하위 페이지', null, id + '-sub', depth ? treeEnsure()[id].parent : id)),
+        iconBtn('복제', '⧉', () => addPage(pname(p) + ' 복사', p.getMainComponent().components().map(c => c.clone()), id + '-copy', treeEnsure()[id].parent)), // clone: 요소별 스타일도 새 id로 복사
         (!depth && orderedPages()[0] !== p) ? iconBtn('첫 페이지로 (사이트를 열면 보이는 페이지)', '⌂', () => { const first = orderedPages()[0]; if (first) { movePage(id, first.getId(), 'before'); toast(pname(p) + ' 이(가) 첫 페이지가 되었습니다'); } }) : null,
         iconBtn('삭제', '✕', () => deletePage(p))
       ]);
