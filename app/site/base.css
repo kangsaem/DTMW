@@ -232,64 +232,81 @@ a{color:inherit}
 .cta-d{font-size:16px;opacity:.75;margin:0 0 12px}
 .cta .btn{background:var(--bg);color:var(--ink)}
 /* 전시 섹션 (layouts/26-exhibit.js) — Canva 1366 × 768 판을 그대로: 1366보다 좁으면 비율대로 줄고 넓으면 가운데 그대로.
-   --u = 판의 1px. 글꼴: 제목 --fh, 부제 --fx, 캡션 · 약력 --fb 가늘게(300). 모바일은 아래 640px 이하에서 따로 */
-.exh{--u:min(1px,calc(100vw / 1366));position:relative;height:calc(var(--u) * 768);overflow:hidden;background:var(--bg);color:var(--sub);margin:0}
+   --u = 판의 1px(모바일은 375 판의 1px). 섹션마다 위치를 맞출 때는 섹션 style 에 변수만 줌 (값은 판 단위 숫자):
+   PC   --h 섹션 높이 · --at/--ah 작품 위·높이 · (.exh-pos 일 때) --ax 가운데 기준 왼쪽 · --aw 너비 · --ct/--cr 캡션 위 · 가운데 기준 오른쪽 끝
+        --tt/--ts/--tl 표지 제목 위·크기·줄높이 · --st/--ss 부제 · --op 배경 세로 위치(%) · --ft 꽉 찬 그림 위 여백
+   모바일 --mh 높이 · --mt 작품 위 · --mx 양옆 여백 · --mcg 캡션 간격 · --mcr 캡션 오른쪽 여백 · --mtt/--mts 제목 · --mst/--mss 부제
+   글꼴: 제목 --fh, 부제 --fx, 캡션 · 약력 --fb 가늘게(300) */
+.exh{--u:min(1px,calc(100vw / 1366));position:relative;height:calc(var(--u) * var(--h,768));overflow:hidden;background:var(--bg);color:var(--sub);margin:0}
 .exh[data-bg="white"]{background:#fff}
 .exh[data-bg="gray"]{background:#EBEBEB}
+.exh[data-bg="gray2"]{background:#D9D9D9}
 .exh[data-bg="orange"]{background:#F85D10;color:#EBEBEB}
 .exh[data-bg="black"]{background:#000;color:#EBEBEB}
 .exh p{margin:0}
-.exh-bg{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover}
-.exh-title{position:absolute;left:0;right:0;top:calc(var(--u) * 355);margin:0;text-align:center;color:#fff;font-family:var(--fh);font-weight:800;font-size:calc(var(--u) * 50.6);line-height:calc(var(--u) * 50);letter-spacing:-.02em}
-.exh-sub{position:absolute;left:0;right:0;top:calc(var(--u) * 628);text-align:center;color:#535353;font-family:var(--fx,var(--fb));font-size:calc(var(--u) * 10.7);line-height:1.2;letter-spacing:-.022em}
-.exh-art{position:absolute;left:0;right:0;margin:0 auto;top:calc(var(--u) * 123);height:calc(var(--u) * 522);width:auto;max-width:90%;object-fit:contain}
-.exh-work[data-size="l"] .exh-art{top:0;height:calc(var(--u) * 714);box-shadow:0 calc(var(--u) * 10) calc(var(--u) * 22) rgba(0,0,0,.32)}
+.exh-bg{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% var(--op,50%)}
+.exh-bg.exh-fitw{bottom:auto;top:calc(var(--u) * var(--ft,0));height:auto}
+.exh-title{position:absolute;left:0;right:0;top:calc(var(--u) * var(--tt,355));margin:0;text-align:center;color:var(--tc,#fff);font-family:var(--fh);font-weight:800;font-size:calc(var(--u) * var(--ts,50.6));line-height:calc(var(--u) * var(--tl,50));letter-spacing:var(--tls,-.02em);white-space:nowrap}
+.exh-sub{position:absolute;left:0;right:0;top:calc(var(--u) * var(--st,628));text-align:center;color:#535353;font-family:var(--fx,var(--fb));font-size:calc(var(--u) * var(--ss,10.7));line-height:1.2;letter-spacing:-.022em}
+.exh-art{position:absolute;left:0;right:0;margin:0 auto;top:calc(var(--u) * var(--at,123));height:calc(var(--u) * var(--ah,522));width:auto;max-width:90%;object-fit:contain}
+.exh-art.exh-pos{left:calc(50% + var(--u) * var(--ax,-231.5));right:auto;margin:0;width:calc(var(--u) * var(--aw,463));max-width:none;object-fit:cover}
+.exh-work[data-size="l"]{--at:0;--ah:714;--cr:444;--ct:520}
+.exh-work[data-size="l"] .exh-art:not(.exh-pos){box-shadow:0 calc(var(--u) * 10) calc(var(--u) * 22) rgba(0,0,0,.32)}
 .exh-cap{text-align:right;font-family:var(--fb);font-weight:300;letter-spacing:-.037em}
-.exh-work .exh-cap{position:absolute;right:calc(50% - var(--u) * 460);top:calc(var(--u) * 667)}
-.exh-work[data-size="l"] .exh-cap{right:calc(50% - var(--u) * 444);top:calc(var(--u) * 520)}
+.exh-work .exh-cap{position:absolute;right:calc(50% - var(--u) * var(--cr,460));top:calc(var(--u) * var(--ct,667))}
 .exh-cap-a{font-size:calc(var(--u) * 14);line-height:calc(var(--u) * 20)}
 .exh-cap-t{font-size:calc(var(--u) * 16.7);line-height:calc(var(--u) * 22)}
 .exh-cap-m{font-size:calc(var(--u) * 9.7);line-height:calc(var(--u) * 13)}
 .exh-frames{position:absolute;left:0;right:0;top:calc(var(--u) * 60);display:flex;justify-content:center;gap:calc(var(--u) * 150)}
 .exh-frames img{width:calc(var(--u) * 117);height:calc(var(--u) * 117);object-fit:cover;box-shadow:0 calc(var(--u) * 8) calc(var(--u) * 14) rgba(0,0,0,.22)}
-.exh-caps{position:absolute;top:calc(var(--u) * 592);right:calc(50% - var(--u) * 474.5);display:flex;align-items:flex-end;gap:calc(var(--u) * 9)}
-.exh-caps .exh-cap{width:calc(var(--u) * 80)}
-.exh-cv-in{position:absolute;left:calc(50% - var(--u) * 260.5);top:calc(var(--u) * 118);font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * 17.1);line-height:calc(var(--u) * 23.8);letter-spacing:-.03em}
+.exh-row .exh-art{--at:0}
+.exh-caps{position:absolute;top:calc(var(--u) * var(--ct,592));right:calc(50% - var(--u) * var(--cr,474.5));display:flex;align-items:flex-end;gap:calc(var(--u) * var(--cg,9))}
+.exh-caps .exh-cap{width:calc(var(--u) * var(--cw,80))}
+.exh-cv-in{position:absolute;left:calc(50% - var(--u) * var(--cvx,260.5));top:calc(var(--u) * var(--cvt,118));font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * var(--cvs,17.1));line-height:calc(var(--u) * var(--cvl,23.8));letter-spacing:-.03em}
 .exh-cv-name{color:#fff;letter-spacing:normal}
-.exh .exh-cv-g{margin-top:calc(var(--u) * 23.6)}
-.exh .exh-cv-en{margin-top:calc(var(--u) * 54)}
-.exh-cv-links{position:absolute;left:calc(50% - var(--u) * 167);top:calc(var(--u) * 618);display:flex;flex-direction:column}
-.exh-cv-l{display:flex;align-items:center;gap:calc(var(--u) * 10);height:calc(var(--u) * 41);color:#fff;text-decoration:none;font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * 11.9)}
-.exh-ic{display:block;width:calc(var(--u) * 39);height:calc(var(--u) * 39);flex:none}
-.exh-ln{position:absolute;left:0;right:0;top:calc(var(--u) * 147);display:flex;flex-direction:column;align-items:center;font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * 14);line-height:calc(var(--u) * 37)}
-.exh-ln a{color:var(--ink)}
+.exh .exh-cv-g{margin-top:calc(var(--u) * var(--cvl,23.8))}
+.exh .exh-cv-en{margin-top:calc(var(--u) * var(--cve,54))}
+.exh-cv-links{position:absolute;left:calc(50% + var(--u) * var(--lx,-167));top:calc(var(--u) * var(--lt,618));display:flex;flex-direction:column}
+.exh-cv-l{display:flex;align-items:center;gap:calc(var(--u) * 8);height:calc(var(--u) * 44.2);color:#fff;text-decoration:var(--ld,none);font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * var(--ls,11.9))}
+.exh-ic{display:flex;align-items:center;justify-content:center;width:calc(var(--u) * 42);height:calc(var(--u) * 42);flex:none}
+.exh-ic svg,.exh-ic img{width:calc(var(--u) * 37);height:calc(var(--u) * 37)}
+.exh-ic.m svg,.exh-ic.m img{width:calc(var(--u) * 41.7);height:calc(var(--u) * 41.7)}
+.exh-ln{position:absolute;left:0;right:0;top:calc(var(--u) * var(--lnt,147));display:flex;flex-direction:column;align-items:center;font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * var(--lns,14));line-height:calc(var(--u) * var(--lnl,37))}
+.exh-ln a{color:var(--lnc,var(--ink))}
 @media (max-width:640px){
-  .exh{height:auto}
-  .exh-cover{height:525px}
-  .exh-title{top:281px;font-size:40px;line-height:39px}
-  .exh-sub{top:414px;font-size:8.4px}
-  .exh-work{padding:97px 0 16px}
-  .exh-work[data-size="l"]{padding-top:0}
-  .exh-art,.exh-work[data-size="l"] .exh-art{position:static;display:block;width:calc(100% - 30px);height:auto;max-width:none;margin:0 15px}
-  .exh-work .exh-cap,.exh-work[data-size="l"] .exh-cap{position:static;margin:15px 64px 0 0}
-  .exh-work[data-size="l"] .exh-cap{margin-right:15px}
-  .exh-cap-a{font-size:11.1px;line-height:16px}
-  .exh-cap-t{font-size:13.2px;line-height:17px}
-  .exh-cap-m{font-size:7.7px;line-height:10.5px}
-  .exh-row{height:297px}
-  .exh-frames{top:16px;gap:41px}
-  .exh-frames img{width:32px;height:32px}
-  .exh-caps{top:163px;right:28px;gap:9px}
-  .exh-caps .exh-cap{width:64px}
-  .exh-space{height:211px}
-  .exh-photo{height:56.25vw}
-  .exh-cv{height:534px}
-  .exh-cv-in{left:17px;top:94px;font-size:13.7px;line-height:19px}
-  .exh .exh-cv-g{margin-top:19px}
-  .exh .exh-cv-en{margin-top:13px}
-  .exh-cv-links{left:107px;top:421px}
-  .exh-cv-l{height:33px;gap:8px;font-size:9.5px}
-  .exh-ic{width:31px;height:31px}
-  .exh-links{height:211px}
-  .exh-ln{top:116px;font-size:11px;line-height:29px}
+  /* 모바일 = Canva 모바일 보기 (375 판). --mh 가 없으면 내용 높이 */
+  .exh{--u:calc(100vw / 375);height:calc(var(--u) * var(--mh))}
+  .exh-cover{--mh:525}
+  .exh-title{top:calc(var(--u) * var(--mtt,281));font-size:calc(var(--u) * var(--mts,40));line-height:calc(var(--u) * var(--mtl,39))}
+  .exh-sub{top:calc(var(--u) * var(--mst,414));font-size:calc(var(--u) * var(--mss,8.4))}
+  .exh-bg.exh-fitw{top:calc(var(--u) * var(--mft,0))}
+  .exh-bg.exh-mpos{left:calc(var(--u) * var(--mix));top:calc(var(--u) * var(--miy));width:calc(var(--u) * var(--miw));height:calc(var(--u) * var(--mih));right:auto;bottom:auto}
+  .exh-work,.exh-row{padding-bottom:calc(var(--u) * 16)}
+  .exh-work[data-size="l"]{--mt:0}
+  .exh-row{--mt:0}
+  .exh-art,.exh-art.exh-pos{position:static;display:block;width:calc(100% - var(--u) * var(--mx,15) * 2);height:auto;max-width:none;margin:calc(var(--u) * var(--mt,97)) calc(var(--u) * var(--mx,15)) 0;box-shadow:none}
+  .exh-row .exh-frames{margin-top:calc(var(--u) * var(--mt))}
+  .exh-work .exh-cap{position:static;margin:calc(var(--u) * var(--mcg,15)) calc(var(--u) * var(--mcr,64)) 0 0}
+  .exh-work[data-size="l"] .exh-cap{margin-right:calc(var(--u) * var(--mcr,15))}
+  .exh-cap-a{font-size:calc(var(--u) * 11.1);line-height:calc(var(--u) * 15.7)}
+  .exh-cap-t{font-size:calc(var(--u) * 13.2);line-height:calc(var(--u) * 17.1)}
+  .exh-cap-m{font-size:calc(var(--u) * 7.7);line-height:calc(var(--u) * 10.3)}
+  .exh-row{--mh:297.6}
+  .exh-frames{top:calc(var(--u) * 16);gap:calc(var(--u) * 41)}
+  .exh-frames img{width:calc(var(--u) * 32);height:calc(var(--u) * 32)}
+  .exh-caps{top:calc(var(--u) * var(--mct,163.2));right:calc(var(--u) * var(--mcr,27.7));gap:calc(var(--u) * 9)}
+  .exh-caps .exh-cap{width:calc(var(--u) * 64)}
+  .exh-space{--mh:211}
+  .exh-photo{--mh:211}
+  .exh-cv{--mh:534}
+  .exh-cv-in{left:calc(var(--u) * 17.5);top:calc(var(--u) * var(--mcvt,94));font-size:calc(var(--u) * 13.7);line-height:calc(var(--u) * 19)}
+  .exh .exh-cv-g{margin-top:calc(var(--u) * 19)}
+  .exh .exh-cv-en{margin-top:calc(var(--u) * 13)}
+  .exh-cv-links{left:calc(var(--u) * 104);top:calc(var(--u) * var(--mlt,420))}
+  .exh-cv-l{height:calc(var(--u) * 34.8);gap:calc(var(--u) * 6);font-size:calc(var(--u) * 9.5)}
+  .exh-ic{width:calc(var(--u) * 36);height:calc(var(--u) * 36)}
+  .exh-ic svg,.exh-ic img{width:calc(var(--u) * 29.4);height:calc(var(--u) * 29.4)}
+  .exh-ic.m svg,.exh-ic.m img{width:calc(var(--u) * 33);height:calc(var(--u) * 33)}
+  .exh-links{--mh:211}
+  .exh-ln{top:calc(var(--u) * var(--mlnt,116));font-size:calc(var(--u) * var(--mlns,11));line-height:calc(var(--u) * var(--mlnl,29))}
 }
