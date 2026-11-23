@@ -933,3 +933,60 @@ test('작가 전시 세트(변형으로 구성): 1366 에서 강이조 사이트
   const c = await q.evaluate(() => { const s = document.querySelector('.rt-page[data-page="show1"] section'), b = s.querySelector('.exh-bg').getBoundingClientRect(), t = s.querySelector('.exh-title').getBoundingClientRect(); return [Math.round(b.width), Math.round(t.top - s.getBoundingClientRect().top)]; });
   expect(c).toEqual([1366, 418]);
 });
+
+// ---------- 0.16.1 모아서 고친 것 ----------
+test('붙여넣기: 워드 서식 · 링크 안 링크 없이 글만 들어간다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const word = '<html><head><style>p.MsoNormal{color:red}</style></head><body><!--StartFragment--><p class="MsoNormal" style="font-family:맑은 고딕;font-size:20pt;color:red"><b>굵게</b> 보통 <a href="https://example.com"><p>링크</p></a> <a href="javascript:alert(1)">나쁨</a></p><p class="MsoNormal">둘째</p><!--EndFragment--></body></html>';
+    return [KZ.cleanPaste(word, '', false), KZ.cleanPaste('<a href="https://a.com">x</a>', '', true), KZ.cleanPaste('', 'a\nb<c>', false)];
+  });
+  expect(r[0]).toBe('<b>굵게</b> 보통<br><a href="https://example.com">링크</a><br> 나쁨<br>둘째');
+  expect(r[1]).toBe('x');
+  expect(r[2]).toBe('a<br>b&lt;c&gt;');
+  // 실제 편집 중 붙여넣기
+  const fr = page.frameLocator('.gjs-frame');
+  await page.evaluate(() => { const e = window.__kzEditor; e.getWrapper().append('<p id="pt">가</p>'); });
+  await fr.locator('#pt').dblclick(); await page.waitForTimeout(200);
+  await page.evaluate(() => { const d = window.__kzEditor.Canvas.getDocument(), el = d.getElementById('pt'); const dt = new DataTransfer();
+    dt.setData('text/html', '<span style="font-size:40px;color:red" class="MsoNormal">나다</span>'); dt.setData('text/plain', '나다');
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); });
+  const html = await fr.locator('#pt').innerHTML();
+  expect(html).toContain('나다'); expect(html).not.toMatch(/style=|class=|span/);
+  expect(errors).toEqual([]);
+});
+
+test('편집 화면 바탕이 테마 색, 다 지운 글은 높이가 남는다, 좁음 알림은 640 아래에서만', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const e = window.__kzEditor, d = e.Canvas.getDocument(), S = window.__kz.S;
+    const p = e.getWrapper().append('<p id="emp"></p>')[0];
+    return { bg: getComputedStyle(d.body).backgroundColor, want: S.colors.bg, h: d.getElementById('emp').getBoundingClientRect().height };
+  });
+  const hex = c => '#' + c.match(/\d+/g).slice(0, 3).map(n => (+n).toString(16).padStart(2, '0')).join('');
+  expect(hex(r.bg).toLowerCase()).toBe(r.want.toLowerCase());
+  expect(r.h).toBeGreaterThan(8);
+  await expect(page.locator('#narrowNote')).toBeHidden();
+});
+
+test('Ctrl+S 는 작업 파일 받기, 아이폰 HEIC 는 안내 후 올리지 않음, 올린 파일 ✕ 로 지우기', async ({ page }) => {
+  const errors = await open(page);
+  const dl = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
+  const prevented = await page.evaluate(() => { const ev = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true }); document.body.dispatchEvent(ev); return ev.defaultPrevented; });
+  expect(prevented).toBe(true);
+  const d = await dl; const dlg = await page.locator('#dlg.open, .dlg-back.open').count();
+  expect(!!d || dlg > 0).toBe(true);
+  if (!d && dlg) await page.keyboard.press('Escape');
+  await page.click('.rail button[data-pane="up"]');
+  const n0 = await page.evaluate(() => window.__kz.S.assets.length);
+  await page.setInputFiles('#fileIn', { name: 'IMG_0001.HEIC', mimeType: 'image/heic', buffer: Buffer.from('not really heic') });
+  await expect(page.getByText('높은 호환성')).toBeVisible();
+  await page.getByRole('button', { name: '확인' }).click();
+  expect(await page.evaluate(() => window.__kz.S.assets.length)).toBe(n0);
+  await page.setInputFiles('#fileIn', { name: 'jiul.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') });
+  await expect.poll(() => page.evaluate(() => window.__kz.S.assets.length)).toBe(n0 + 1);
+  await page.locator('.asset-w', { has: page.locator('img[alt="jiul.png"]') }).locator('.asset-x').click();
+  await expect.poll(() => page.evaluate(() => window.__kz.S.assets.some(a => a.name === 'jiul.png'))).toBe(false);
+  await expect(page.locator('#autoMenu + span')).toHaveText('상단 메뉴를 페이지 목록대로 자동으로');
+  expect(errors).toEqual([]);
+});

@@ -91,6 +91,35 @@ window.KZ = window.KZ || {};
   }
   function num(v, d) { var n = parseFloat(v); return isNaN(n) ? d : n; }
 
+  // 붙여넣기 정리: 서식 · 클래스 · 글꼴은 버리고 글 · 굵게 · 기울임 · 줄바꿈 · 링크(http · mailto · tel · #)만. inLink 면 링크도 뺌(링크 안 링크 방지)
+  KZ.cleanPaste = function (html, text, inLink) {
+    if (!html) return esc(text || '').replace(/\r?\n/g, '<br>');
+    var t = document.createElement('template'); t.innerHTML = html.replace(/<!--[\s\S]*?-->/g, '');
+    var BLOCK = /^(P|DIV|LI|H[1-6]|TR|BLOCKQUOTE|PRE|SECTION|ARTICLE|UL|OL|TABLE|FIGURE|HEADER|FOOTER)$/;
+    function walk(n, link) {
+      var out = '';
+      n.childNodes.forEach(function (c) {
+        if (c.nodeType === 3) { out += esc(c.nodeValue.replace(/\s+/g, ' ')); return; }
+        if (c.nodeType !== 1) return;
+        var tg = c.tagName;
+        if (/^(STYLE|SCRIPT|META|LINK|TITLE|XML|O:P|HEAD)$/.test(tg)) return;
+        if (tg === 'BR') { out += '<br>'; return; }
+        var inner = walk(c, link || tg === 'A');
+        var fw = c.style && c.style.fontWeight, fs = c.style && c.style.fontStyle;
+        if (tg === 'B' || tg === 'STRONG' || fw === 'bold' || +fw >= 600) inner = inner.trim() ? '<b>' + inner + '</b>' : inner;
+        if (tg === 'I' || tg === 'EM' || fs === 'italic') inner = inner.trim() ? '<i>' + inner + '</i>' : inner;
+        if (tg === 'A' && !link && !inLink) {
+          var h = c.getAttribute('href') || '';
+          if (!inner.trim()) inner = ''; else if (/^(https?:|mailto:|tel:|#)/i.test(h)) inner = '<a href="' + esc(h) + '">' + inner + '</a>';
+        }
+        if (BLOCK.test(tg)) inner = inner.replace(/^\s+|\s+$/g, '') + '<br>';
+        out += inner;
+      });
+      return out;
+    }
+    var r = walk(t.content, false).replace(/(<br>\s*){3,}/g, '<br><br>').replace(/^(\s|<br>)+|(\s|<br>)+$/g, '');
+    return r || esc(text || '').replace(/\r?\n/g, '<br>');
+  };
   KZ.ui = { docs: docs, $: $, $$: $$, esc: esc, toast: toast, dialog: dialog, confirmDlg: confirmDlg, h: h, field: field, slider: slider, seg: seg, opts: opts, swatches: swatches, toHex: toHex, num: num,
     setStatus: function (s, bad) { var e = $('#status'); e.textContent = s; e.classList.toggle('bad', !!bad); } };
 })(window.KZ);
