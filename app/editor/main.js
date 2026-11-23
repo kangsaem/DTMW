@@ -57,6 +57,12 @@
         const ul = doc.createElement('style'); ul.id = 'kz-unlinked';
         ul.textContent = UNLINKED_SEL + '{outline:1px dashed #e5484d!important;outline-offset:3px}';
         doc.head.appendChild(ul);
+        // 편집 화면만: 바탕을 테마 색으로 (GrapesJS 기본 흰 바탕보다 우선), 다 지운 글은 높이를 남기고 [빈 글] 표시
+        const ed = doc.createElement('style'); ed.id = 'kz-edit';
+        ed.textContent = 'html body{background:var(--bg)}' +
+          ':is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption):empty{min-height:1em;min-width:3em}' +
+          ':is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption):empty:not(:focus)::before{content:"[빈 글]";opacity:.35;font-size:max(12px,.6em)}';
+        doc.head.appendChild(ed);
         // Alt(⌥)+클릭: 링크가 가리키는 페이지로 이동
         const jump = e => {
           if (!e.altKey) return;
@@ -65,6 +71,16 @@
           if (id && editor.Pages.get(id)) { e.preventDefault(); e.stopPropagation(); if (e.type === 'click') editor.Pages.select(id); }
         };
         doc.addEventListener('mousedown', jump, true); doc.addEventListener('click', jump, true);
+        // 붙여넣기: 워드 · 웹의 서식은 버리고 글만 (굵게 · 기울임 · 줄바꿈 · 링크만 남김, 링크 안에서는 링크도 뺌)
+        doc.addEventListener('paste', e => {
+          const t = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+          const ed = t && t.closest && t.closest('[contenteditable="true"]'); if (!ed || !e.clipboardData) return;
+          e.preventDefault(); e.stopPropagation();
+          const sel = doc.getSelection(), at = sel && sel.anchorNode, inLink = !!(at && (at.nodeType === 1 ? at : at.parentElement).closest('a'));
+          const html = KZ.cleanPaste(e.clipboardData.getData('text/html'), e.clipboardData.getData('text/plain'), inLink);
+          if (html) doc.execCommand('insertHTML', false, html);
+        }, true);
+        doc.addEventListener('keydown', saveKey, true);
       }
       doc.getElementById('kz-theme').textContent = KZ.themeCss(S);
       doc.documentElement.classList.toggle('kz-fx', fxMark);
@@ -107,6 +123,11 @@
       const d = new Date(), ymd = '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
       return (/[a-z]/.test(n) ? n : 'site') + '-' + ymd;
     }
+    // Ctrl+S (맥 ⌘S): 브라우저 '페이지 저장' 대신 작업 파일 받기
+    function saveKey(e) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); e.stopPropagation(); saveProjectFile(); toast('작업 파일을 받았습니다 (Ctrl+S)'); }
+    }
+    document.addEventListener('keydown', saveKey, true);
     function saveProjectFile() {
       offerFile(fileBase() + '-project.json', JSON.stringify(KZ.store.pack(S, editor.getProjectData())), 'application/json');
       fileDirty(false);
@@ -390,7 +411,7 @@
     // PC 화면인데 편집 화면이 좁으면(사이트 대부분이 모양을 바꾸는 760px 미만) 모바일 모양으로 보인다고 알림
     function narrowCheck() {
       const f = editor.Canvas.getFrameEl(), w = f ? f.clientWidth : 0, n = $('#narrowNote');
-      if (n) n.hidden = !(editor.getDevice() === 'desktop' && w > 0 && w < 760);
+      if (n) n.hidden = !(editor.getDevice() === 'desktop' && w > 0 && w < 640);
     }
     if (window.ResizeObserver) new ResizeObserver(() => narrowCheck()).observe($('#gjs'));
     $('#pageSel').onchange = e => editor.Pages.select(e.target.value);
@@ -398,7 +419,7 @@
     // ---------- 업로드 ----------
     const readDataURL = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
     function resizeImage(file) {
-      return new Promise(res => {
+      return new Promise((res, rej) => {
         if (/svg|gif/.test(file.type)) { readDataURL(file).then(res); return; }
         const url = URL.createObjectURL(file); const img = new Image();
         img.onload = () => {
@@ -408,21 +429,25 @@
           let d = c.toDataURL('image/webp', 0.85); if (!d.startsWith('data:image/webp')) d = c.toDataURL('image/jpeg', 0.88);
           URL.revokeObjectURL(url); res(d);
         };
-        img.onerror = () => { URL.revokeObjectURL(url); readDataURL(file).then(res); };
+        img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('decode')); }; // 열 수 없는 그림(HEIC 등)은 넣지 않음
         img.src = url;
       });
     }
     async function handleFiles(files) {
       let n = 0;
       for (const f of files) {
+        const heic = /\.(heic|heif)$/i.test(f.name) || /heic|heif/i.test(f.type);
         try {
-          if (f.type.startsWith('image/')) { S.assets.unshift({ id: 'a' + Date.now() + n, type: 'image', name: f.name, src: await resizeImage(f) }); n++; }
+          if (f.type.startsWith('image/') || heic) { S.assets.unshift({ id: 'a' + Date.now() + n, type: 'image', name: f.name, src: await resizeImage(f) }); n++; }
           else if (f.type.startsWith('video/')) {
             if (f.size > 40e6) { toast(f.name + ': 40MB가 넘어 올리지 않았습니다. 20MB 이하로 줄여 주세요.'); continue; }
             if (f.size > 20e6) toast('20MB가 넘는 영상은 사이트가 느려질 수 있습니다.');
             S.assets.unshift({ id: 'a' + Date.now() + n, type: 'video', name: f.name, src: await readDataURL(f) }); n++;
           }
-        } catch (e) { toast(f.name + ' 파일을 읽지 못했습니다'); }
+        } catch (e) {
+          if (heic) await dialog('아이폰 사진(HEIC)', '<p><b>' + esc(f.name) + '</b> 은(는) HEIC 형식이라 이 브라우저에서 열 수 없어 올리지 않았습니다.</p><p class="hint">JPG 로 바꿔 올려 주세요. 아이폰: <b>설정 → 카메라 → 포맷 → 높은 호환성</b> 으로 바꾸면 다음부터 JPG 로 찍힙니다. 이미 찍은 사진은 사진 앱에서 공유 → 사본으로 저장하거나, 메일 · 메신저로 보내면 JPG 로 바뀝니다.</p>', [['확인', true, 'pri']]);
+          else toast(f.name + ' 파일을 읽지 못했습니다 (열 수 없는 형식)');
+        }
       }
       if (n) { renderAssets(); save(); toast(n + '개를 올렸습니다. 눌러서 적용하세요'); }
     }
@@ -435,8 +460,16 @@
         else { const v = document.createElement('video'); v.src = a.src; v.muted = true; v.loop = true; v.playsInline = true; b.onmouseenter = () => v.play().catch(() => {}); b.onmouseleave = () => v.pause(); b.appendChild(v); }
         const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = a.type === 'image' ? '사진' : '영상'; b.appendChild(tag);
         b.onclick = () => applyAsset(a);
-        b.oncontextmenu = async e => { e.preventDefault(); if (await confirmDlg('파일 삭제', '이 파일을 목록에서 지울까요? (이미 넣은 곳은 그대로 남습니다)', '지우기')) { S.assets = S.assets.filter(x => x !== a); renderAssets(); save(); } };
-        box.appendChild(b);
+        const del = async () => {
+          const used = editor.Pages.getAll().some(p => p.getMainComponent().toHTML().includes(a.src)) || editor.getCss().includes(a.src);
+          if (used && !await confirmDlg('파일 지우기', '이 파일은 사이트에 쓰이고 있습니다. 목록에서만 지울까요? (이미 넣은 곳은 그대로 남습니다)', '지우기')) return;
+          S.assets = S.assets.filter(x => x !== a); renderAssets(); save(); toast('목록에서 지웠습니다');
+        };
+        b.oncontextmenu = e => { e.preventDefault(); del(); };
+        const x = document.createElement('button'); x.className = 'asset-x'; x.textContent = '✕'; x.title = '목록에서 지우기'; x.setAttribute('aria-label', a.name + ' 목록에서 지우기');
+        x.onclick = e => { e.stopPropagation(); del(); };
+        const w = document.createElement('div'); w.className = 'asset-w'; w.append(b, x);
+        box.appendChild(w);
       });
     }
     const up = (c, pred) => { while (c) { if (pred(c)) return c; c = c.parent(); } return null; };
@@ -927,7 +960,7 @@
       Object.entries(FONTS).forEach(([k, f]) => fs.appendChild(h('option', { value: k, textContent: f.name })));
       fs.value = S.font; fs.onchange = () => { S.font = fs.value; refreshTheme(); save(); };
       const to = $('#transOpts'); to.innerHTML = ''; to.appendChild(opts(TRANS, S.transition, v => { S.transition = v; save(); }));
-      const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; if (am.checked) syncMenus(); save(); toast(am.checked ? '메뉴를 페이지 트리대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
+      const am = $('#autoMenu'); am.checked = S.autoMenu !== false; am.onchange = () => { S.autoMenu = am.checked; if (am.checked) syncMenus(); save(); toast(am.checked ? '상단 메뉴를 페이지 목록대로 자동으로 만듭니다' : '메뉴를 직접 고칩니다 (자동 갱신 꺼짐)'); };
       $$('#speedSeg button').forEach(b => { b.classList.toggle('on', b.dataset.v === S.speed); b.onclick = () => { S.speed = b.dataset.v; $$('#speedSeg button').forEach(x => x.classList.toggle('on', x === b)); refreshTheme(); save(); }; });
     }
     $('#pvTrans').onclick = () => openPreview();
