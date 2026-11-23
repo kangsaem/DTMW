@@ -38,6 +38,8 @@
     var next = find(id) || pages[0]; if (!next || next === cur || busy) return;
     var prev = cur; cur = next;
     var h = '#' + next.getAttribute('data-page');
+    // 탭 제목: 첫 페이지는 사이트 이름, 나머지는 '페이지 이름 · 사이트 이름'
+    if (meta.site) { var pm = (meta.pages || []).filter(function (x) { return x.id === next.getAttribute('data-page'); })[0]; document.title = (!pm || pm.id === meta.start) ? meta.site : pm.name + ' · ' + meta.site; }
     try { if (!prev) history.replaceState(null, '', h); else if (!fromHistory && location.hash !== h) history.pushState(null, '', h); } catch (e) { }
     var t = B.getAttribute('data-transition') || 'fade';
     if (!prev || !anim || !D || t === 'none' || !next.animate) { if (prev) prev.hidden = true; reveal(next); return; }

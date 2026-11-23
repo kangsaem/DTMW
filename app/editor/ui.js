@@ -89,7 +89,8 @@ window.KZ = window.KZ || {};
     pick.oninput = function () { on(pick.value); }; box.appendChild(pick);
     return field(label, box);
   }
-  function num(v, d) { var n = parseFloat(v); return isNaN(n) ? d : n; }
+  // 반응형 글자 크기 min(48px, 7.03vw) 는 앞의 px 값으로 읽음
+  function num(v, d) { var m = /^min\(\s*(-?[\d.]+)px/.exec(String(v || '')); var n = m ? +m[1] : parseFloat(v); return isNaN(n) ? d : n; }
 
   // 붙여넣기 정리: 서식 · 클래스 · 글꼴은 버리고 글 · 굵게 · 기울임 · 줄바꿈 · 링크(http · mailto · tel · #)만. inLink 면 링크도 뺌(링크 안 링크 방지)
   KZ.cleanPaste = function (html, text, inLink) {
