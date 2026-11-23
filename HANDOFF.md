@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-23
-- 편집기 버전: 0.16.6
+- 편집기 버전: 0.16.7
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -52,6 +52,9 @@
 - [x] 0.16.4: 다시 점검 — 첫 페이지 하위 페이지 메뉴, 사이트 이름은 글 전체 일치만, 불러오기 뒤 되돌리기 비움, 주소 되돌리기 트리 유지(Pages change:id), 전시 글 줄 간격 처음 값, 꺼낸 창 Ctrl+S(KZ.saveKey). 744px 이하는 지원 안 함(안내만) — 상단 버튼 밀림은 고치지 않음. 자동 점검 73개
 - [x] 0.16.5: 없는 페이지로 가는 링크 표시(deadSel · 빨간 점선 · 내보내기 경고), 페이지 트리 되돌리기(treeRec — S.tree JSON 을 담은 Backbone 모델을 UndoManager 에 등록, 같은 동기 호출의 변경과 한 단계), 템플릿 적용 뒤 메뉴 동기화 · [사이트 이름] 채우기(fillSiteName). 자동 점검 76개
 - [x] 0.16.6: 영상 찾기(vids — **GrapesJS find('video') 는 영상 컴포넌트를 못 찾으니 쓰지 말 것**), 세트별 로고 자리표시(brandPlaceholders — 로고 · 바닥글 안에서만 바꿈), 메뉴를 품은 섹션 이동 막기(hasNav), 메뉴 · 바닥글 블록 뒤 동기화(afterBlock). 자동 점검 79개
+- [x] 0.16.7: 링크 넣으면 누르면 효과 풀기(dropClick) · 둘 다 걸린 버튼 내보내기 경고(BOTH_SEL), 파일 종류 확장자로(kindOfFile). 자동 점검 81개
+- [ ] 보류(상의 필요): 구조 정리 — 같은 정보의 중복 저장이 버그 반복 원인. ① 사이트 이름을 글에 복사하지 말고 자리 요소로 두고 내보낼 때 채우기 ② 상단 메뉴를 내보낼 때 만들기 ③ 링크와 '누르면' 효과를 설정 하나로. 기존 저장본 변환 필요
+- [ ] 보류(작음): 한글 페이지 이름 → 주소 new-page-N (로마자 자동?), 카페 세트 첫 화면 큰 제목 '[가게 이름]' 은 사이트 이름 바꿔도 그대로(로고 · 바닥글만 바꾸는 규칙)
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
