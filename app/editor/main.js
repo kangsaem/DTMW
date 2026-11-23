@@ -32,14 +32,23 @@
 
     // 연결 안 된 버튼: 버튼 · 카드 모양 링크인데 href 가 비었거나 '#' 이고 팝업 등도 없는 것, 또는 '페이지 이동'인데 주소가 없는 것
     const UNLINKED_SEL = ['a.btn', 'a.btn-line', 'a.ct-i', 'a.hero-now', 'a.more'].map(c => c + '[href="#"]:not([data-click]),' + c + '[href=""]:not([data-click])').join(',') + ',[data-click="go"]:not([data-go])';
+    // 없는 페이지로 가는 링크: #주소 인데 그런 페이지가 없음 (지운 페이지 등) — 내보낸 사이트에서 누르면 첫 페이지로 가 버림
+    function deadSel() {
+      const ids = realPages().map(p => String(p.getId()).replace(/["\\]/g, ''));
+      return 'a[href^="#"]:not([href="#"]):not([data-click])' + ids.map(i => ':not([href="#' + i + '"])').join('') +
+        ',[data-click="go"][data-go^="#"]:not([data-go="#"])' + ids.map(i => ':not([data-go="#' + i + '"])').join('');
+    }
     function unlinkedReport() {
-      const out = [];
+      const out = [], dead = deadSel();
       orderedPages().forEach(p => {
         const t = document.createElement('template'); t.innerHTML = p.getMainComponent().getInnerHTML();
-        const n = t.content.querySelectorAll(UNLINKED_SEL).length; if (n) out.push({ name: pname(p), n });
+        const n = t.content.querySelectorAll(UNLINKED_SEL).length, d = t.content.querySelectorAll(dead).length;
+        if (n || d) out.push({ name: pname(p), n, d });
       });
       return out;
     }
+    function linkCss() { let d = ''; try { d = ',' + deadSel(); } catch (e) { /* 페이지 준비 전 */ } return UNLINKED_SEL + d + '{outline:1px dashed #e5484d!important;outline-offset:3px}'; }
+    function refreshLinkCss() { const c = linkCss(); docs.forEach(d => { try { const u = d.getElementById('kz-unlinked'); if (u && u.textContent !== c) u.textContent = c; } catch (e) { docs.delete(d); } }); }
 
     // 캔버스에 사이트 CSS 주입
     const docs = new Set();
@@ -55,7 +64,7 @@
         doc.head.appendChild(fm);
         // 연결 안 된 버튼 · 카드: 빨간 점선 (편집 화면만)
         const ul = doc.createElement('style'); ul.id = 'kz-unlinked';
-        ul.textContent = UNLINKED_SEL + '{outline:1px dashed #e5484d!important;outline-offset:3px}';
+        ul.textContent = linkCss();
         doc.head.appendChild(ul);
         // 편집 화면만: 바탕을 테마 색으로 (GrapesJS 기본 흰 바탕보다 우선), 다 지운 글은 높이를 남기고 [빈 글] 표시
         const ed = doc.createElement('style'); ed.id = 'kz-edit';
@@ -204,7 +213,7 @@
         if (st.speed) S.speed = st.speed;
         refreshTheme(); if (booted) renderSite();
       }
-      syncMenus();
+      syncMenus(); recordTree();
       editor.UndoManager.clear();
       renderNav(); save();
     }
@@ -240,9 +249,18 @@
     async function useTemplate(id) {
       const t = KZ.layouts[id];
       const v = await dialog(t.name, '<p>이 레이아웃을 어떻게 쓸까요?</p><p class="hint"><b>섹션으로 추가</b>: 지금 페이지에 이어 붙입니다 (선택한 섹션 아래, 없으면 바닥글 위). 상단 메뉴 · 바닥글은 빼고 넣습니다.<br><b>현재 페이지에 적용</b>: 지금 페이지 내용이 바뀝니다. 모두 Ctrl+Z로 되돌릴 수 있습니다.</p>', [['취소', null], ['새 페이지로 추가', 'new'], ['현재 페이지에 적용', 'cur'], ['섹션으로 추가', 'sec', 'pri']]);
-      if (v === 'sec') { addSection(KZ.sectionHtml(id)); toast('섹션을 추가했습니다'); }
-      if (v === 'cur') { editor.setComponents(t.html()); toast('현재 페이지에 적용했습니다'); }
-      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); }
+      if (v === 'sec') { addSection(KZ.sectionHtml(id)).forEach(fillSiteName); toast('섹션을 추가했습니다'); }
+      if (v === 'cur') { editor.setComponents(t.html()); fillSiteName(editor.getWrapper()); syncMenus(); renderNav(); toast('현재 페이지에 적용했습니다'); }
+      if (v === 'new') { const SLUG = { t1: 'home', t2: 'exhibitions', t3: 'works', t4: 'work', t5: 'apps', t6: 'series', t7: 'by-year', t8: 'index', t9: 'gallery', t10: 'cv', t11: 'text', t12: 'intro', t13: 'about', fx: 'effects' }; const sl = t.slug || SLUG[id]; const p = addPage(t.name.replace(/\s*\(.*\)$/, ''), t.html(), sl === 'home' ? 'intro' : sl); if (p) { fillSiteName(p.getMainComponent()); toast('새 페이지 #' + p.getId() + ' 를 만들었습니다'); } }
+    }
+    // 템플릿으로 넣은 내용의 [사이트 이름]: 다른 페이지에 자리표시가 하나도 없으면(이미 이름을 정했으면) 지금 사이트 이름으로
+    function fillSiteName(root) {
+      const PH = '[사이트 이름]', ph = esc(PH);
+      const textOnly = c => c.components().length && c.components().every(x => x.is('textnode'));
+      const count = r => { let n = 0; walk(r, c => { if (textOnly(c) && c.getInnerHTML().includes(ph)) n++; }); return n; };
+      const all = realPages().reduce((n, pg) => n + count(pg.getMainComponent()), 0);
+      if (all > count(root) || !S.siteName || S.siteName === PH) return; // 다른 곳에 자리표시가 남아 있으면 그대로 (아직 이름을 안 정한 사이트)
+      walk(root, c => { if (!textOnly(c)) return; const h = c.getInnerHTML(); if (h.includes(ph)) c.components(h.split(ph).join(esc(S.siteName))); });
     }
 
     // ---------- 섹션 (페이지 바로 아래 요소) ----------
@@ -304,7 +322,17 @@
     function indent(id) { const T = treeEnsure(); const sib = kids(T[id].parent || null); const i = sib.findIndex(p => p.getId() === id); if (T[id].parent) return toast('2단계까지만 넣을 수 있습니다'); if (i < 1) return toast('위에 같은 단계 페이지가 있어야 합니다'); movePage(id, sib[i - 1].getId(), 'inside'); }
     function outdent(id) { const T = treeEnsure(); const pa = T[id].parent; if (!pa) return; movePage(id, pa, 'after'); }
     function step(id, d) { const T = treeEnsure(); const sib = kids(T[id].parent || null); const i = sib.findIndex(p => p.getId() === id); const j = i + d; if (j < 0 || j >= sib.length) return; movePage(id, sib[j].getId(), d < 0 ? 'before' : 'after'); }
-    function afterTree() { syncMenus(); renderNav(); save(); }
+    // 페이지 목록(순서 · 단계 · 메뉴 표시)도 되돌리기에 넣음: 작은 기록 모델을 GrapesJS 되돌리기에 등록.
+    // 같은 동기 호출 안의 변경(페이지 삭제 · 메뉴 다시 만들기 등)과 한 단계로 묶임 (0.16.5 — 전에는 되돌리면 페이지가 맨 끝으로 가거나 메뉴만 예전으로)
+    const treeRec = window.Backbone ? new Backbone.Model({ t: '{}', _undo: true }) : { a: '{}', get() { return this.a; }, set(k, v) { this.a = v; }, on() {} };
+    if (window.Backbone) editor.UndoManager.add(treeRec);
+    function recordTree() { const j = JSON.stringify(S.tree || {}); if (treeRec.get('t') !== j) treeRec.set('t', j); }
+    treeRec.on('change:t', () => {
+      const j = treeRec.get('t'); if (j === JSON.stringify(S.tree || {})) return; // 직접 기록한 것 (되돌리기 아님)
+      try { S.tree = JSON.parse(j); } catch (e) { return; }
+      if (booted) setTimeout(() => { renderNav(); save(); }, 0);
+    });
+    function afterTree() { recordTree(); syncMenus(); renderNav(); save(); }
 
     // 자동 메뉴: 모든 페이지의 nav.links · .th-menu 를 트리로 다시 만듭니다
     function walk(c, fn) { fn(c); c.components().forEach(x => walk(x, fn)); }
@@ -390,7 +418,10 @@
       const ks = kids(p.getId());
       if (!await confirmDlg('페이지 삭제', '<b>' + esc(pname(p)) + '</b> 페이지를 삭제할까요?' + (ks.length ? '<br>하위 페이지 ' + ks.length + '개는 위 단계로 올라갑니다.' : ''), '삭제')) return;
       const T = treeEnsure(); ks.forEach(c => { T[c.getId()].parent = null; T[c.getId()].order = T[p.getId()].order + 0.5; });
-      const other = orderedPages().find(x => x !== p); editor.Pages.select(other); editor.Pages.remove(p); renumberAll(); afterTree();
+      const gone = p.getId(), other = orderedPages().find(x => x !== p); editor.Pages.select(other); editor.Pages.remove(p); renumberAll(); afterTree();
+      // 지운 페이지로 가던 링크(자동 메뉴 밖)는 남으므로 알림 — 편집 화면에서는 빨간 점선
+      let left = 0; realPages().forEach(pg => walk(pg.getMainComponent(), c => { const a = c.getAttributes(); if (a.href === '#' + gone || a['data-go'] === '#' + gone) left++; }));
+      if (left) toast('이 페이지로 가던 링크 ' + left + '곳이 남았습니다 (빨간 점선) — 다른 페이지로 바꿔 주세요');
     }
     function iconBtn(label, txt, fn) { const b = h('button', { className: 'ib', title: label, textContent: txt }); b.setAttribute('aria-label', label); b.onclick = e => { e.stopPropagation(); fn(); }; return b; }
     let dragId = null;
@@ -448,6 +479,7 @@
       return src;
     }
     function renderNav() {
+      refreshLinkCss();
       const T = treeEnsure(), cur = editor.Pages.getSelected(), list = orderedPages();
       const sel = $('#pageSel'); sel.innerHTML = '';
       list.forEach(p => sel.appendChild(h('option', { value: p.getId(), textContent: (T[p.getId()].parent ? '　└ ' : '') + pname(p) })));
@@ -1112,7 +1144,7 @@
     // ---------- 상단 바 ----------
     // 되돌리기: 글 고치기 한 번이 GrapesJS 안에서 여러 단계로 쌓여, 한 번 눌러서는 화면이 그대로인 경우가 있음
     // → 화면(HTML · CSS)이 바뀔 때까지 몇 단계 더 되돌림
-    const snap = () => editor.getHtml() + '\n' + editor.getCss({ keepUnusedStyles: true });
+    const snap = () => editor.getHtml() + '\n' + editor.getCss({ keepUnusedStyles: true }) + '\n' + treeRec.get('t');
     function stepUndo(redo) {
       const um = editor.UndoManager, has = () => redo ? um.hasRedo() : um.hasUndo();
       if (!has()) return;
@@ -1159,7 +1191,7 @@
       try {
         const d = KZ.store.migrate(JSON.parse(await f.text()));
         S = Object.assign(DEFAULT_S(), d.S || {}); editor.loadProjectData(d.gjs);
-        treeEnsure(); syncMenus(); editor.UndoManager.clear(); // 불러오기 전 되돌리기 기록은 버림 (남아 있으면 Ctrl+Z 가 불러온 내용을 어긋나게 바꿈)
+        treeEnsure(); syncMenus(); recordTree(); editor.UndoManager.clear(); // 불러오기 전 되돌리기 기록은 버림 (남아 있으면 Ctrl+Z 가 불러온 내용을 어긋나게 바꿈)
         syncAll(); save(); setTimeout(() => fileDirty(false), 1200); toast('작업 파일을 불러왔습니다');
       } catch (er) { dialog('불러오기 실패', '<p>' + esc(er.message || '이 편집기에서 저장한 .json 파일이 아닙니다.') + '</p>'); }
     };
@@ -1173,7 +1205,9 @@
       const warn = [];
       if (big.length) warn.push('<b>25MB가 넘는 파일</b>: ' + big.map(m => esc(m.path.slice(6)) + ' (' + mb(m.size) + ')').join(', ') + ' — GitHub에 올릴 수 없습니다. 영상을 더 짧게 · 작게 줄여 주세요.');
       if (!media.length && htmlBig) warn.push('<b>index.html이 25MB를 넘습니다</b> (' + mb(html.length) + ') — GitHub 웹 업로드 한도를 넘습니다.');
-      if (ul.length) warn.push('<b>연결 안 된 버튼 ' + ul.reduce((s, x) => s + x.n, 0) + '개</b> (편집 화면의 빨간 점선): ' + ul.map(x => esc(x.name) + ' ' + x.n).join(' · ') + ' — 눌러도 아무 일도 없습니다. 디자인 탭 → 링크에서 연결하세요.');
+      const uN = ul.filter(x => x.n), uD = ul.filter(x => x.d);
+      if (uN.length) warn.push('<b>연결 안 된 버튼 ' + uN.reduce((s, x) => s + x.n, 0) + '개</b> (편집 화면의 빨간 점선): ' + uN.map(x => esc(x.name) + ' ' + x.n).join(' · ') + ' — 눌러도 아무 일도 없습니다. 디자인 탭 → 링크에서 연결하세요.');
+      if (uD.length) warn.push('<b>없는 페이지로 가는 링크 ' + uD.reduce((s, x) => s + x.d, 0) + '개</b> (지운 페이지 등, 빨간 점선): ' + uD.map(x => esc(x.name) + ' ' + x.d).join(' · ') + ' — 누르면 첫 페이지로 갑니다. 디자인 탭 → 링크에서 다른 페이지로 바꾸세요.');
       const what = media.length
         ? '<p>올린 사진 · 영상이 <b>' + media.length + '개</b> 있어 <b>ZIP</b>(index.html + media 폴더)으로 받기를 권합니다.</p><p class="hint">받은 ZIP을 압축 풀고, 폴더 <b>안의 것을 전부</b> 선택해 GitHub에 끌어다 놓으세요.</p>'
         : '<p>완성한 사이트를 <b>index.html</b> 한 파일로 받습니다. 이 파일 하나만 올리면 됩니다.</p>';
@@ -1231,7 +1265,7 @@
         dialog('저장된 작업을 열지 못했습니다', '<p>이 브라우저에 저장된 작업을 열 수 없어 기본 세트로 시작합니다.</p><p class="hint">이유: ' + esc(loadErr.message || String(loadErr)) + '<br>원래 저장본은 지우지 않고 보관했습니다. 아래 버튼으로 파일로 받아 두고, 편집기를 새로고침한 뒤 <b>파일 → 작업 파일 불러오기</b>로 열어 보세요.</p>',
           [['닫기', null], ['원래 저장본 받기', d => { d(null); offerFile('wmw-backup-project.json', JSON.stringify(raw), 'application/json'); }, 'pri']]);
       }
-      treeEnsure(); syncMenus();
+      treeEnsure(); syncMenus(); recordTree();
       editor.UndoManager.clear();
       booted = true;
       renderSets(); renderTemplates(); syncAll(); KZ.layoutUi && KZ.layoutUi.init(editor);

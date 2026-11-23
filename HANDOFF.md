@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-23
-- 편집기 버전: 0.16.4
+- 편집기 버전: 0.16.5
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -50,6 +50,7 @@
 - [x] 0.16.2: 사용자 점검 버그 1~13 (히어로 사진, 자유 배치 translate, 빈 페이지 메뉴 · 바닥글 frameHtml, 넣기 위치, 그림 두 번 누르기 → 업로드 탭, 되돌리기 묶기, 빈 링크, 좁은 화면 자동 접기, 슬라이더 min() 읽기, 사이트 이름 동기화, 공유 · 검색 headMeta, 페이지별 탭 제목, slide 가로 스크롤). 자동 점검 70개
 - [x] 0.16.3: 사용자 점검 14~25 (상단 바, 페이지 주소 자동 · 바꾸기 renamePageId, 첫 페이지 보호 · ⌂, 같은 이름 알림, 한국어 레이어 · 도구줄, 드롭캡 자리표시, 폭 맞춤 표지 샘플, 큰 글자 축소 min(N, N/2 + 0.0732N vw)). 자동 점검 71개
 - [x] 0.16.4: 다시 점검 — 첫 페이지 하위 페이지 메뉴, 사이트 이름은 글 전체 일치만, 불러오기 뒤 되돌리기 비움, 주소 되돌리기 트리 유지(Pages change:id), 전시 글 줄 간격 처음 값, 꺼낸 창 Ctrl+S(KZ.saveKey). 744px 이하는 지원 안 함(안내만) — 상단 버튼 밀림은 고치지 않음. 자동 점검 73개
+- [x] 0.16.5: 없는 페이지로 가는 링크 표시(deadSel · 빨간 점선 · 내보내기 경고), 페이지 트리 되돌리기(treeRec — S.tree JSON 을 담은 Backbone 모델을 UndoManager 에 등록, 같은 동기 호출의 변경과 한 단계), 템플릿 적용 뒤 메뉴 동기화 · [사이트 이름] 채우기(fillSiteName). 자동 점검 76개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
@@ -110,6 +111,8 @@
 창 밖 패널 메모 (0.11.0 · 0.13.0): `editor/popout.js`. 패널별 상태 `outs[name]` 이지만 **한 번에 하나만** (toggle 이 다른 패널을 먼저 되돌림 — 두 번째 창은 일반 팝업이라 창 머리가 달라서, 2026-11-20 결정). 닫힘 처리는 `back(name, win)` 으로 그 창만 (늦게 온 닫힘 신호가 새 패널을 되돌리던 빈 창 버그 방지). 패널 요소를 바깥 창 document 로 옮기고(이벤트 유지), 편집기 CSS 를 복사. `KZ.ui.docs` 에 바깥 document 를 등록해 `$ · $$` 가 함께 찾음 — 새 코드도 `document.querySelector` 대신 `$` 를 쓸 것. 시험은 `KZ.forcePopup = true` 로 팝업 경로. 한계: 고급 탭 색 고르기 창 등 GrapesJS 가 띄우는 작은 창은 편집기 쪽에 뜰 수 있음, 창 사이 끌어다 놓기는 보장 안 함.
 
 화면 구조 메모 (0.8.0): 섹션 = 페이지 바로 아래 요소. 레이아웃 `section(d)` 가 있으면 그것, 없으면 `KZ.stripChrome(html)` 로 메뉴 · 바닥글을 뺀 본문. 세트 페이지 다섯째 값 `{ add: [...] }` 로 섹션을 바닥글 위에 이어 붙임.
+
+페이지 트리 되돌리기 메모 (0.16.5): `S.tree` 를 바꾸는 코드는 끝에 `afterTree()` (안에서 `recordTree()`) 를 불러야 되돌리기에 들어감. 같은 동기 호출 안의 변경은 GrapesJS 가 한 단계로 묶으므로 await 뒤에 나눠 바꾸지 말 것. 되돌릴 때는 `treeRec` change:t 에서 S.tree 를 통째로 바꿈. `stepUndo` 의 비교값(snap)에 트리도 포함.
 
 화면 구조 메모 (0.6.0): 페이지 트리는 `S.tree[id] = {parent, order, menu}` (작업 파일에 저장). 자동 메뉴는 `syncMenus()` 가 `nav.links` 를 다시 씀 — 직접 고친 메뉴를 유지하려면 사이트 탭에서 자동 메뉴를 끔. 패널 상태는 localStorage `kz-ui-v1`.
 

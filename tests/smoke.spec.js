@@ -1131,3 +1131,58 @@ test('전시 글 줄 간격 처음 값 · 꺼낸 창 Ctrl+S', async ({ page }) =
   expect(await page.evaluate(() => typeof KZ.saveKey)).toBe('function');
   expect(errors).toEqual([]);
 });
+
+// ---------- 0.16.5 ----------
+test('지운 페이지로 가는 링크 표시 · 내보내기 경고', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => { window.__kzEditor.Pages.select('news'); return 1; });
+  await page.click('.rail button[data-pane="pg"]'); await page.waitForTimeout(300);
+  await page.locator('.pg.on .pg-acts button[aria-label="삭제"]').click(); await page.locator('#dlgF button', { hasText: '삭제' }).click();
+  await expect(page.locator('#toast')).toContainText('링크');
+  await page.evaluate(() => { window.__kzEditor.Pages.select('home'); return 1; }); await page.waitForTimeout(500);
+  const marked = await page.evaluate(() => { const d = window.__kzEditor.Canvas.getDocument(), a = d.querySelector('a[href="#news"]'); return a ? d.defaultView.getComputedStyle(a).outlineStyle : 'none-found'; });
+  expect(marked).toBe('dashed');
+  // 있는 페이지 링크는 표시 안 함
+  expect(await page.evaluate(() => { const d = window.__kzEditor.Canvas.getDocument(), a = d.querySelector('nav.links a[href="#about"]'); return d.defaultView.getComputedStyle(a).outlineStyle; })).toBe('none');
+  await page.click('#publishBtn');
+  await expect(page.locator('#dlgB')).toContainText('없는 페이지로 가는 링크');
+  expect(errors).toEqual([]);
+});
+
+test('페이지 삭제 · 첫 페이지로 되돌리기: 순서 · 하위 관계 · 메뉴가 함께', async ({ page }) => {
+  const errors = await open(page);
+  const tree = () => page.evaluate(() => window.__kz.orderedPages().map(p => p.getId() + ':' + (window.__kz.treeEnsure()[p.getId()].parent || '')));
+  const before = await tree();
+  await page.evaluate(() => { window.__kzEditor.Pages.select('gallery'); return 1; });
+  await page.click('.rail button[data-pane="pg"]'); await page.waitForTimeout(300);
+  await page.locator('.pg.on .pg-acts button[aria-label="삭제"]').click(); await page.locator('#dlgF button', { hasText: '삭제' }).click();
+  await page.waitForTimeout(300);
+  await page.locator('#undo').click(); await page.waitForTimeout(300);
+  expect(await tree()).toEqual(before);
+  await expect(page.locator('.pg').nth(1).locator('.pg-id')).toHaveText('#gallery');
+  // 첫 페이지로 → 되돌리기 → 다시 하기
+  await page.evaluate(() => { window.__kzEditor.Pages.select('news'); return 1; }); await page.waitForTimeout(300);
+  await page.locator('.pg.on .pg-acts button[aria-label^="첫 페이지로"]').click(); await page.waitForTimeout(200);
+  await page.locator('#undo').click(); await page.waitForTimeout(300);
+  const st = await page.evaluate(() => ({ first: window.__kz.orderedPages()[0].getId(), nav: (window.__kzEditor.Pages.get('about').getMainComponent().toHTML().match(/<nav[^]*?<\/nav>/) || [''])[0] }));
+  expect(st.first).toBe('home'); expect(st.nav).toContain('#news'); expect(st.nav).not.toContain('#home');
+  await page.locator('#redo').click(); await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__kz.orderedPages()[0].getId())).toBe('news');
+  expect(errors).toEqual([]);
+});
+
+test('템플릿 현재 페이지에 적용 · 새 페이지: 메뉴는 페이지 목록대로, 로고는 사이트 이름', async ({ page }) => {
+  const errors = await open(page);
+  await page.fill('#siteName', 'Studio K'); await page.locator('#siteName').blur(); await page.waitForTimeout(200);
+  await page.evaluate(() => { window.__kzEditor.Pages.select('about'); window.__kz.movePage('journal', 'news', 'inside'); return 1; });
+  const idx = await page.evaluate(() => KZ.layoutOrder.indexOf('t2'));
+  await page.evaluate(i => document.querySelectorAll('#tplGrid .tpl')[i].click(), idx);
+  await page.locator('#dlgF button', { hasText: '현재 페이지에 적용' }).click(); await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const nav = id => (window.__kzEditor.Pages.get(id).getMainComponent().toHTML().match(/<nav[^]*?<\/nav>/) || [''])[0].replace(/ id="[^"]*"/g, '');
+    const h = window.__kzEditor.Pages.get('about').getMainComponent().toHTML();
+    return { same: nav('about') === nav('home'), ph: h.includes('[사이트 이름]'), brand: h.includes('Studio K') };
+  });
+  expect(r).toEqual({ same: true, ph: false, brand: true });
+  expect(errors).toEqual([]);
+});
