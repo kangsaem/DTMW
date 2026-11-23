@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.15.0
+- 편집기 버전: 0.15.1
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -44,6 +44,7 @@
 - [x] 0.14.0: 작가 전시 세트 + 전시 섹션 7종 (강이조 Canva 사이트 측정해 옮김, PC · 모바일). 자동 점검 55개
 - [x] 0.14.1: 내보낸 사이트 뒤로 가기, 전시 섹션 섹션별 위치 변수 — 강이조 사이트를 WMW 로 옮김(kangsaem/IZO). 자동 점검 57개
 - [x] 0.15.0: 전시 배치 칸(PC · 모바일 따로), 슬라이더 숫자 직접 입력, 글자 크기 반응형(휴대폰 넘침 수정), 약력 링크 글 편집, 표지 사진 선택, 빈 페이지 안내 자동 삭제. 화면만으로 옮기기 시험 48곳 중 45곳 3px 안. 자동 점검 60개
+- [x] 0.15.1: 작은 작품 줄 사진 방식(칸 여러 개 ↔ 사진 한 장, 새 그림 비율 맞춤 fitPosArt), 줄 캡션 간격 · 폭(--cg --cw / --mcgp --mcw), 표지 그림 확대 · 위치(--bz --bx --by / --mbz --mbx --mby). 화면만으로 옮기기 시험(2025) 63곳 모두 3px 안. 자동 점검 62개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
@@ -91,7 +92,7 @@
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
 
-전시 섹션 메모 (0.14.0 · 0.14.1): 섹션별 위치는 섹션 style 변수 — PC `--h --at --ah --ax --aw(.exh-pos) --ct --cr --cg --cw --tt --ts --tl --tls --tc --st --ss --op --ft --cvx --cvt --cvs --cvl --cve --lx --lt --ls --ld --lnt --lns --lnl --lnc`, 모바일 `--mh --mt --mx --mcg --mcr --mct --mtt --mts --mtl --mst --mss --mft --mix --miy --miw --mih(.exh-mpos) --mcvt --mlt --mlnt --mlns --mlnl`. 모바일 --u = 100vw/375. 변수가 없으면 기본값. 0.15.0 부터 디자인 탭 '전시 배치' 칸(main.js exhPanel · exhSet — 변수는 미디어 없는 #id 규칙에 저장, 모바일 변수 이름은 m 으로 시작). 글자 크기: 전시 섹션은 calc(var(--u) * N), PC 에서 바꾸면 모바일 규칙을 자동(autoMobileFont, 모바일에서 직접 정하면 --fsm 표시로 유지). 일반 섹션 32px 넘는 글자는 min(Npx, N×0.1464vw). 강이조 사이트 빌드 스크립트는 kangsaem/IZO 의 tools/ 에.
+전시 섹션 메모 (0.14.0 · 0.14.1): 섹션별 위치는 섹션 style 변수 — PC `--h --at --ah --ax --aw(.exh-pos) --ct --cr --cg --cw --tt --ts --tl --tls --tc --st --ss --op --ft --bz --bx --by --cvx --cvt --cvs --cvl --cve --lx --lt --ls --ld --lnt --lns --lnl --lnc`, 모바일 `--mh --mt --mx --mcg --mcr --mct --mtt --mts --mtl --mst --mss --mft --mbz --mbx --mby --mcgp --mcw --mix --miy --miw --mih(.exh-mpos) --mcvt --mlt --mlnt --mlns --mlnl`. 모바일 --u = 100vw/375. 변수가 없으면 기본값. 0.15.0 부터 디자인 탭 '전시 배치' 칸(main.js exhPanel · exhSet — 변수는 미디어 없는 #id 규칙에 저장, 모바일 변수 이름은 m 으로 시작). 글자 크기: 전시 섹션은 calc(var(--u) * N), PC 에서 바꾸면 모바일 규칙을 자동(autoMobileFont, 모바일에서 직접 정하면 --fsm 표시로 유지). 일반 섹션 32px 넘는 글자는 min(Npx, N×0.1464vw). 강이조 사이트 빌드 스크립트는 kangsaem/IZO 의 tools/ 에.
 
 전시 섹션 메모 (0.14.0): `layouts/26-exhibit.js` (exh-cover · exh-work · exh-row · exh-space · exh-photo · exh-cv · exh-links), CSS `site/base.css` `.exh` — `--u = min(1px, 100vw/1366)` 로 Canva 1366 × 768 판을 그대로, 모바일 640px 이하는 px 로 따로. 세트 `sets/exhibit.js` (theme/font 'exhibit', 새 변수 `--fx` = 부제 글꼴). Canva 측정값: 표지 제목 50.6px 위 355 · 부제 10.7px 위 628, 작품 463 × 522 위 123, 캡션 오른쪽 끝 가운데+460 위 667(이름 14 · 제목 16.7 · 정보 9.7), 크게(주황) 높이 714 · 캡션 위 520, 작은 작품 117px · 간격 150 · 위 60, 캡션 줄 위 592, 약력 왼쪽 가운데−260.5 위 118 · 17.1px · 줄 23.8, 모바일 글자 ×0.79. Canva 글꼴은 내부 코드라 이름을 알 수 없어 모양 비교로 고름(제목 = Figtree 800 이 가장 가까우나 같지 않음).
 

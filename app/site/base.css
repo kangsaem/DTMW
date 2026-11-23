@@ -244,8 +244,8 @@ a{color:inherit}
 .exh[data-bg="orange"]{background:#F85D10;color:#EBEBEB}
 .exh[data-bg="black"]{background:#000;color:#EBEBEB}
 .exh p{margin:0}
-.exh-bg{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% var(--op,50%)}
-.exh-bg.exh-fitw{bottom:auto;top:calc(var(--u) * var(--ft,0));height:auto}
+.exh-bg{position:absolute;left:calc((100% - 100% * var(--bz,100) / 100) * var(--bx,50) / 100);top:calc((100% - 100% * var(--bz,100) / 100) * var(--by,50) / 100);width:calc(100% * var(--bz,100) / 100);height:calc(100% * var(--bz,100) / 100);max-width:none;object-fit:cover;object-position:calc(var(--bx,50) * 1%) var(--op,calc(var(--by,50) * 1%))}
+.exh-bg.exh-fitw{left:0;width:100%;bottom:auto;top:calc(var(--u) * var(--ft,0));height:auto}
 .exh-title{position:absolute;left:0;right:0;width:max-content;max-width:100%;margin-left:auto!important;margin-right:auto!important;top:calc(var(--u) * var(--tt,355));margin:0;text-align:center;color:var(--tc,#fff);font-family:var(--fh);font-weight:800;font-size:calc(var(--u) * var(--ts,50.6));line-height:calc(var(--u) * var(--tl,50));letter-spacing:var(--tls,-.02em);white-space:nowrap}
 .exh-sub{position:absolute;left:0;right:0;width:max-content;max-width:100%;margin-left:auto!important;margin-right:auto!important;top:calc(var(--u) * var(--st,628));text-align:center;color:#535353;font-family:var(--fx,var(--fb));font-size:calc(var(--u) * var(--ss,10.7));line-height:1.2;letter-spacing:-.022em}
 .exh-art{position:absolute;left:0;right:0;margin:0 auto;top:calc(var(--u) * var(--at,123));height:calc(var(--u) * var(--ah,522));width:auto;max-width:90%;object-fit:contain}
@@ -260,7 +260,10 @@ a{color:inherit}
 .exh-frames{position:absolute;left:0;right:0;top:calc(var(--u) * 60);display:flex;justify-content:center;gap:calc(var(--u) * 150)}
 .exh-frames img{width:calc(var(--u) * 117);height:calc(var(--u) * 117);object-fit:cover;box-shadow:0 calc(var(--u) * 8) calc(var(--u) * 14) rgba(0,0,0,.22)}
 .exh-row .exh-art{--at:0}
-.exh-caps{position:absolute;top:calc(var(--u) * var(--ct,592));right:calc(50% - var(--u) * var(--cr,474.5));display:flex;align-items:flex-end;gap:calc(var(--u) * var(--cg,9))}
+.exh-caps{position:absolute;top:calc(var(--u) * var(--ct,612));right:calc(50% - var(--u) * var(--cr,474.5));display:flex;align-items:flex-start;gap:calc(var(--u) * var(--cg,9))}
+/* 작은 작품 캡션: 제목 줄을 한 줄로 맞추고 이름은 그 위로 (Canva 와 같음) */
+.exh-caps .exh-cap{position:relative}
+.exh-caps .exh-cap-a{position:absolute;right:0;bottom:100%;white-space:nowrap}
 .exh-caps .exh-cap{width:calc(var(--u) * var(--cw,80))}
 .exh-cv-in{position:absolute;left:calc(50% - var(--u) * var(--cvx,260.5));top:calc(var(--u) * var(--cvt,118));font-family:var(--fb);font-weight:300;font-size:calc(var(--u) * var(--cvs,17.1));line-height:calc(var(--u) * var(--cvl,23.8));letter-spacing:-.03em}
 .exh-cv-name{color:#fff;letter-spacing:normal}
@@ -280,7 +283,8 @@ a{color:inherit}
   .exh-cover{--mh:525}
   .exh-title{top:calc(var(--u) * var(--mtt,281));font-size:calc(var(--u) * var(--mts,40));line-height:calc(var(--u) * var(--mtl,39))}
   .exh-sub{top:calc(var(--u) * var(--mst,414));font-size:calc(var(--u) * var(--mss,8.4))}
-  .exh-bg.exh-fitw{top:calc(var(--u) * var(--mft,0))}
+  .exh-bg{left:calc((100% - 100% * var(--mbz,100) / 100) * var(--mbx,50) / 100);top:calc((100% - 100% * var(--mbz,100) / 100) * var(--mby,50) / 100);width:calc(100% * var(--mbz,100) / 100);height:calc(100% * var(--mbz,100) / 100);object-position:calc(var(--mbx,50) * 1%) calc(var(--mby,50) * 1%)}
+  .exh-bg.exh-fitw{left:0;width:100%;height:auto;top:calc(var(--u) * var(--mft,0))}
   .exh-bg.exh-mpos{left:calc(var(--u) * var(--mix));top:calc(var(--u) * var(--miy));width:calc(var(--u) * var(--miw));height:calc(var(--u) * var(--mih));right:auto;bottom:auto}
   .exh-work,.exh-row{padding-bottom:calc(var(--u) * 16)}
   .exh-work[data-size="l"]{--mt:0}
@@ -295,8 +299,8 @@ a{color:inherit}
   .exh-row{--mh:297.6}
   .exh-frames{top:calc(var(--u) * 16);gap:calc(var(--u) * 41)}
   .exh-frames img{width:calc(var(--u) * 32);height:calc(var(--u) * 32)}
-  .exh-caps{top:calc(var(--u) * var(--mct,163.2));right:calc(var(--u) * var(--mcr,27.7));gap:calc(var(--u) * 9)}
-  .exh-caps .exh-cap{width:calc(var(--u) * 64)}
+  .exh-caps{top:calc(var(--u) * var(--mct,179));right:calc(var(--u) * var(--mcr,27.7));gap:calc(var(--u) * var(--mcgp,9))}
+  .exh-caps .exh-cap{width:calc(var(--u) * var(--mcw,64))}
   .exh-space{--mh:211}
   .exh-photo{--mh:211}
   .exh-cv{--mh:534}

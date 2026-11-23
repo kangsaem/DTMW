@@ -857,3 +857,37 @@ test('빈 페이지에 첫 섹션을 넣으면 안내 섹션이 사라지고, �
   await t.dblclick(); await page.keyboard.press('Control+a'); await page.keyboard.type('my_account'); await page.mouse.click(800, 60);
   expect(await t.innerText()).toBe('my_account');
 });
+
+// ---------- 0.15.1 작은 작품 줄 사진 한 장 · 그림 확대 · 캡션 줄 맞춤 ----------
+test('작은 작품 줄: 사진 한 장 방식으로 바꾸고 되돌릴 수 있고, 캡션 제목이 한 줄로 맞는다', async ({ page }) => {
+  const errors = await open(page);
+  await page.evaluate(() => { const e = window.__kzEditor; e.getWrapper().append(KZ.sectionHtml('exh-row', {})); e.select(e.getWrapper().find('.exh-frames img')[0]); });
+  await page.click('#side [data-tab="design"]');
+  const seg = page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '사진 방식' }) }).first();
+  await seg.locator('button', { hasText: '사진 한 장' }).click(); await page.waitForTimeout(200);
+  expect(await page.evaluate(() => { const w = window.__kzEditor.getWrapper(); return [w.find('.exh-row .exh-art.exh-pos').length, w.find('.exh-row .exh-frames').length]; })).toEqual([1, 0]);
+  const tops = await page.frameLocator('.gjs-frame').locator('.exh-row .exh-cap-t').evaluateAll(es => es.map(e => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
+  await page.evaluate(() => { const e = window.__kzEditor; e.select(e.getWrapper().find('.exh-row .exh-cap-t')[0]); });
+  await page.click('#side [data-tab="design"]');
+  await page.locator('#tabDesign .field').filter({ has: page.locator('.lbl', { hasText: '사진 방식' }) }).first().locator('button', { hasText: '칸 여러 개' }).click();
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.__kzEditor.getWrapper().find('.exh-row .exh-frames img').length)).toBe(4);
+  expect(errors).toEqual([]);
+});
+
+test('표지 그림 확대 · 위치: PC · 모바일 따로 변수로 저장되고 그림 크기가 바뀐다', async ({ page, context }, info) => {
+  await open(page);
+  const html = await page.evaluate(() => {
+    const t = document.createElement('template'); t.innerHTML = KZ.sectionHtml('exh-cover', {});
+    t.content.firstElementChild.setAttribute('style', '--bz:150;--bx:0;--by:0;--mbz:120;--mbx:100;--mby:50');
+    return KZ.buildSite({ pages: [{ id: 'home', name: '홈', html: t.innerHTML }], css: '', S: Object.assign(KZ.C.DEFAULT_S(), { theme: 'exhibit', colors: Object.assign({}, KZ.C.THEMES.exhibit), font: 'exhibit' }) });
+  });
+  const file = info.outputPath('z.html'); require('fs').writeFileSync(file, html);
+  const q = await context.newPage(); await q.setViewportSize({ width: 1366, height: 768 }); await q.goto('file://' + file); await q.waitForTimeout(300);
+  const d = await q.evaluate(() => { const s = document.querySelector('.exh-cover').getBoundingClientRect(), r = document.querySelector('.exh-bg').getBoundingClientRect(); return [r.width / s.width, r.left - s.left, r.top - s.top]; });
+  expect(d.map(v => Math.round(v * 100) / 100)).toEqual([1.5, 0, 0]);
+  await q.setViewportSize({ width: 375, height: 800 }); await q.waitForTimeout(200);
+  const m = await q.evaluate(() => { const s = document.querySelector('.exh-cover').getBoundingClientRect(), r = document.querySelector('.exh-bg').getBoundingClientRect(); return [r.width / s.width, Math.round(r.right - s.right)]; });
+  expect(Math.round(m[0] * 100) / 100).toBe(1.2); expect(m[1]).toBe(0); // 가로 위치 100% → 오른쪽 끝 맞춤
+});
