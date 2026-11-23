@@ -3,7 +3,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-20
-- 편집기 버전: 0.13.2
+- 편집기 버전: 0.14.0
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -41,6 +41,7 @@
 - [x] 0.13.0: 배경 고정 효과(섹션 레이아웃 '배경 고정 창' · 효과 탭 '배경 고정' · 효과 충돌 처리 · 영상 보일 때만 재생), 창 밖 패널 다시 한 번에 하나, 짧은 로고. 자동 점검 50개
 - [x] 0.13.1: 창 밖 패널 + 창 크기 변경 시 빈 칸 버그. 자동 점검 51개
 - [x] 0.13.2: 닫을 때 저장 즉시 확정(commit), 점검 안정화
+- [x] 0.14.0: 작가 전시 세트 + 전시 섹션 7종 (강이조 Canva 사이트 측정해 옮김, PC · 모바일). 자동 점검 55개
 - [x] 가비아 DNS에 site CNAME 추가 (사용자 완료)
 - [x] GitHub Actions 배포 설정 (점검 통과 시에만 배포)
 - [x] GitHub Settings → Pages: Source = GitHub Actions, Custom domain = site.kangyonz.com (사용자 완료) → site.kangyonz.com 공개 중
@@ -87,6 +88,8 @@
    - 할 일: 내보내기 창에 'ZIP' 추가, data URI → media/파일명, 영상 있으면 ZIP 추천. ZIP은 외부 라이브러리 없이 무압축(store)
    - 언어와 함께: 한 파일 = 모든 언어를 넣고 스크립트로 전환, ZIP = 언어별 html + hreflang(DTMD 방식, 검색 노출)
 3. (그 뒤) 3차: GitHub 자동 배포 선택 기능
+
+전시 섹션 메모 (0.14.0): `layouts/26-exhibit.js` (exh-cover · exh-work · exh-row · exh-space · exh-photo · exh-cv · exh-links), CSS `site/base.css` `.exh` — `--u = min(1px, 100vw/1366)` 로 Canva 1366 × 768 판을 그대로, 모바일 640px 이하는 px 로 따로. 세트 `sets/exhibit.js` (theme/font 'exhibit', 새 변수 `--fx` = 부제 글꼴). Canva 측정값: 표지 제목 50.6px 위 355 · 부제 10.7px 위 628, 작품 463 × 522 위 123, 캡션 오른쪽 끝 가운데+460 위 667(이름 14 · 제목 16.7 · 정보 9.7), 크게(주황) 높이 714 · 캡션 위 520, 작은 작품 117px · 간격 150 · 위 60, 캡션 줄 위 592, 약력 왼쪽 가운데−260.5 위 118 · 17.1px · 줄 23.8, 모바일 글자 ×0.79. Canva 글꼴은 내부 코드라 이름을 알 수 없어 모양 비교로 고름(제목 = Figtree 800 이 가장 가까우나 같지 않음).
 
 배경 고정 메모 (0.13.0): CSS `site/motion.css` `[data-scroll="bgfix"]` (clip-path:inset(0)) + 바로 아래 고정 층 `.bgfix-media · .hero-photo · .hero-video · .hero-bg · .band-img` 을 position:fixed. 레이아웃 `layouts/25-bgfix.js` (`.bgfix`, data-h 100/70/50, data-dim 0/18/35/55). 편집기 `main.js` applyBgfix · FIX_BAD_ANIM(페이드 외 등장 효과) · FIX_BAD_HOVER(떠오름). 영상 재생은 `runtime.js` IntersectionObserver. 한계: 페이지 전환 애니메이션 중 잠깐 흔들림, 바깥 요소(조상)에 transform 이 남는 효과가 있으면 고정이 풀림.
 

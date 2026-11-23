@@ -371,16 +371,18 @@ test('내보낸 사이트에는 실제로 쓴 글꼴만 들어가고, 헬베티�
     const e = window.__kzEditor, pages = e.Pages.getAll().map(p => ({ id: p.getId(), name: p.get('name'), html: p.getMainComponent().getInnerHTML() }));
     const a = KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { font: 'serif' }) });
     const b = KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { font: 'heros' }) });
+    const c = KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { font: 'exhibit' }) });
     return {
+      cFig: c.includes('family=Figtree'), cPop: c.includes('family=Poppins'), cFx: c.includes('--fx:Poppins'),
       aSerif: a.includes('Noto+Serif+KR'), aPret: a.includes('pretendard'), aHeros: a.includes('WMW Heros'),
       bHeros: /@font-face\{font-family:'WMW Heros';src:url\(data:font\/woff2;base64,/.test(b), bPret: b.includes('pretendardvariable-dynamic-subset'), bSerif: b.includes('Noto+Serif+KR'),
       loaded: Object.keys(KZ.site.fonts).sort(), fonts: Object.keys(KZ.C.FONTS).length,
       canvas: !!e.Canvas.getDocument().querySelector('link[href*="pretendard"]')
     };
   });
-  expect(r).toMatchObject({ aSerif: true, aPret: false, aHeros: false, bHeros: true, bPret: true, bSerif: false, canvas: true });
+  expect(r).toMatchObject({ aSerif: true, aPret: false, aHeros: false, bHeros: true, bPret: true, bSerif: false, canvas: true, cFig: true, cPop: true, cFx: true });
   expect(r.loaded).toEqual(['wmw-heros-bold', 'wmw-heros-regular']);
-  expect(r.fonts).toBe(10);
+  expect(r.fonts).toBe(11);
   expect(errors).toEqual([]);
 });
 
@@ -719,3 +721,52 @@ test('패널을 창 밖으로 꺼낸 뒤 편집기 창 크기를 바꿔도 빈 �
   expect(await page.evaluate(() => document.getElementById('main').classList.contains('float-drawer'))).toBe(true);
   expect(await page.evaluate(() => document.querySelector('.stage').getBoundingClientRect().width)).toBe(w0);
 });
+
+// ---------- 0.14.0 전시 섹션 · 작가 전시 세트 ----------
+test('전시 섹션 7종: 자리표시만 쓰고, 세트가 적용된다', async ({ page }) => {
+  const errors = await open(page);
+  const r = await page.evaluate(() => {
+    const ids = ['exh-cover', 'exh-work', 'exh-row', 'exh-space', 'exh-photo', 'exh-cv', 'exh-links'];
+    const missing = ids.filter(id => !KZ.layouts[id] || KZ.layouts[id].cat !== '섹션');
+    const digits = ids.filter(id => { const t = document.createElement('template'); t.innerHTML = KZ.sectionHtml(id); return /\d/.test(t.content.textContent.replace(/\[[^\]]*\]/g, '')); });
+    return { missing, digits, set: !!KZ.sets.exhibit, theme: KZ.C.THEMES.exhibit.bg };
+  });
+  expect(r).toEqual({ missing: [], digits: [], set: true, theme: '#EBEBEB' });
+  await page.click('#setsFold');
+  await page.locator('.set', { hasText: '작가 전시' }).click();
+  await page.locator('#dlgF button', { hasText: '적용' }).click();
+  await expect.poll(() => page.evaluate(() => window.__kzEditor.Pages.getAll().map(p => p.getId()).join(','))).toBe('home,show2,show1');
+  expect(errors).toEqual([]);
+});
+
+for (const [w, h] of [[1366, 768], [2560, 1300], [390, 844]]) {
+  test(`작가 전시: ${w}px 에서 Canva 판과 같은 위치 · 크기`, async ({ page, context }, info) => {
+    await open(page);
+    const html = await page.evaluate(() => {
+      const set = KZ.sets.exhibit, pages = set.pages.map(p => ({ id: p[0], name: p[1], html: KZ.setPageHtml(set, p) }));
+      return KZ.buildSite({ pages, css: '', S: Object.assign(KZ.C.DEFAULT_S(), { theme: 'exhibit', colors: Object.assign({}, KZ.C.THEMES.exhibit), font: 'exhibit' }) });
+    });
+    const q = await context.newPage();
+    await q.setViewportSize({ width: w, height: h });
+    const file = info.outputPath('exhibit.html'); require('fs').writeFileSync(file, html);
+    await q.goto('file://' + file + '#show2'); await q.waitForTimeout(800);
+    const m = await q.evaluate(() => {
+      const pg = document.querySelector('.rt-page[data-page="show2"]'), S = [...pg.querySelectorAll('section')], W = document.documentElement.clientWidth;
+      const rel = (e, s) => { const r = e.getBoundingClientRect(), R = s.getBoundingClientRect(); return { x: r.left - R.left, y: r.top - R.top, w: r.width, h: r.height, right: r.right - R.left }; };
+      const cover = S[0], work = S[1], cv = S.find(s => s.classList.contains('exh-cv'));
+      return { W, coverH: cover.getBoundingClientRect().height, title: rel(cover.querySelector('.exh-title'), cover), art: rel(work.querySelector('.exh-art'), work),
+        cap: rel(work.querySelector('.exh-cap-t'), work), workH: work.getBoundingClientRect().height, cvName: rel(cv.querySelectorAll('.exh-cv-name')[1], cv), overflow: document.documentElement.scrollWidth - W };
+    });
+    const near = (a, b, d = 2) => expect(Math.abs(a - b)).toBeLessThanOrEqual(d);
+    expect(m.overflow).toBe(0);
+    if (w >= 1366) {
+      // 1366 판 그대로, 가운데 (Canva 측정값: 표지 제목 355, 작품 463 × 522 위 123, 캡션 오른쪽 끝 = 가운데 + 460, 약력 영문 이름 338)
+      near(m.coverH, 768); near(m.title.y, 355); near(m.art.y, 123); near(m.art.h, 522); near(m.art.w, 463);
+      near(m.cap.right, m.W / 2 + 460); near(m.cap.y, 687); near(m.cvName.y, 338);
+    } else {
+      // 모바일: Canva 모바일 보기 (표지 525, 사진 양옆 15px · 위 97, 캡션은 사진 아래 15px · 오른쪽 64px, 영문 이름 240)
+      near(m.coverH, 525); near(m.title.y, 281); near(m.art.x, 15); near(m.art.w, m.W - 30); near(m.art.y, 97);
+      near(m.cap.right, m.W - 64); near(m.cvName.y, 240);
+    }
+  });
+}
