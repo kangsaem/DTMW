@@ -1,6 +1,8 @@
 # HANDOFF — 지금 어디까지 왔나
 > **규칙(v0.17.4 — 사용자 11/26, DTMC 와 같음)**: 고친 파일은 **저장소와 같은 폴더 구조의 zip 하나**로 주고(지울 파일 = zip 맨 위 `_delete.txt`), **배포할 때만 `app/version.js` 의 버전을 올림**(버전이 배포된 것보다 높으면 자동 배포, 그대로면 점검만). 사용자는 그 zip 을 저장소 `update/` 에 올리고 Commit — 나머지는 Actions(`docs/RELEASE_GUIDE.md`). `.github/` 는 zip 으로 못 바꿈. 버전은 version.js 한 곳(index.html `?v=` 는 `tools/stamp_version.py` 가 맞춤). zip 은 `SendUserFile` 로 전달.
 
+> zip 첫 시험 11/26 15:05 통과(run 45765475662): `update/zip-test-0.17.4.zip`(맨 위 폴더 SITE/ — 벗김) → `docs/ZIP_TEST.md` 넣음 · `_delete.txt` 로 `docs/DELETE_ME.txt` 지움 · zip 지움 · 커밋 72c11c8 → 점검 통과 → '배포: false — 버전 그대로(0.17.4)'. 그 전 0.17.4 배포는 '새 버전 0.17.4 > 배포된 0.17.3' → 배포 · 태그 v0.17.4.
+
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-26
