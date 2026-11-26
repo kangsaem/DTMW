@@ -276,3 +276,16 @@ test('화면 — 글 도구줄로 만든 주소 없는 링크는 빨간 점선, 
   expect(await P.locator('body').evaluate(() => window.__mark)).toBe(1); // 새로고침되지 않음
   expect(errors).toEqual([]);
 });
+
+test('화면 — 편집기 버전이 왼쪽 세로 탭 맨 아래에 늘 보인다 (좁은 화면 포함)', async ({ page }) => {
+  for (const w of [1440, 1280, 1024]) {
+    await page.setViewportSize({ width: w, height: 800 });
+    const errors = await openEditor(page);
+    const ver = page.locator('.rail #ver');
+    await expect(ver).toBeVisible();
+    expect(await ver.textContent()).toBe('v' + await page.evaluate(() => KZ.VERSION));
+    const r = await page.evaluate(() => { const v = document.getElementById('ver').getBoundingClientRect(), rail = document.querySelector('.rail').getBoundingClientRect(); return v.bottom <= rail.bottom + 1 && v.top > rail.top + rail.height / 2; });
+    expect(r, w + 'px').toBe(true);
+    expect(errors).toEqual([]);
+  }
+});
