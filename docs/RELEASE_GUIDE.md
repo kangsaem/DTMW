@@ -4,7 +4,7 @@ DTMC 와 같은 규칙입니다.
 
 ## 한 번에: zip 하나 올리기
 1. Claude 채팅에서 고친 파일을 **zip 하나**로 받습니다(저장소와 같은 폴더 구조). 배포하려면 `app/version.js` 의 버전도 올려 달라고 하기.
-2. GitHub 저장소(SITE) → `update` 폴더 → **Add file → Upload files** → zip 을 끌어다 놓기 → **Commit changes**.
+2. GitHub 저장소(DTMW) → `update` 폴더 → **Add file → Upload files** → zip 을 끌어다 놓기 → **Commit changes**.
 3. 끝. Actions 가 알아서:
    - zip 을 풀어 제자리에 넣고(`_delete.txt` 에 적힌 파일은 지움), `index.html` 의 캐시 번호(`?v=`)를 버전에 맞추고, zip 은 지운 뒤 커밋,
    - 같은 실행 안에서 자동 점검(편집기를 실제로 띄워 90여 가지 확인),

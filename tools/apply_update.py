@@ -1,6 +1,6 @@
 """zip 하나로 고치기: 저장소 `update/` 에 올라온 zip 을 풀어 제자리에 넣음 — GitHub Actions 가 부름(사람이 직접 안 돌려도 됨).
 DTMC(kangsaem/DTMC) 의 같은 이름 도구를 그대로 가져옴(v0.17.4).
-- zip 안 = 저장소와 같은 폴더 구조(app/… · tests/… · docs/… 등). 맨 위에 폴더 하나로 싸여 있으면(예: SITE/app/…) 그 껍데기는 벗김.
+- zip 안 = 저장소와 같은 폴더 구조(app/… · tests/… · docs/… 등). 맨 위에 폴더 하나로 싸여 있으면(예: DTMW/app/…) 그 껍데기는 벗김.
 - `_delete.txt`(zip 맨 위) = 지울 파일 목록(한 줄에 하나, 저장소 기준 경로).
 - 막는 것: 저장소 밖(절대 경로 · '..') · `.git/` · `.github/`(워크플로 — GitHub 도 토큰으로 못 바꿈, 웹에서 직접) · `update/` 자체.
 - 다 넣은 뒤 zip 은 지움. 결과는 표준 출력 + GITHUB_STEP_SUMMARY.

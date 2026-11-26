@@ -81,7 +81,7 @@ window.KZ = window.KZ || {};
     { id: 'tablet', name: '태블릿', width: '820px', widthMedia: '992px' },
     { id: 'mobile', name: '모바일', width: '390px', widthMedia: '640px' }
   ];
-  C.ISSUES_URL = 'https://github.com/kangsaem/SITE/issues/new';
+  C.ISSUES_URL = 'https://github.com/kangsaem/DTMW/issues/new';
   KZ.C = C;
 
   // 편집기 조각 등록: editor/*.js 가 KZ.part(function (X) {...}) 로 자기를 등록하고, main.js 가 순서대로 실행

@@ -21,7 +21,7 @@
 - 내보내기 형식: 올린 사진 · 영상 없으면 index.html 하나, 있으면 ZIP `index.html + media/` (B안 확정)
 - 업종 제한 없음. 레이아웃(구조)과 업종 세트(내용 · 색 · 글꼴)를 분리해 조합.
 - 편집기 주소: **site.kangyonz.com**. build · html · page · make 리디렉트는 보류 (GitHub Pages는 저장소당 주소 1개 — Cloudflare 이전 때 처리, 코드는 이미 들어 있음).
-- 호스팅: GitHub `kangsaem/SITE` + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
+- 호스팅: GitHub `kangsaem/DTMW`(11/26 사용자가 SITE 에서 이름 바꿈 — 옛 주소는 GitHub 가 자동 연결. 편집기 이름은 WMW 그대로) + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
 - 도메인: 가비아 DNS. kangyonz.com 본체(다른 용도로 사용 중)와 kangizo.com(Canva + 가비아 포워딩)은 **건드리지 않음**.
 - 참고 사이트: kangyonz.com/proto/v3 (앱 카드형), kangizo.com (작가 소개). **실제 사이트 내용으로 만든 세트는 넣지 않음** — 세트는 업종 무관 · 자리표시 문구만.
 
