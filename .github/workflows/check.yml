@@ -1,6 +1,6 @@
 # 점검 · 배포 (DTMC 와 같은 규칙 — docs/RELEASE_GUIDE.md)
 #   main 에 올라옴 → (update/ 에 zip 이 있으면) 풀어서 제자리에 넣고 · index.html 캐시 번호를 버전에 맞춰 커밋
-#   → 같은 실행 안에서 그 커밋을 자동 점검 → 버전(app/version.js)이 지금 배포된 것보다 높으면 site.kangyonz.com 에 배포하고 태그 v<버전>.
+#   → 같은 실행 안에서 그 커밋을 자동 점검 → 버전(app/version.js)이 지금 배포된 것(Pages 설정의 주소)보다 높으면 배포하고 태그 v<버전>.
 #   Actions 가 한 커밋은 새 실행을 깨우지 않으므로(GitHub 무한 반복 방지) 풀기 → 점검 → 배포를 한 실행에 둠.
 name: 점검 · 배포
 on:
@@ -71,6 +71,9 @@ jobs:
     needs: [unpack, smoke]
     if: ${{ !cancelled() && needs.smoke.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     outputs:
       go: ${{ steps.rel.outputs.go }}
       ver: ${{ steps.rel.outputs.ver }}
@@ -80,9 +83,14 @@ jobs:
           ref: ${{ needs.unpack.outputs.sha || github.sha }}
       - name: 배포할지(버전이 지금 배포된 것보다 높으면)
         id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           v=$(python3 -c "import re;print(re.search(r\"KZ\.VERSION\s*=\s*'([0-9.]+)'\",open('app/version.js',encoding='utf-8').read()).group(1))")
-          cur=$(curl -fsSL --max-time 15 "https://site.kangyonz.com/version.js?t=$(date +%s)" | python3 -c "import re,sys;m=re.search(r\"KZ\.VERSION\s*=\s*'([0-9.]+)'\",sys.stdin.read());print(m.group(1) if m else '')" || true)
+          # 배포된 주소 = GitHub Pages 설정의 주소(사용자 도메인) — 주소를 바꿔도 여기는 고칠 필요 없음
+          site=$(gh api "repos/${{ github.repository }}/pages" --jq .html_url 2>/dev/null || true)
+          echo "사이트 주소: ${site:-못 읽음}"
+          cur=$([ -n "$site" ] && curl -fsSL --max-time 15 "${site%/}/version.js?t=$(date +%s)" | python3 -c "import re,sys;m=re.search(r\"KZ\.VERSION\s*=\s*'([0-9.]+)'\",sys.stdin.read());print(m.group(1) if m else '')" || true)
           go=false
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.deploy }}" = "true" ]; then go=true; why="수동 실행(deploy)"
           elif [ -z "$cur" ]; then why="배포된 버전을 못 읽음 — 이번엔 안 올림(수동 실행으로 올릴 수 있음)"
