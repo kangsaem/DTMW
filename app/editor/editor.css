@@ -42,7 +42,7 @@ button{cursor:pointer}
 .tb{height:34px;min-width:34px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .tb svg{width:17px;height:17px}
 .status{color:var(--ui-sub);font-size:12px;white-space:nowrap;margin-right:4px}
-.ver{font-size:11px;color:var(--ui-sub);text-decoration:none;white-space:nowrap;margin-right:4px}
+.ver{margin-top:auto;padding:8px 0 4px;font-size:10.5px;color:var(--ui-sub);text-decoration:none;text-align:center;white-space:nowrap} /* 왼쪽 세로 탭 맨 아래 — 화면 폭과 상관없이 항상 보임 */
 .ver:hover{color:var(--ui-ink);text-decoration:underline}
 .menu-wrap{position:relative}
 .dd{position:absolute;right:0;top:40px;background:var(--ui-panel);border:1px solid var(--ui-line2);box-shadow:0 10px 30px rgba(0,0,0,.5);padding:4px;min-width:240px;z-index:60;display:none}
@@ -301,7 +301,7 @@ body.kz-out > .drawer,body.kz-out > .side{position:static!important;display:flex
 .stage-head{white-space:nowrap;overflow:hidden;min-width:0}
 .stage-head > *{flex:none}
 .stage-head #stageTitle{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:1360px){.lbl-dev,.lbl-zen,.ver,.stage-hint{display:none!important}.top [data-dev]{padding:0 8px}}
+@media (max-width:1360px){.lbl-dev,.lbl-zen,.stage-hint{display:none!important}.top [data-dev]{padding:0 8px}}
 @media (max-width:1180px){.lbl-x,.status,.lbl-file,.lbl-pv{display:none!important}.site-name{width:96px}}
 @media (max-width:1000px){.site-name{display:none}.pagesel select{max-width:130px}.top .sep{margin:0 1px}}
 .stage-head .narrow-note{color:#f2c94c}

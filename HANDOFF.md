@@ -1,9 +1,10 @@
 # HANDOFF — 지금 어디까지 왔나
+> **규칙(v0.17.4 — 사용자 11/26, DTMC 와 같음)**: 고친 파일은 **저장소와 같은 폴더 구조의 zip 하나**로 주고(지울 파일 = zip 맨 위 `_delete.txt`), **배포할 때만 `app/version.js` 의 버전을 올림**(버전이 배포된 것보다 높으면 자동 배포, 그대로면 점검만). 사용자는 그 zip 을 저장소 `update/` 에 올리고 Commit — 나머지는 Actions(`docs/RELEASE_GUIDE.md`). `.github/` 는 zip 으로 못 바꿈. 버전은 version.js 한 곳(index.html `?v=` 는 `tools/stamp_version.py` 가 맞춤). zip 은 `SendUserFile` 로 전달.
 
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
-- 마지막 갱신: 2026-11-23
-- 편집기 버전: 0.17.3
+- 마지막 갱신: 2026-11-26
+- 편집기 버전: 0.17.4
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 

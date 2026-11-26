@@ -1,39 +1,103 @@
-# 자동 점검 + 배포: main에 올리면 점검을 통과한 경우에만 GitHub Pages(site.kangyonz.com)에 배포합니다.
+# 점검 · 배포 (DTMC 와 같은 규칙 — docs/RELEASE_GUIDE.md)
+#   main 에 올라옴 → (update/ 에 zip 이 있으면) 풀어서 제자리에 넣고 · index.html 캐시 번호를 버전에 맞춰 커밋
+#   → 같은 실행 안에서 그 커밋을 자동 점검 → 버전(app/version.js)이 지금 배포된 것보다 높으면 site.kangyonz.com 에 배포하고 태그 v<버전>.
+#   Actions 가 한 커밋은 새 실행을 깨우지 않으므로(GitHub 무한 반복 방지) 풀기 → 점검 → 배포를 한 실행에 둠.
 name: 점검 · 배포
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: "버전이 같아도 사이트에 배포"
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  smoke:
+  unpack:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.go.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
+      - name: zip 풀기(update/*.zip → 제자리) · 캐시 번호 맞추기 → 커밋
+        id: go
+        run: |
+          python3 tools/apply_update.py . || { echo "zip 안에 막힌 경로가 있어 아무것도 안 바꿨습니다(요약 참고)"; exit 1; }
+          python3 tools/stamp_version.py .
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -q -m "update: zip 풀기 · 캐시 번호($(git log -1 --format=%h))"
+            git push -q origin HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  smoke:
+    needs: unpack
+    if: ${{ !cancelled() && needs.unpack.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.unpack.outputs.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - name: 자동 점검
+        run: python3 tools/stamp_version.py . && npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
           path: test-results/
           retention-days: 7
+
+  decide:
+    needs: [unpack, smoke]
+    if: ${{ !cancelled() && needs.smoke.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.rel.outputs.go }}
+      ver: ${{ steps.rel.outputs.ver }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.unpack.outputs.sha || github.sha }}
+      - name: 배포할지(버전이 지금 배포된 것보다 높으면)
+        id: rel
+        run: |
+          v=$(python3 -c "import re;print(re.search(r\"KZ\.VERSION\s*=\s*'([0-9.]+)'\",open('app/version.js',encoding='utf-8').read()).group(1))")
+          cur=$(curl -fsSL --max-time 15 "https://site.kangyonz.com/version.js?t=$(date +%s)" | python3 -c "import re,sys;m=re.search(r\"KZ\.VERSION\s*=\s*'([0-9.]+)'\",sys.stdin.read());print(m.group(1) if m else '')" || true)
+          go=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.deploy }}" = "true" ]; then go=true; why="수동 실행(deploy)"
+          elif [ -z "$cur" ]; then why="배포된 버전을 못 읽음 — 이번엔 안 올림(수동 실행으로 올릴 수 있음)"
+          elif python3 -c "import sys;t=lambda s:tuple(int(x) for x in s.split('.'));sys.exit(0 if t('$v')>t('$cur') else 1)"; then go=true; why="새 버전 $v > 배포된 $cur"
+          else why="버전 그대로($v · 배포된 $cur) — 점검만"; fi
+          echo "배포: $go — $why"
+          echo "go=$go" >> "$GITHUB_OUTPUT"; echo "ver=$v" >> "$GITHUB_OUTPUT"
+          echo "### 배포: $go — $why" >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
-    needs: smoke
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [unpack, decide]
+    if: ${{ !cancelled() && needs.decide.outputs.go == 'true' }}
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       pages: write
       id-token: write
     environment:
@@ -41,9 +105,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.unpack.outputs.sha || github.sha }}
+      - run: python3 tools/stamp_version.py .
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: 태그 v<버전>
+        run: |
+          t="v${{ needs.decide.outputs.ver }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$t" >/dev/null 2>&1; then echo "태그 $t 이미 있음"; else git tag "$t" && git push -q origin "$t" && echo "태그 $t"; fi
