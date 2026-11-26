@@ -6,7 +6,7 @@
 > 새 대화에서 이어서 작업할 때 이 파일부터 읽습니다. 작업이 끝날 때마다 갱신합니다.
 
 - 마지막 갱신: 2026-11-26
-- 편집기 버전: 0.17.4
+- 편집기 버전: 0.17.5
 - 계획서: <https://claude.ai/artifact/GZGMQhi5QK8s6AFJ1VHxVE>
 - 1차 시제품 (Claude 아티팩트, 참고용): <https://claude.ai/artifact/CCTDpWZBAeYR6UGeBCodmD>
 
@@ -20,7 +20,7 @@
 - 사용자 올리기 안내는 **GitHub Pages 기준** (2026-11-20 결정 — Netlify는 무료 크레딧 한도 · 사이트 멈춤, Cloudflare Pages는 Workers 쪽으로 방향 전환 · 한국 속도 우려). 안내 페이지 `app/guide/`.
 - 내보내기 형식: 올린 사진 · 영상 없으면 index.html 하나, 있으면 ZIP `index.html + media/` (B안 확정)
 - 업종 제한 없음. 레이아웃(구조)과 업종 세트(내용 · 색 · 글꼴)를 분리해 조합.
-- 편집기 주소: **site.kangyonz.com**. build · html · page · make 리디렉트는 보류 (GitHub Pages는 저장소당 주소 1개 — Cloudflare 이전 때 처리, 코드는 이미 들어 있음).
+- 편집기 주소: **wmw.scubob.com** (11/26 사용자 — site.kangyonz.com 에서 옮김. Cloudflare DNS CNAME `wmw` → `kangsaem.github.io` DNS 전용, GitHub 계정에 scubob.com 도메인 인증). 옛 주소(site · build · html · page · make.kangyonz.com)를 새 주소로 넘기는 코드는 index.html 에 있으나, GitHub Pages 는 저장소당 주소 1개라 옛 주소로는 이 사이트가 열리지 않음 → 옛 주소 처리(가비아 포워딩 또는 넘기기 전용 저장소)는 보류. 워크플로는 배포된 버전을 Pages 설정의 주소에서 읽으므로 주소를 바꿔도 고칠 필요 없음.
 - 호스팅: GitHub `kangsaem/DTMW`(11/26 사용자가 SITE 에서 이름 바꿈 — 옛 주소는 GitHub 가 자동 연결. 편집기 이름은 WMW 그대로) + **GitHub Pages** (Actions로 `app/` 배포). 광고 · 리디렉트가 필요해지면 Cloudflare Pages로 이전 (가비아 site 값만 변경).
 - 도메인: 가비아 DNS. kangyonz.com 본체(다른 용도로 사용 중)와 kangizo.com(Canva + 가비아 포워딩)은 **건드리지 않음**.
 - 참고 사이트: kangyonz.com/proto/v3 (앱 카드형), kangizo.com (작가 소개). **실제 사이트 내용으로 만든 세트는 넣지 않음** — 세트는 업종 무관 · 자리표시 문구만.

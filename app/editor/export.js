@@ -115,7 +115,7 @@ window.KZ = window.KZ || {};
     if (!inFrame) { try { directDownload(name, data, mime); ui.toast(name + ' 을(를) 내려받았습니다'); return Promise.resolve(); } catch (e) { /* 아래 창으로 */ } }
     return fallback();
     function fallback() {
-      if (typeof data !== 'string') { return ui.dialog('파일 받기', '<p>이 화면에서는 파일 받기가 막혀 있습니다. 편집기(site.kangyonz.com)를 새 탭으로 열어 다시 시도하세요.</p>'); }
+      if (typeof data !== 'string') { return ui.dialog('파일 받기', '<p>이 화면에서는 파일 받기가 막혀 있습니다. 편집기(wmw.scubob.com)를 새 탭으로 열어 다시 시도하세요.</p>'); }
       var h = ui.h, kb = Math.round(data.length / 1024);
       var ta = h('textarea', { readOnly: true, value: data.length > 20000 ? data.slice(0, 20000) + '\n…(미리보기는 앞부분만 표시, 복사하면 전체가 복사됩니다)' : data });
       var body = h('div', {}, [h('p', { innerHTML: '<b>' + ui.esc(name) + '</b> · ' + kb + ' KB<br>파일 저장이 막혀 있으면 [복사]한 뒤 메모장에 붙여 넣어 같은 이름으로 저장하세요.' }), ta]);

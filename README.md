@@ -2,7 +2,7 @@
 
 (저장소 이름: SITE)
 
-**site.kangyonz.com** 에서 누구나 쓰는 무료 웹사이트 편집기입니다.
+**wmw.scubob.com** 에서 누구나 쓰는 무료 웹사이트 편집기입니다.
 Canva처럼 템플릿을 고르고 화면에서 바로 고친 뒤, 완성된 **순수 HTML**을 내려받아 원하는 곳에 올립니다.
 서버 · 회원 · 데이터베이스가 없습니다. 작업은 각자 브라우저와 작업 파일(.json)에 저장됩니다.
 
@@ -74,7 +74,7 @@ GitHub에 올리면 Actions가 같은 점검을 자동으로 실행합니다.
 | 설정 | 값 |
 |---|---|
 | Settings → Pages → Source | **GitHub Actions** |
-| Settings → Pages → Custom domain | `site.kangyonz.com` (+ Enforce HTTPS) |
+| Settings → Pages → Custom domain | `wmw.scubob.com` (+ Enforce HTTPS) — DNS 는 Cloudflare(scubob.com) CNAME `wmw` → `kangsaem.github.io`, DNS 전용 |
 | 가비아 DNS | `site` CNAME → `kangsaem.github.io.` |
 
 광고를 붙이거나 build · html · page · make 리디렉트가 필요해지면 Cloudflare Pages로 옮깁니다 (출력 폴더 `app`, 빌드 명령 없음). 이때는 가비아의 `site` 값만 `<프로젝트>.pages.dev` 로 바꾸면 됩니다.
